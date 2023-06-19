@@ -117,14 +117,14 @@ if __name__ == '__main__':
     os.system(KILL_ALL)
 
     ##
-    ## comment out some parameters in panther.yaml to overwrite them
+    ## comment out some parameters in primer.yaml to overwrite them
     ##
 
-    os.system("sed -i '/use_panther_star:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/use_expert:/s/^/#/g' $(rospack find panther)/param/panther.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
-    os.system("sed -i '/use_student:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/num_of_trajs_per_replan:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/max_num_of_initial_guesses:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
+    os.system("sed -i '/use_panther_star:/s/^/#/g' $(rospack find panther)/param/primer.yaml")
+    os.system("sed -i '/use_expert:/s/^/#/g' $(rospack find panther)/param/primer.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
+    os.system("sed -i '/use_student:/s/^/#/g' $(rospack find panther)/param/primer.yaml")
+    # os.system("sed -i '/num_of_trajs_per_replan:/s/^/#/g' $(rospack find panther)/param/primer.yaml")
+    # os.system("sed -i '/max_num_of_initial_guesses:/s/^/#/g' $(rospack find panther)/param/primer.yaml")
     # os.system("sed -i '/num_max_of_obst:/s/^/#/g' $(rospack find panther)/matlab/casadi_generated_files/params_casadi.yaml")
 
     ##
@@ -282,10 +282,10 @@ if __name__ == '__main__':
     ## uncomment delay_check param
     ##
 
-    os.system("sed -i '/use_panther_star:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/use_expert:/s/^#//g' $(rospack find panther)/param/panther.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
-    os.system("sed -i '/use_student:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/num_of_trajs_per_replan:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/max_num_of_initial_guesses:/s/^#//g' $(rospack find panther)/param/panther.yaml")
+    os.system("sed -i '/use_panther_star:/s/^#//g' $(rospack find panther)/param/primer.yaml")
+    os.system("sed -i '/use_expert:/s/^#//g' $(rospack find panther)/param/primer.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
+    os.system("sed -i '/use_student:/s/^#//g' $(rospack find panther)/param/primer.yaml")
+    os.system("sed -i '/num_of_trajs_per_replan:/s/^#//g' $(rospack find panther)/param/primer.yaml")
+    os.system("sed -i '/max_num_of_initial_guesses:/s/^#//g' $(rospack find panther)/param/primer.yaml")
     # os.system("sed -i '/num_max_of_obst:/s/^#//g' $(rospack find panther)/matlab/casadi_generated_files/params_casadi.yaml")
     

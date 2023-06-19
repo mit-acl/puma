@@ -189,7 +189,7 @@ if __name__ == "__main__":
 	### get B-spline for NLP
 	## get ydot_max
 	rospack = rospkg.RosPack()
-	with open(rospack.get_path('panther')+'/param/panther.yaml', 'rb') as f:
+	with open(rospack.get_path('panther')+'/param/primer.yaml', 'rb') as f:
 	    conf = yaml.safe_load(f.read())    # load the config file
 	yaw_dot_max = conf['ydot_max']
 	acts_n_nlp = venv.nlpys.substituteWithNLPYaw(acts_n_expert, venv.w_state, venv.w_obstacles, yaw_dot_max) #acts_n, w_init_state, w_obstacles

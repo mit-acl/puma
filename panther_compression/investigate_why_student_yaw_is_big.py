@@ -159,7 +159,7 @@ if __name__ == "__main__":
 	##
 
 	rospack = rospkg.RosPack()
-	with open(rospack.get_path('panther')+'/param/panther.yaml', 'rb') as f:
+	with open(rospack.get_path('panther')+'/param/primer.yaml', 'rb') as f:
 	    conf = yaml.safe_load(f.read())    # load the config file
 	yaw_dot_max = conf['ydot_max']
 

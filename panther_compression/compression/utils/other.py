@@ -116,7 +116,7 @@ def getPANTHERparamsAsCppStruct():
 def readPANTHERparams():
 
 	params_yaml_1=[]
-	with open(os.path.dirname(os.path.abspath(__file__)) + '/../../../panther/param/panther.yaml', "r") as stream:
+	with open(os.path.dirname(os.path.abspath(__file__)) + '/../../../panther/param/primer.yaml', "r") as stream:
 		try:
 			params_yaml_1=yaml.safe_load(stream)
 		except yaml.YAMLError as exc:

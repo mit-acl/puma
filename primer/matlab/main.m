@@ -129,7 +129,7 @@ assert(tf_n==1.0); %This must be 1! (assumed in the C++ and MATLAB code)
 %% PARAMETERS! 
 %%
 
-%NOTE: All of the opti.parameter values are set by the C++ code by panther.yaml
+%NOTE: All of the opti.parameter values are set by the C++ code by primer.yaml
 
 %%
 %% factors for the cost
@@ -168,7 +168,7 @@ thetay_half_FOV_rad=thetay_half_FOV_deg*pi/180.0;
 b_T_c=opti.parameter(4,4);
 
 %%
-%% If we are optimizing the total time (time allocation) then setup alpha as a decision variable, else it is a parameter read from panther.yaml
+%% If we are optimizing the total time (time allocation) then setup alpha as a decision variable, else it is a parameter read from primer.yaml
 %%
 
 if(optimize_time_alloc)

@@ -30,7 +30,7 @@ class GoalReachedCheck:
         rospy.sleep(3)
 
         # goal radius
-        self.goal_radius = 0.5 #needs to be the same as the one in panther.yaml
+        self.goal_radius = 0.5 #needs to be the same as the one in primer.yaml
 
         # number of agents
         self.num_of_agents = num_of_agents

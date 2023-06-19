@@ -89,7 +89,7 @@
   <node ns="$(arg quad)" name="panther" pkg="panther" type="panther_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
-    <rosparam file="$(find panther)/param/panther.yaml" command="load"/>
+    <rosparam file="$(find panther)/param/primer.yaml" command="load"/>
     <rosparam file="$(find panther)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
     <param name="gui_mission" value="$(arg gui_mission)" /> 
     <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
