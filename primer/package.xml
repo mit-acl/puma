@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package>
-  <name>panther</name>
+  <name>primer</name>
   <version>0.0.0</version>
-  <description>The panther package</description>
+  <description>The primer package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
-  <maintainer email="jtorde@mit.edu">Jesus Tordesillas Torres</maintainer>
-  <author email="jtorde@mit.edu">Jesus Tordesillas Torres</author> 
+  <maintainer email="kkondo@mit.edu">Kota Kondo</maintainer>
+  <author email="kkondo@mit.edu">Kota Kondo</author> 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
