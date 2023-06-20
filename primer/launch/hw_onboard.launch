@@ -5,12 +5,12 @@
     <arg name="quad" default="NX04"/>
     <arg name="gui_mission" default="true"/>
     <arg name="perfect_prediction" default="false"/>
-    <arg name="student_policy_path" default="$(find panther)/../panther_compression/trained_policies/policies/test19.pt" />
+    <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/policies/test19.pt" />
     <arg name="static_planning" default="false" />  <!-- #If true, it will always plan from the same initial condition -->
 
     <!-- commands -->
 
-    <node ns="$(arg quad)" name="commands" pkg="panther" type="commands.py" output="screen"/>
+    <node ns="$(arg quad)" name="commands" pkg="primer" type="commands.py" output="screen"/>
 
     <!-- start tracker and real sense -->
 
@@ -21,7 +21,7 @@
     </include>
 
     <group unless="$(arg perfect_prediction)">
-        <include file="$(find panther)/launch/tracker_predictor.launch">
+        <include file="$(find primer)/launch/tracker_predictor.launch">
           <arg name="quad" value="$(arg quad)"/>
           <arg name="cloud_topic" value="/camera/depth/color/points"/>
         </include> 
@@ -40,11 +40,11 @@
 
     <!-- PANTHER --> 
 
-    <node ns="$(arg quad)" name="panther" pkg="panther" type="panther_node" output="screen" clear_params="false"> 
+    <node ns="$(arg quad)" name="panther" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
         <!-- Parameters -->
-        <rosparam file="$(find panther)/param/primer.yaml" command="load"/>
-        <rosparam file="$(find panther)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
+        <rosparam file="$(find primer)/param/primer.yaml" command="load"/>
+        <rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
         <param name="gui_mission" value="$(arg gui_mission)" /> 
         <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
         <param name="student_policy_path" value="$(arg student_policy_path)" /> 

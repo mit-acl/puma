@@ -11,9 +11,9 @@
   <arg name="perfect_prediction" default="true"/>
   <arg name="gui_mission" default="false"/>
 
-  <!-- <arg name="student_policy_path" default="$(find panther)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" />  -->
-  <arg name="student_policy_path" default="$(find panther)/../panther_compression/trained_policies/policies/test23.pt" />
-  <!-- <arg name="student_policy_path" default="$(find panther)/../panther_compression/evals/tmp_dagger/2/intermediate_policy_round28_log9.pt" /> -->
+  <!-- <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" />  -->
+  <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/policies/test23.pt" />
+  <!-- <arg name="student_policy_path" default="$(find primer)/../panther_compression/evals/tmp_dagger/2/intermediate_policy_round28_log9.pt" /> -->
 
   <arg name="static_planning" default="false" />  <!-- #If true, it will always plan from the same initial condition -->
   <!--  <arg name="mode" default="panther" />  --><!--  noPA (no_perception_aware), py (first_pos_then_yaw), panther (panther) ysweep (noPA but with sweep in yaw) -->
@@ -31,10 +31,10 @@
     Agent
   -->
 
-  <node ns="$(arg quad)" name="commands" pkg="panther" type="commands.py" output="screen"/>
+  <node ns="$(arg quad)" name="commands" pkg="primer" type="commands.py" output="screen"/>
 
   <group unless="$(arg perfect_prediction)">
-    <include file="$(find panther)/launch/tracker_predictor.launch">
+    <include file="$(find primer)/launch/tracker_predictor.launch">
         <arg name="quad" value="$(arg quad)"/>
      </include> 
   </group>
@@ -52,12 +52,12 @@
         <arg name="z" value="$(arg z)"/>
         <arg name="yaw" default="$(arg yaw)"/>
     </include>
-    <node ns="$(arg quad)" name="publish_in_gazebo" pkg="panther" type="publish_in_gazebo.py" output="screen">
+    <node ns="$(arg quad)" name="publish_in_gazebo" pkg="primer" type="publish_in_gazebo.py" output="screen">
     </node>
   </group>
 
   <group if="$(arg perfect_controller)">
-    <node ns="$(arg quad)" name="perfect_controller" pkg="panther" type="perfect_controller.py" output="screen">
+    <node ns="$(arg quad)" name="perfect_controller" pkg="primer" type="perfect_controller.py" output="screen">
           <param name="x" value="$(arg x)"/>
           <param name="y" value="$(arg y)"/>
           <param name="z" value="$(arg z)"/>
@@ -78,7 +78,7 @@
     Static Transformer for Agent
   -->
   
-  <include file="$(find panther)/launch/static_transforms.launch">
+  <include file="$(find primer)/launch/static_transforms.launch">
     <arg name="quad" value="$(arg quad)"/>
   </include> 
   
@@ -86,11 +86,11 @@
    PANTHER launch
   -->
 
-  <node ns="$(arg quad)" name="panther" pkg="panther" type="panther_node" output="screen" clear_params="false"> 
+  <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
-    <rosparam file="$(find panther)/param/primer.yaml" command="load"/>
-    <rosparam file="$(find panther)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
+    <rosparam file="$(find primer)/param/primer.yaml" command="load"/>
+    <rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
     <param name="gui_mission" value="$(arg gui_mission)" /> 
     <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
     <param name="student_policy_path" value="$(arg student_policy_path)" /> 

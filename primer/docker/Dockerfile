@@ -140,7 +140,7 @@ WORKDIR /home/code/deep_panther/ws/
 RUN catkin config --extend /opt/ros/noetic && \
     catkin build  && \
     printf '\nsource /home/code/deep_panther/ws/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS  && \
-    printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find panther)/../panther_compression"' >> ~/.bashrc   && \
+    printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find primer)/../panther_compression"' >> ~/.bashrc   && \
     source ~/.bashrc
 
 # # Linear Solver (if you don't run expert, then you don't need this)

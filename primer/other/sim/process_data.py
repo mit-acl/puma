@@ -61,7 +61,7 @@ if __name__ == '__main__':
     DATA_DIR = sys.argv[1] if len(sys.argv) > 1 else "/media/kota/T7/deep-panther/bags"
     TOPICS_TO_UNPACK = "/tf /tf_static /obstacles_mesh /clock /trajs /sim_all_agents_goal_reached"
     TOPICS_TO_UNPACK_AGENT = "/{}/goal /{}/state /{}/panther/fov /{}/panther/best_solution_expert /{}/panther/best_solution_student /{}/term_goal /{}/panther/actual_traj /{}/panther/is_ready /{}/panther/log"
-    PANTHER_YAML_PATH = rospkg.RosPack().get_path("panther") + "/param/primer.yaml"
+    PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
     with open(PANTHER_YAML_PATH) as f:
         PANTHER_YAML_PARAMS = yaml.safe_load(f)
     AGENT_BBOX = np.array(PANTHER_YAML_PARAMS["drone_bbox"]) 

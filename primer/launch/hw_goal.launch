@@ -4,6 +4,6 @@
 	<arg name="quad"/>
 
 	<!-- Start goal node -->
-	<node ns="$(arg quad)" name="goal" pkg="panther" type="hw_goal.py" output="screen"/>
+	<node ns="$(arg quad)" name="goal" pkg="primer" type="hw_goal.py" output="screen"/>
 
 </launch>
