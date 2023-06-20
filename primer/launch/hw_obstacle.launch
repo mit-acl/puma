@@ -2,13 +2,13 @@
 <launch>
 	<arg name="obs1" default="SQ01s"/>
 
-    <node ns="$(arg obs1)" name="obstacle" pkg="panther" type="obstacle.py" output="screen" clear_params="true">
-        <rosparam file="$(find panther)/param/obstacle1.yaml" command="load"/>
+    <node ns="$(arg obs1)" name="obstacle" pkg="primer" type="obstacle.py" output="screen" clear_params="true">
+        <rosparam file="$(find primer)/param/obstacle1.yaml" command="load"/>
     </node>
 
-    <node ns="$(arg obs1)" name="panther_obs_commands" pkg="panther" type="panther_obs_commands.py" output="screen"/>
+    <node ns="$(arg obs1)" name="panther_obs_commands" pkg="primer" type="panther_obs_commands.py" output="screen"/>
 
-    <node ns="$(arg obs1)" pkg="rqt_gui" type="rqt_gui" name="obs_rqt_gui" args="--perspective-file $(find panther)/rqt_cfgs/obs_demo_interface.perspective"/>
+    <node ns="$(arg obs1)" pkg="rqt_gui" type="rqt_gui" name="obs_rqt_gui" args="--perspective-file $(find primer)/rqt_cfgs/obs_demo_interface.perspective"/>
 
     <node ns="$(arg obs1)" pkg="behavior_selector" type="behavior_selector_node.py" name="obs_behavior_selector" output="screen" />
 

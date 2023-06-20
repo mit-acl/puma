@@ -27,7 +27,7 @@
 
   <!-- Agent 1 -->
 
-  <!-- <include file="$(find panther)/launch/sim_onboard.launch">
+  <!-- <include file="$(find primer)/launch/sim_onboard.launch">
     <arg name="quad" value="$(arg quad1)"/>
     <arg name="x" value="$(arg x1)"/>
     <arg name="y" value="$(arg y1)"/>
@@ -46,7 +46,7 @@
 
   <!-- Agent 2 -->
 
-  <!-- <include file="$(find panther)/launch/sim_onboard.launch">
+  <!-- <include file="$(find primer)/launch/sim_onboard.launch">
     <arg name="quad" value="$(arg quad2)"/>
     <arg name="x" value="$(arg x2)"/>
     <arg name="y" value="$(arg y2)"/>
@@ -60,21 +60,21 @@
   <!-- Start Gazebo-->
   <group if="$(arg gazebo)">
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-      <arg name="world_name" value="$(find panther)/meshes/empty.world"/>
+      <arg name="world_name" value="$(find primer)/meshes/empty.world"/>
       <arg name="gui" value="$(arg gzclient)"/> <!-- Set to false if you only want gzserver (and NOT gzclient) -->
     </include>
   </group>
 
   <!-- Disable, for instance, for ssh connections -->
   <group if="$(arg rviz)">
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find panther)/rviz_cfgs/panther.rviz"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find primer)/rviz_cfgs/panther.rviz"/>
   </group>
 
   <!-- Disable, for instance, for ssh connections -->
   <group if="$(arg gui_mission)"> 
-    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find panther)/rqt_cfgs/demo_interface.perspective"/>
+    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find primer)/rqt_cfgs/demo_interface.perspective"/>
   </group>
 
-  <node name="dynamic_corridor" pkg="panther" type="dynamic_corridor.py" output="screen" args="--num_of_obs $(arg num_of_obs) --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj)"/> 
+  <node name="dynamic_corridor" pkg="primer" type="dynamic_corridor.py" output="screen" args="--num_of_obs $(arg num_of_obs) --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj)"/> 
 
 </launch>

@@ -92,7 +92,7 @@ if __name__ == '__main__':
     ##
 
     NUM_OF_SIMS = 1
-    NUM_OF_AGENTS = [3]
+    NUM_OF_AGENTS = [1]
     NUM_OF_OBS_LIST = [2]
     CIRCLE_RADIUS = 3.0
     USE_PERFECT_CONTROLLER = "true"
@@ -100,11 +100,11 @@ if __name__ == '__main__':
     SIM_DURATION = 60 # in seconds
     DATA_DIR = sys.argv[1] if len(sys.argv) > 1 else "/media/kota/T7/deep-panther/bags"
     RECORD_NODE_NAME = "bag_recorder"
-    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f panther & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/panther/fov /obstacles_mesh /{}/panther/best_solution_expert /{}/panther/best_solution_student /{}/term_goal /{}/panther/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/panther/is_ready /{}/panther/log"
+    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
+    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log"
     USE_RVIZ = sys.argv[2] if len(sys.argv) >2 else "true"
     # AGENTS_TYPES = ["parm", "parm_star", "primer"]
-    AGENTS_TYPES = ["primer"]
+    AGENTS_TYPES = ["parm"]
     TRAJ_NUM_PER_REPLAN_LIST = [10]
     DEFAULT_NUM_MAX_OF_OBST = 2 #TODO: hard-coded
     PRIMER_NUM_MAX_OF_OBST = 2
@@ -117,15 +117,15 @@ if __name__ == '__main__':
     os.system(KILL_ALL)
 
     ##
-    ## comment out some parameters in panther.yaml to overwrite them
+    ## comment out some parameters in primer.yaml to overwrite them
     ##
 
-    os.system("sed -i '/use_panther_star:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/use_expert:/s/^/#/g' $(rospack find panther)/param/panther.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
-    os.system("sed -i '/use_student:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/num_of_trajs_per_replan:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/max_num_of_initial_guesses:/s/^/#/g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/num_max_of_obst:/s/^/#/g' $(rospack find panther)/matlab/casadi_generated_files/params_casadi.yaml")
+    os.system("sed -i '/use_panther_star:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/use_expert:/s/^/#/g' $(rospack find primer)/param/primer.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
+    os.system("sed -i '/use_student:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    # os.system("sed -i '/num_of_trajs_per_replan:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    # os.system("sed -i '/max_num_of_initial_guesses:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    # os.system("sed -i '/num_max_of_obst:/s/^/#/g' $(rospack find primer)/matlab/casadi_generated_files/params_casadi.yaml")
 
     ##
     ## simulation loop
@@ -174,29 +174,29 @@ if __name__ == '__main__':
                         commands.append("roscore")
 
                         ## sim_basestation
-                        commands.append(f"roslaunch --wait panther sim_base_station.launch num_of_obs:={NUM_OF_OBS_LIST[k]} rviz:={USE_RVIZ} gui_mission:=false")
+                        commands.append(f"roslaunch --wait primer sim_base_station.launch num_of_obs:={NUM_OF_OBS_LIST[k]} rviz:={USE_RVIZ} gui_mission:=false")
                         
                         ## set up parameters depending on agent types
                         for i in range(l):
                             agent_name = f"SQ{str(i+1).zfill(2)}s"
                             if agent_type == "parm":
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_panther_star false")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_expert true")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_student false")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_panther_star false")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_expert true")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_student false")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_of_trajs_per_replan {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/max_num_of_initial_guesses {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_max_of_obst {DEFAULT_NUM_MAX_OF_OBST}")
                             elif agent_type == "parm_star":
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_panther_star true")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_expert true")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_student false")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_panther_star true")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_expert true")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_student false")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_of_trajs_per_replan {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/max_num_of_initial_guesses {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_max_of_obst {DEFAULT_NUM_MAX_OF_OBST}")
                             elif agent_type == "primer":
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_panther_star true")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_expert false")
-                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/use_student true")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_panther_star true")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_expert false")
+                                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/use_student true")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_of_trajs_per_replan {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/max_num_of_initial_guesses {traj_num}")
                                 # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/panther/num_max_of_obst {PRIMER_NUM_MAX_OF_OBST}")
@@ -206,7 +206,7 @@ if __name__ == '__main__':
                         x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state(l, CIRCLE_RADIUS, INITIAL_POSITIONS_SHAPE)
                         for i, (x, y, z, yaw) in enumerate(zip(x_start_list, y_start_list, z_start_list, yaw_start_list)):
                             agent_name = f"SQ{str(i+1).zfill(2)}s"
-                            commands.append(f"sleep 5.0 && roslaunch --wait panther sim_onboard.launch quad:={agent_name} perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+                            commands.append(f"sleep 5.0 && roslaunch --wait primer sim_onboard.launch quad:={agent_name} perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
                         
                         ## rosbag record
                         # agent_bag_recorders = []
@@ -227,10 +227,10 @@ if __name__ == '__main__':
                         commands.append('sleep '+str(time_sleep)+' && cd '+folder_bags+' && rosbag record '+recorded_topics+' -o '+sim_name+' __name:='+sim_bag_recorder)
                         
                         ## goal checker
-                        commands.append(f"sleep {time_sleep} && roslaunch --wait panther goal_reached_checker.launch num_of_agents:={l} circle_radius:={CIRCLE_RADIUS}")
+                        commands.append(f"sleep {time_sleep} && roslaunch --wait primer goal_reached_checker.launch num_of_agents:={l} circle_radius:={CIRCLE_RADIUS}")
 
                         ## publish goal
-                        commands.append(f"sleep "+str(time_sleep_goal)+f" && roslaunch --wait panther pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
+                        commands.append(f"sleep "+str(time_sleep_goal)+f" && roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
 
                         ##
                         ## tmux & sending commands
@@ -282,10 +282,10 @@ if __name__ == '__main__':
     ## uncomment delay_check param
     ##
 
-    os.system("sed -i '/use_panther_star:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/use_expert:/s/^#//g' $(rospack find panther)/param/panther.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
-    os.system("sed -i '/use_student:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/num_of_trajs_per_replan:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    os.system("sed -i '/max_num_of_initial_guesses:/s/^#//g' $(rospack find panther)/param/panther.yaml")
-    # os.system("sed -i '/num_max_of_obst:/s/^#//g' $(rospack find panther)/matlab/casadi_generated_files/params_casadi.yaml")
+    os.system("sed -i '/use_panther_star:/s/^#//g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/use_expert:/s/^#//g' $(rospack find primer)/param/primer.yaml") ## added : to avoid commenting out use_expert_for_other_agents_in_training
+    os.system("sed -i '/use_student:/s/^#//g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/num_of_trajs_per_replan:/s/^#//g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/max_num_of_initial_guesses:/s/^#//g' $(rospack find primer)/param/primer.yaml")
+    # os.system("sed -i '/num_max_of_obst:/s/^#//g' $(rospack find primer)/matlab/casadi_generated_files/params_casadi.yaml")
     

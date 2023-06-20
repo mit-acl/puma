@@ -71,81 +71,37 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   ROS_INFO("Found transform %s --> %s", name_drone_.c_str(), name_camera_depth_optical_frame_tf_.c_str());
   // std::cout << "par_.b_T_c.matrix()= " << par_.b_T_c.matrix() << std::endl;
 
-  safeGetParam(nh1_, "add_noise_to_obst", par_.add_noise_to_obst);
-  safeGetParam(nh1_, "goal_seen_radius_training", par_.goal_seen_radius_training);
-  safeGetParam(nh1_, "use_noised_obst_size", par_.use_noised_obst_size);
-  safeGetParam(nh1_, "use_clipping", par_.use_clipping);
-  safeGetParam(nh1_, "yaw_loss_weight", par_.yaw_loss_weight);
-  safeGetParam(nh1_, "use_lstm", par_.use_lstm);
-  safeGetParam(nh1_, "use_bn", par_.use_bn);
-  safeGetParam(nh1_, "lstm_dropout", par_.lstm_dropout);
-  safeGetParam(nh1_, "lstm_output_dim", par_.lstm_output_dim);
-  safeGetParam(nh1_, "lstm_num_layers", par_.lstm_num_layers);
-  safeGetParam(nh1_, "lstm_bidirectional", par_.lstm_bidirectional);
-  safeGetParam(nh1_, "use_lstm_oa", par_.use_lstm_oa);
-  safeGetParam(nh1_, "use_bn_oa", par_.use_bn_oa);
-  safeGetParam(nh1_, "lstm_dropout_oa", par_.lstm_dropout_oa);
-  safeGetParam(nh1_, "lstm_output_dim_oa", par_.lstm_output_dim_oa);
-  safeGetParam(nh1_, "lstm_num_layers_oa", par_.lstm_num_layers_oa);
-  safeGetParam(nh1_, "lstm_bidirectional_oa", par_.lstm_bidirectional_oa);
-  safeGetParam(nh1_, "random_num_of_obstacles_in_training", par_.random_num_of_obstacles_in_training);
-  safeGetParam(nh1_, "num_obst_in_FOV", par_.num_obst_in_FOV);
-  safeGetParam(nh1_, "goal_seen_radius", par_.goal_seen_radius);
-  safeGetParam(nh1_, "use_dynamic_obst_in_training", par_.use_dynamic_obst_in_training);
-  safeGetParam(nh1_, "use_other_agents_in_training", par_.use_other_agents_in_training);
-  safeGetParam(nh1_, "training_dt", par_.training_dt);
-  safeGetParam(nh1_, "num_of_obstacles_in_training", par_.num_of_obstacles_in_training);
-  safeGetParam(nh1_, "num_of_other_agents_in_training", par_.num_of_other_agents_in_training);
-  safeGetParam(nh1_, "training_env_x_max", par_.training_env_x_max);
-  safeGetParam(nh1_, "training_env_x_min", par_.training_env_x_min);
-  safeGetParam(nh1_, "training_env_y_max", par_.training_env_y_max);
-  safeGetParam(nh1_, "training_env_y_min", par_.training_env_y_min);
-  safeGetParam(nh1_, "training_env_z_max", par_.training_env_z_max);
-  safeGetParam(nh1_, "training_env_z_min", par_.training_env_z_min);
+  //
+  // deployment
+  //
+
+  safeGetParam(nh1_, "replanning_trigger_time_student", par_.replanning_trigger_time_student);
+  safeGetParam(nh1_, "replanning_trigger_time_expert", par_.replanning_trigger_time_expert);
+  safeGetParam(nh1_, "pause_time_when_replanning", par_.pause_time_when_replanning);
+  safeGetParam(nh1_, "replanning_lookahead_time", par_.replanning_lookahead_time);
   safeGetParam(nh1_, "use_mesh_network", par_.use_mesh_network);
   safeGetParam(nh1_, "use_delaycheck", par_.use_delaycheck);
   safeGetParam(nh1_, "use_delaycheck_wo_check", par_.use_delaycheck_wo_check);
+  safeGetParam(nh1_, "delaycheck_time", par_.delaycheck_time);
   safeGetParam(nh1_, "use_panther_star", par_.use_panther_star);
+  safeGetParam(nh1_, "impose_FOV_in_trajCB", par_.impose_FOV_in_trajCB);
+  safeGetParam(nh1_, "dist_from_gterm_to_dummy", par_.dist_from_gterm_to_dummy);
+  safeGetParam(nh1_, "obstacle_share_cb_duration", par_.obstacle_share_cb_duration);
+  safeGetParam(nh1_, "use_obstacle_share", par_.use_obstacle_share);
+  safeGetParam(nh1_, "use_obstacle_shareCB", par_.use_obstacle_shareCB);
+  safeGetParam(nh1_, "add_noise_to_obst", par_.add_noise_to_obst);
+  safeGetParam(nh1_, "agents_ids", par_.agents_ids);
   safeGetParam(nh1_, "use_ff", par_.use_ff);
-  safeGetParam(nh1_, "visual", par_.visual);
-  safeGetParam(nh1_, "color_type_expert", par_.color_type_expert);
-  safeGetParam(nh1_, "color_type_student", par_.color_type_student);
-  safeGetParam(nh1_, "n_agents", par_.n_agents);
-  safeGetParam(nh1_, "use_expert_for_other_agents_in_training", par_.use_expert_for_other_agents_in_training);
-
-  safeGetParam(nh1_, "num_of_trajs_per_replan", par_.num_of_trajs_per_replan);
-  safeGetParam(nh1_, "max_num_of_initial_guesses", par_.max_num_of_initial_guesses);
-  safeGetParam(nh1_, "dc", par_.dc);
   safeGetParam(nh1_, "goal_radius", par_.goal_radius);
-
+  safeGetParam(nh1_, "goal_seen_radius", par_.goal_seen_radius);
+  safeGetParam(nh1_, "Ra", par_.Ra);
   std::vector<double> drone_bbox_tmp;
   safeGetParam(nh1_, "drone_bbox", drone_bbox_tmp);
   par_.drone_bbox << drone_bbox_tmp[0], drone_bbox_tmp[1], drone_bbox_tmp[2];
-
   std::vector<double> obstacle_bbox_tmp;
   safeGetParam(nh1_, "obstacle_bbox", obstacle_bbox_tmp);
   par_.obstacle_bbox << obstacle_bbox_tmp[0], obstacle_bbox_tmp[1], obstacle_bbox_tmp[2];
-
-  std::vector<double> training_obst_size_tmp;
-  safeGetParam(nh1_, "training_obst_size", training_obst_size_tmp);
-  par_.training_obst_size << training_obst_size_tmp[0], training_obst_size_tmp[1], training_obst_size_tmp[2];
-
-  std::vector<double> training_other_agent_size_tmp;
-  safeGetParam(nh1_, "training_other_agent_size", training_other_agent_size_tmp);
-  par_.training_other_agent_size << training_other_agent_size_tmp[0], training_other_agent_size_tmp[1],
-      training_other_agent_size_tmp[2];
-
-  safeGetParam(nh1_, "drone_extra_radius_for_NN", par_.drone_extra_radius_for_NN);
-  safeGetParam(nh1_, "Ra", par_.Ra);
-  safeGetParam(nh1_, "impose_FOV_in_trajCB", par_.impose_FOV_in_trajCB);
-  safeGetParam(nh1_, "pause_time_when_replanning", par_.pause_time_when_replanning);
-  safeGetParam(nh1_, "replanning_trigger_time_student", par_.replanning_trigger_time_student);
-  safeGetParam(nh1_, "replanning_trigger_time_expert", par_.replanning_trigger_time_expert);
-  safeGetParam(nh1_, "replanning_lookahead_time", par_.replanning_lookahead_time);
-  safeGetParam(nh1_, "max_runtime_octopus_search", par_.max_runtime_octopus_search);
-  safeGetParam(nh1_, "fov_x_deg", par_.fov_x_deg);
-  safeGetParam(nh1_, "fov_y_deg", par_.fov_y_deg);
-  safeGetParam(nh1_, "fov_depth", par_.fov_depth);
+  safeGetParam(nh1_, "dc", par_.dc);
   safeGetParam(nh1_, "angle_deg_focus_front", par_.angle_deg_focus_front);
   safeGetParam(nh1_, "x_min", par_.x_min);
   safeGetParam(nh1_, "x_max", par_.x_max);
@@ -154,41 +110,124 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "z_min", par_.z_min);
   safeGetParam(nh1_, "z_max", par_.z_max);
   safeGetParam(nh1_, "ydot_max", par_.ydot_max);
-  safeGetParam(nh1_, "num_of_intervals", par_.num_of_intervals);
-
   std::vector<double> v_max_tmp;
   std::vector<double> a_max_tmp;
   std::vector<double> j_max_tmp;
-
   safeGetParam(nh1_, "v_max", v_max_tmp);
   safeGetParam(nh1_, "a_max", a_max_tmp);
   safeGetParam(nh1_, "j_max", j_max_tmp);
-
   par_.v_max << v_max_tmp[0], v_max_tmp[1], v_max_tmp[2];
   par_.a_max << a_max_tmp[0], a_max_tmp[1], a_max_tmp[2];
   par_.j_max << j_max_tmp[0], j_max_tmp[1], j_max_tmp[2];
+  safeGetParam(nh1_, "factor_alpha", par_.factor_alpha);
+  safeGetParam(nh1_, "lower_bound_alpha", par_.lower_bound_alpha);
+  safeGetParam(nh1_, "max_seconds_keeping_traj", par_.max_seconds_keeping_traj);
+  safeGetParam(nh1_, "gamma", par_.gamma);
+  safeGetParam(nh1_, "use_expert", par_.use_expert);
+  safeGetParam(nh1_, "use_student", par_.use_student);
 
-  // safeGetParam(nh1_, "v_max", par_.v_max);
-  // safeGetParam(nh1_, "a_max", par_.a_max);
-  // safeGetParam(nh1_, "j_max", par_.j_max);
 
+  //
+  // training params
+  //
+  
+  safeGetParam(nh1_, "num_of_trajs_per_replan", par_.num_of_trajs_per_replan);
+  safeGetParam(nh1_, "max_num_of_initial_guesses", par_.max_num_of_initial_guesses);
+  safeGetParam(nh1_, "drone_extra_radius_for_NN", par_.drone_extra_radius_for_NN);
+  safeGetParam(nh1_, "use_closed_form_yaw_student", par_.use_closed_form_yaw_student);
+  safeGetParam(nh1_, "training_env_x_max", par_.training_env_x_max);
+  safeGetParam(nh1_, "training_env_x_min", par_.training_env_x_min);
+  safeGetParam(nh1_, "training_env_y_max", par_.training_env_y_max);
+  safeGetParam(nh1_, "training_env_y_min", par_.training_env_y_min);
+  safeGetParam(nh1_, "training_env_z_max", par_.training_env_z_max);
+  safeGetParam(nh1_, "training_env_z_min", par_.training_env_z_min);
+  safeGetParam(nh1_, "max_dist2goal", par_.max_dist2goal);
+  safeGetParam(nh1_, "max_dist2obs", par_.max_dist2obs);
+  safeGetParam(nh1_, "max_side_bbox_obs", par_.max_side_bbox_obs);
+  safeGetParam(nh1_, "max_dist2BSPoscPoint", par_.max_dist2BSPoscPoint);
+  safeGetParam(nh1_, "training_dt", par_.training_dt);
+  safeGetParam(nh1_, "yaw_loss_weight", par_.yaw_loss_weight);
   safeGetParam(nh1_, "margin_v_factor", par_.margin_v_factor);
   safeGetParam(nh1_, "margin_a_factor", par_.margin_a_factor);
   safeGetParam(nh1_, "margin_ydot_factor", par_.margin_ydot_factor);
   safeGetParam(nh1_, "margin_yaw_factor", par_.margin_yaw_factor);
-  safeGetParam(nh1_, "factor_alpha", par_.factor_alpha);
-  safeGetParam(nh1_, "lower_bound_alpha", par_.lower_bound_alpha);
-  safeGetParam(nh1_, "max_seconds_keeping_traj", par_.max_seconds_keeping_traj);
+  std::vector<double> training_obst_size_tmp;
+  safeGetParam(nh1_, "training_obst_size", training_obst_size_tmp);
+  par_.training_obst_size << training_obst_size_tmp[0], training_obst_size_tmp[1], training_obst_size_tmp[2];
+  std::vector<double> training_other_agent_size_tmp;
+  safeGetParam(nh1_, "training_other_agent_size", training_other_agent_size_tmp);
+  par_.training_other_agent_size << training_other_agent_size_tmp[0], training_other_agent_size_tmp[1],
+      training_other_agent_size_tmp[2];
+  safeGetParam(nh1_, "use_dynamic_obst_in_training", par_.use_dynamic_obst_in_training);
+  safeGetParam(nh1_, "use_other_agents_in_training", par_.use_other_agents_in_training);
+  safeGetParam(nh1_, "use_expert_for_other_agents_in_training", par_.use_expert_for_other_agents_in_training);
+  safeGetParam(nh1_, "random_num_of_obstacles_in_training", par_.random_num_of_obstacles_in_training);
+  safeGetParam(nh1_, "num_of_obstacles_in_training", par_.num_of_obstacles_in_training);
+  safeGetParam(nh1_, "num_of_other_agents_in_training", par_.num_of_other_agents_in_training);
+  safeGetParam(nh1_, "use_clipping", par_.use_clipping);
+  safeGetParam(nh1_, "use_noised_obst_size", par_.use_noised_obst_size);
+  safeGetParam(nh1_, "goal_seen_radius_training", par_.goal_seen_radius_training);
+
+  //
+  // LSTM
+  //
+
+  safeGetParam(nh1_, "use_lstm", par_.use_lstm);
+  safeGetParam(nh1_, "use_bn", par_.use_bn);
+  safeGetParam(nh1_, "lstm_dropout", par_.lstm_dropout);
+  safeGetParam(nh1_, "lstm_output_dim", par_.lstm_output_dim);
+  safeGetParam(nh1_, "lstm_num_layers", par_.lstm_num_layers);
+  safeGetParam(nh1_, "lstm_bidirectional", par_.lstm_bidirectional);
+
+  //
+  // LSTM for other agents
+  //
+
+  safeGetParam(nh1_, "use_lstm_oa", par_.use_lstm_oa);
+  safeGetParam(nh1_, "use_bn_oa", par_.use_bn_oa);
+  safeGetParam(nh1_, "lstm_dropout_oa", par_.lstm_dropout_oa);
+  safeGetParam(nh1_, "lstm_output_dim_oa", par_.lstm_output_dim_oa);
+  safeGetParam(nh1_, "lstm_num_layers_oa", par_.lstm_num_layers_oa);
+  safeGetParam(nh1_, "lstm_bidirectional_oa", par_.lstm_bidirectional_oa);
+
+  //
+  // FOV 
+  //
+
+  safeGetParam(nh1_, "fov_x_deg", par_.fov_x_deg);
+  safeGetParam(nh1_, "fov_y_deg", par_.fov_y_deg);
+  safeGetParam(nh1_, "fov_depth", par_.fov_depth);
+
+  //
+  // octopus search
+  //
+
   safeGetParam(nh1_, "a_star_samp_x", par_.a_star_samp_x);
   safeGetParam(nh1_, "a_star_samp_y", par_.a_star_samp_y);
   safeGetParam(nh1_, "a_star_samp_z", par_.a_star_samp_z);
   safeGetParam(nh1_, "a_star_fraction_voxel_size", par_.a_star_fraction_voxel_size);
   safeGetParam(nh1_, "a_star_bias", par_.a_star_bias);
-  safeGetParam(nh1_, "res_plot_traj", par_.res_plot_traj);
-  safeGetParam(nh1_, "factor_alloc", par_.factor_alloc);
-  safeGetParam(nh1_, "alpha_shrink", par_.alpha_shrink);
-  safeGetParam(nh1_, "norminv_prob", par_.norminv_prob);
   safeGetParam(nh1_, "disc_pts_per_interval_oct_search", par_.disc_pts_per_interval_oct_search);
+  safeGetParam(nh1_, "max_runtime_octopus_search", par_.max_runtime_octopus_search);
+
+
+  //
+  // visualization
+  //
+
+  safeGetParam(nh1_, "use_obstacle_edge_cb", par_.use_obstacle_edge_cb);
+  safeGetParam(nh1_, "obstacle_edge_cb_duration", par_.obstacle_edge_cb_duration);
+  safeGetParam(nh1_, "visual", par_.visual);
+  safeGetParam(nh1_, "res_plot_traj", par_.res_plot_traj);
+  safeGetParam(nh1_, "color_type_student", par_.color_type_student);
+  safeGetParam(nh1_, "color_type_expert", par_.color_type_expert);
+  safeGetParam(nh1_, "n_agents", par_.n_agents);
+  safeGetParam(nh1_, "z_goal_when_using_rviz", par_.z_goal_when_using_rviz);
+
+  //
+  // optimization
+  //
+
   safeGetParam(nh1_, "c_smooth_yaw_search", par_.c_smooth_yaw_search);
   safeGetParam(nh1_, "c_visibility_yaw_search", par_.c_visibility_yaw_search);
   safeGetParam(nh1_, "c_maxydot_yaw_search", par_.c_maxydot_yaw_search);
@@ -198,42 +237,44 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "c_final_pos", par_.c_final_pos);
   safeGetParam(nh1_, "c_final_yaw", par_.c_final_yaw);
   safeGetParam(nh1_, "c_total_time", par_.c_total_time);
+  safeGetParam(nh1_, "lambda_obst_avoidance_violation", par_.lambda_obst_avoidance_violation);
+  safeGetParam(nh1_, "lambda_dyn_lim_violation", par_.lambda_dyn_lim_violation);
+  safeGetParam(nh1_, "num_of_intervals", par_.num_of_intervals);
+
+  //
+  // other
+  //
+
+  safeGetParam(nh1_, "factor_alloc", par_.factor_alloc);
+  safeGetParam(nh1_, "alpha_shrink", par_.alpha_shrink);
+  safeGetParam(nh1_, "norminv_prob", par_.norminv_prob);
   safeGetParam(nh1_, "print_graph_yaw_info", par_.print_graph_yaw_info);
-  safeGetParam(nh1_, "z_goal_when_using_rviz", par_.z_goal_when_using_rviz);
   safeGetParam(nh1_, "mode", par_.mode);
-  safeGetParam(nh1_, "delaycheck_time", par_.delaycheck_time);
-  // b_T_c (see above)
-  safeGetParam(nh1_, "basis", par_.basis);
-  safeGetParam(nh1_, "num_max_of_obst", par_.num_max_of_obst);
-  safeGetParam(nh1_, "num_seg", par_.num_seg);
+
+  //
+  // casadi params (from params_casadi.yaml)
+  //
+
   safeGetParam(nh1_, "deg_pos", par_.deg_pos);
   safeGetParam(nh1_, "deg_yaw", par_.deg_yaw);
-  safeGetParam(nh1_, "num_of_yaw_per_layer", par_.num_of_yaw_per_layer);
+  safeGetParam(nh1_, "num_seg", par_.num_seg);
+  safeGetParam(nh1_, "num_max_of_obst", par_.num_max_of_obst);
+  safeGetParam(nh1_, "num_obst_in_FOV", par_.num_obst_in_FOV);
+  safeGetParam(nh1_, "sampler_num_samples", par_.sampler_num_samples);
   safeGetParam(nh1_, "fitter_num_samples", par_.fitter_num_samples);
   safeGetParam(nh1_, "fitter_total_time", par_.fitter_total_time);
   safeGetParam(nh1_, "fitter_num_seg", par_.fitter_num_seg);
   safeGetParam(nh1_, "fitter_deg_pos", par_.fitter_deg_pos);
-  safeGetParam(nh1_, "sampler_num_samples", par_.sampler_num_samples);
-  safeGetParam(nh1_, "max_dist2goal", par_.max_dist2goal);
-  safeGetParam(nh1_, "max_dist2obs", par_.max_dist2obs);
-  safeGetParam(nh1_, "max_side_bbox_obs", par_.max_side_bbox_obs);
-  safeGetParam(nh1_, "max_dist2BSPoscPoint", par_.max_dist2BSPoscPoint);
-  safeGetParam(nh1_, "use_expert", par_.use_expert);
-  safeGetParam(nh1_, "use_student", par_.use_student);
+  safeGetParam(nh1_, "num_of_yaw_per_layer", par_.num_of_yaw_per_layer);
+  safeGetParam(nh1_, "basis", par_.basis);
+
+  //
+  // from panther_types.hpp
+  //
+
   safeGetParam(nh1_, "student_policy_path", par_.student_policy_path);
   safeGetParam(nh1_, "static_planning", par_.static_planning);
-  safeGetParam(nh1_, "use_closed_form_yaw_student", par_.use_closed_form_yaw_student);
-  safeGetParam(nh1_, "lambda_obst_avoidance_violation", par_.lambda_obst_avoidance_violation);
-  safeGetParam(nh1_, "lambda_dyn_lim_violation", par_.lambda_dyn_lim_violation);
-  safeGetParam(nh1_, "gamma", par_.gamma);
-  safeGetParam(nh1_, "use_obstacle_edge_cb", par_.use_obstacle_edge_cb);
-  safeGetParam(nh1_, "obstacle_edge_cb_duration", par_.obstacle_edge_cb_duration);
-  safeGetParam(nh1_, "look_teammates", par_.look_teammates);
   safeGetParam(nh1_, "perfect_prediction", par_.perfect_prediction);
-  safeGetParam(nh1_, "dist_from_gterm_to_dummy", par_.dist_from_gterm_to_dummy);
-  safeGetParam(nh1_, "obstacle_share_cb_duration", par_.obstacle_share_cb_duration);
-  safeGetParam(nh1_, "use_obstacle_share", par_.use_obstacle_share);
-  safeGetParam(nh1_, "use_obstacle_shareCB", par_.use_obstacle_shareCB);
 
   // safeGetParam(nh1_, "distance_to_force_final_pos", par_.distance_to_force_final_pos);
   // safeGetParam(nh1_, "factor_alloc_when_forcing_final_pos", par_.factor_alloc_when_forcing_final_pos);
@@ -338,9 +379,6 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   // get my namespace
   std::string myns = ros::this_node::getNamespace();
   std::string veh = myns.substr(1, 2);
-
-  // get agents id
-  safeGetParam(nh1_, "agents_ids", par_.agents_ids);
 
   if (par_.use_mesh_network)
   {

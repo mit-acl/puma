@@ -54,7 +54,7 @@ Panther::Panther(mt::parameters par) : par_(par)
 
   separator_solver_ = new separator::Separator();
 
-  // std::string folder = ros::package::getPath("panther") + "/matlab/casadi_generated_files/";
+  // std::string folder = ros::package::getPath("primer") + "/matlab/casadi_generated_files/";
   // cf_fit3d_ = casadi::Function::load(folder + "fit3d.casadi");
 
   //

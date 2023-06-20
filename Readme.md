@@ -86,7 +86,7 @@ sudo apt-get install ros-"${ROS_DISTRO}"-rviz-visual-tools ros-"${ROS_DISTRO}"-p
 cd ~/Desktop/ws/
 catkin build
 printf '\nsource PATH_TO_YOUR_WS/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS
-printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find panther)/../panther_compression"' >> ~/.bashrc 
+printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find primer)/../panther_compression"' >> ~/.bashrc 
 source ~/.bashrc
 ```
 
@@ -105,7 +105,7 @@ You can also use policies trained using a static obstacle. Simply change the fie
 
 If you want to...
 
-* **Use the expert:** You first need to install a linear solver (see instructions below). Then, you can use the expert by simply setting `use_expert: true`, `use_student: false` , and `pause_time_when_replanning:true` in `panther.yaml` and running `roslaunch panther simulation.launch`. 
+* **Use the expert:** You first need to install a linear solver (see instructions below). Then, you can use the expert by simply setting `use_expert: true`, `use_student: false` , and `pause_time_when_replanning:true` in `primer.yaml` and running `roslaunch panther simulation.launch`. 
 
 * **Modify the optimization problem:**, You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
 
