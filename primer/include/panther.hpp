@@ -68,6 +68,8 @@ public:
   void convertsolOrGuess2pwp(mt::PieceWisePol& pwp_p, si::solOrGuess& solorguess, double dc);
   void adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& obstacles_for_opt);
 
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double projection_time);
+
 private:
   // pybind11::module calc_;
   // pybind11::scoped_interpreter guard{};

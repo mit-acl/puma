@@ -875,6 +875,34 @@ void Panther::adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& ob
 // ------------------------------------------------------------------------------------------------------
 //
 
+std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double projection_time)
+{
+  // Projects the uncertainty of the trajectory into the future using an EKF and a constant acceleration model
+  Eigen::Matrix3d simga_0 = initial_variance.asDiagonal();
+
+  // Define the state transition matrix using the matrix exponential of the dynamics
+  Eigen::Matrix3d A;
+  A << 0, 1, 0, 0, 0, 1, 0, 0, 0;
+  Eigen::Matrix3d F = Eigen::Matrix3d::Identity() + A * int_dt + 0.5 * A * A * int_dt * int_dt;
+
+  // Project the uncertainty into the future
+  std::vector<double> projected_time;
+  std::vector<Eigen::Vector3d> projected_uncertainty;
+
+  for (double t = 0; t < projection_time; t += int_dt)
+  {
+    Eigen::Matrix3d sigma_t = F * simga_0 * F.transpose();
+    projected_time.push_back(t);
+    projected_uncertainty.push_back(sigma_t.diagonal());
+  }
+
+  return std::make_pair(projected_time, projected_uncertainty);
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 bool Panther::replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_solution_expert,
                      std::vector<si::solOrGuess>& best_solutions_expert, si::solOrGuess& best_solution_student,
                      std::vector<si::solOrGuess>& best_solutions_student, std::vector<si::solOrGuess>& guesses,
