@@ -146,8 +146,8 @@ max_runtime_octopus_search: 1.0 #[seconds]
 #############################################
 
 # visualization:
-use_obstacle_edge_cb: false
-obstacle_edge_cb_duration: 1.0 #seconds
+use_obstacle_edge_cb: true
+obstacle_edge_cb_duration: 0.1 #seconds
 visual: true #publish visualization stuff
 res_plot_traj: 30.0  #Higher --> More resolution when plotting the trajectory 
 color_type_student: "vel" #"vel" or "time" or "aug_cost" or "agent" or "black"

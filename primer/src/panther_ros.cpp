@@ -1048,7 +1048,7 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
     pubCBTimer_.start();                                                                 /////// Oct-12-2021
     replanCBTimer_.start();
 
-    if (par_.perfect_prediction)  // tracker_predictor and obstacleEdgeCBTimer conflicts and throw an error
+    if (par_.use_obstacle_edge_cb)
     {
       obstacleEdgeCBTimer_.start();
     }

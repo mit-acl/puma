@@ -802,9 +802,11 @@ void Panther::pubObstacleEdge(mt::Edges& edges_obstacles_out, const Eigen::Affin
   // Get edges_obstacles
   //
 
+  // TODO: expose this
+  double obstacle_visualization_duration = 2.0;
+
   double t_start = ros::Time::now().toSec();
-  double t_final =
-      t_start + 5.0;  // 5.0 is just a duration into the future in which we want to visualize obstacle edges.
+  double t_final = t_start + obstacle_visualization_duration;
 
   ConvexHullsOfCurves hulls = convexHullsOfCurvesForObstacleEdge(t_start, t_final, c_T_b, w_T_b);
 
@@ -878,7 +880,7 @@ void Panther::adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& ob
 std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double projection_time)
 {
   // Projects the uncertainty of the trajectory into the future using an EKF and a constant acceleration model
-  Eigen::Matrix3d simga_0 = initial_variance.asDiagonal();
+  Eigen::Matrix3d sigma_0 = initial_variance.asDiagonal();
 
   // Define the state transition matrix using the matrix exponential of the dynamics
   Eigen::Matrix3d A;
@@ -889,9 +891,10 @@ std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUnc
   std::vector<double> projected_time;
   std::vector<Eigen::Vector3d> projected_uncertainty;
 
+  Eigen::Matrix3d sigma_t = sigma_0;
   for (double t = 0; t < projection_time; t += int_dt)
   {
-    Eigen::Matrix3d sigma_t = F * simga_0 * F.transpose();
+    sigma_t = F * sigma_t * F.transpose();
     projected_time.push_back(t);
     projected_uncertainty.push_back(sigma_t.diagonal());
   }
@@ -1531,17 +1534,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
   if (traj.is_agent == false)
   {
     std::vector<Eigen::Vector3d> points;
-    // delta = traj.bbox / 2.0 + (par_.drone_radius + par_.beta + par_.alpha) *
-    //                            Eigen::Vector3d::Ones();  // every side of the box will be increased by 2*delta
-    //(+delta on one end, -delta on the other)
-
-    // changeBBox(drone_boundarybox);
-
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
-    // std::cout << "boundary box size" << std::endl;
-    // std::cout << drone_boundarybox[0] << std::endl;
-    // std::cout << drone_boundarybox[1] << std::endl;
-    // std::cout << drone_boundarybox[2] << std::endl;
 
     // Will always have a sample at the beginning of the interval, and another at the end.
     for (double t = t_start;                           /////////////
@@ -1572,22 +1565,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
   }
   else
   {  // is an agent --> use the pwp field
-
-    // delta = traj.bbox / 2.0 + (par_.drone_radius) * Eigen::Vector3d::Ones();
-    // delta = traj.bbox / 2.0 + par_.drone_bbox / 2.0;  // instad of using drone_radius
-
-    // changeBBox(drone_boundarybox);
-
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
-    // std::cout << "boundary box size" << std::endl;
-    // std::cout << drone_boundarybox[0] << std::endl;
-    // std::cout << drone_boundarybox[1] << std::endl;
-    // std::cout << drone_boundarybox[2] << std::endl;
-
-    // std::cout << "****traj.bbox = " << traj.bbox << std::endl;
-    // std::cout << "****par_.drone_radius = " << par_.drone_radius << std::endl;
-    // std::cout << "****Inflation by delta= " << delta.transpose() << std::endl;
-
     return vertexesOfInterval(traj.pwp_mean, t_start, t_end, delta);
   }
 }
@@ -1683,6 +1661,10 @@ void Panther::printInfo(si::solOrGuess& best_solution, int n_safe_trajs)
             << n_safe_trajs << std::endl;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void Panther::logAndTimeReplan(const std::string& info, const bool& success, mt::log& log)
 {
   log_ptr_->info_replan = info;
@@ -1713,6 +1695,10 @@ void Panther::logAndTimeReplan(const std::string& info, const bool& success, mt:
   log = (*log_ptr_);
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void Panther::resetInitialization()
 {
   planner_initialized_ = false;
@@ -1722,12 +1708,20 @@ void Panther::resetInitialization()
   plan_.clear();
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void Panther::convertAgentStateToCameraState(const mt::state& agent_state, mt::state& camera_state)
 { 
   camera_state = agent_state;
   // camera_state.yaw = agent_state.yaw - M_PI / 2; //TODO: hacky. proper way to do this to use drone2camera transform to get camera yaw
   camera_state.yaw = agent_state.yaw; //TODO: hacky. proper way to do this to use drone2camera transform to get camera yaw
 }
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
 
 void Panther::yaw(double diff, mt::state& next_goal)
 {
@@ -1825,6 +1819,10 @@ bool Panther::getNextGoal(mt::state& next_goal)
   return true;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 // Debugging functions
 void Panther::changeDroneStatus(int new_status)
 {
@@ -1872,6 +1870,10 @@ void Panther::changeDroneStatus(int new_status)
   drone_status_ = new_status;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void Panther::printDroneStatus()
 {
   switch (drone_status_)
@@ -1890,6 +1892,10 @@ void Panther::printDroneStatus()
       break;
   }
 }
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
 
 // Given the control points, this function returns the associated traj and mt::PieceWisePol
 void Panther::convertsolOrGuess2pwp(mt::PieceWisePol& pwp_p, si::solOrGuess& solorguess, double dc)
@@ -1950,6 +1956,10 @@ void Panther::convertsolOrGuess2pwp(mt::PieceWisePol& pwp_p, si::solOrGuess& sol
   }
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 ConvexHullsOfCurves Panther::convexHullsOfCurves(double t_start, double t_end)
 {
   ConvexHullsOfCurves result;
@@ -1962,19 +1972,20 @@ ConvexHullsOfCurves Panther::convexHullsOfCurves(double t_start, double t_end)
   return result;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 ConvexHullsOfCurves Panther::convexHullsOfCurvesForObstacleEdge(double t_start, double t_end,
                                                                 const Eigen::Affine3d& c_T_b,
                                                                 const Eigen::Affine3d& w_T_b)
 {
   ConvexHullsOfCurves result;
 
+
   mtx_trajs_.lock();
   for (auto traj : trajs_)
   {
-    //
-    // Check if the trajectory is in FOV
-    //
-
     Eigen::Vector3d w_pos = evalMeanDynTrajCompiled(traj, t_start);
 
     //
@@ -1987,10 +1998,8 @@ ConvexHullsOfCurves Panther::convexHullsOfCurvesForObstacleEdge(double t_start, 
                                                                   // (i.e., depth optical frame)
       bool inFOV =                                                // check if it's inside the field of view.
           c_pos.z() < par_.fov_depth &&                           //////////////////////
-          fabs(atan2(c_pos.x(), c_pos.z())) <
-              ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
-          fabs(atan2(c_pos.y(), c_pos.z())) <
-              ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+          fabs(atan2(c_pos.x(), c_pos.z())) < ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
+          fabs(atan2(c_pos.y(), c_pos.z())) < ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
 
       if (inFOV == false)
       {
@@ -2004,23 +2013,50 @@ ConvexHullsOfCurves Panther::convexHullsOfCurvesForObstacleEdge(double t_start, 
   return result;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double t_start, double t_end)
 {
   ConvexHullsOfCurve convexHulls;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
+  // TODO: expose parameters
+  // TODO: add parameter to the initial covariance
+  Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+  // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
+  double int_dt = 0.1;
+  double projection_time = 6.0; // this is coming from prediction.m
+
+  // get projected times and uncertainty
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, int_dt, projection_time);
+  std::vector<double> projected_time = tmp.first;
+  std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
+
+  // add t_start to projected times
+  for (auto& t : projected_time)
+  {
+    t += t_start;
+  }
+
   for (int i = 0; i <= par_.num_seg; i++)
   {
-    convexHulls.push_back(convexHullOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT));
+    convexHulls.push_back(convexHullOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT, projected_time, projected_uncertainty));
   }
 
   return convexHulls;
 }
 
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 // See https://doc.cgal.org/Manual/3.7/examples/Convex_hull_3/quickhull_3.cpp
-CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end)
+CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty)
 {
-  std::vector<Eigen::Vector3d> points = vertexesOfInterval(traj, t_start, t_end);
+
+  std::vector<Eigen::Vector3d> points = vertexesOfIntervalUncertaintyInflated(traj, t_start, t_end, projected_time, projected_uncertainty);
 
   std::vector<Point_3> points_cgal;
   for (auto point_i : points)
@@ -2030,3 +2066,90 @@ CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, doubl
 
   return cu::convexHullOfPoints(points_cgal);
 }
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty)
+{
+  Eigen::Vector3d delta = Eigen::Vector3d::Zero();
+  Eigen::Vector3d drone_boundarybox = par_.drone_bbox;
+
+  if (traj.is_agent == false)
+  {
+    std::vector<Eigen::Vector3d> points;
+
+    // print out projected_uncertainty
+    // std::cout << "projected_uncertainty: " << std::endl;
+    // for (auto& u : projected_uncertainty)
+    // {
+    //   std::cout << u.transpose() << std::endl;
+    // }
+
+    // print t_start and t_end
+    std::cout << "t_start: " << t_start << std::endl;
+    std::cout << "t_end: " << t_end << std::endl;
+
+    delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
+
+    // Will always have a sample at the beginning of the interval, and another at the end.
+    for (double t = t_start;                           /////////////
+         (t < t_end) ||                                /////////////
+         ((t > t_end) && ((t - t_end) < par_.gamma));  /////// This is to ensure we have a sample a the end
+         t = t + par_.gamma)
+    {
+
+      mtx_t_.lock();
+      t_ = std::min(t, t_end);  // this min only has effect on the last sample
+
+      double x, y, z;
+      if (traj.use_pwp_field){
+        x = traj.pwp_mean.eval(t_)[0];
+        y = traj.pwp_mean.eval(t_)[1];
+        z = traj.pwp_mean.eval(t_)[2];
+      } else{
+        x = traj.s_mean[0].value();
+        y = traj.s_mean[1].value();
+        z = traj.s_mean[2].value();
+      }
+      mtx_t_.unlock();
+
+      // get the index of the projected time that is closest to the current time
+      int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
+        return fabs(a - t) < fabs(b - t);
+      }) - projected_time.begin();
+
+      std::cout << "idx: " << idx << std::endl;
+
+      // get the uncertainty at the current time
+      Eigen::Vector3d unc = projected_uncertainty[idx];
+
+      // get inflated delta
+      Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+
+      // std::cout << "unc: " << unc << std::endl;
+
+      //"Minkowski sum along the trajectory: box centered on the trajectory"
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+    }
+
+    return points;
+  }
+  else
+  {  // is an agent --> use the pwp field
+    // TODO: If it's agent then we need to apply different uncertainty inflation to bbox
+    std::cout << "TODO: If it's agent then we need to apply different uncertainty inflation to bbox" << std::endl;
+  }
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//

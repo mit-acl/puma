@@ -8,7 +8,7 @@
 	<arg name="quad" default="SQ01s"/>
   <arg name="perfect_controller" default="true"/>
   <arg name="gazebo" default="true"/>
-  <arg name="perfect_prediction" default="true"/>
+  <arg name="perfect_prediction" default="false"/>
   <arg name="gui_mission" default="false"/>
 
   <!-- <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" />  -->
