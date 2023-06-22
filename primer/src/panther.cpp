@@ -92,6 +92,8 @@ Panther::Panther(mt::parameters par) : par_(par)
       }
 
       tmp.ctrl_pts = fitter_->fit(samples);
+      tmp.uncertainty_ctrl_pts = std::vector<Eigen::Vector3d>(tmp.ctrl_pts.size(), Eigen::Vector3d::Zero());
+
       obstacles_for_opt.push_back(tmp);
       adjustObstaclesForOptimization(obstacles_for_opt);
       verify(obstacles_for_opt.size() == par_.num_max_of_obst, "obstacles_for_opt.size() should be equal to "
@@ -427,6 +429,7 @@ void Panther::addDummyObstacle(double t_start, double t_end, std::vector<mt::obs
   }
 
   dummy_obstacle_for_opt.ctrl_pts = fitter_->fit(samples);
+  dummy_obstacle_for_opt.uncertainty_ctrl_pts = std::vector<Eigen::Vector3d>(dummy_obstacle_for_opt.ctrl_pts.size(), Eigen::Vector3d::Zero());
   dummy_obstacle_for_opt.bbox_inflated = dummy_traj_compiled.bbox + par_.drone_bbox;
   dummy_obstacle_for_opt.is_dummy = true;
 
@@ -469,7 +472,15 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
 
   for (int i = 0; i < trajs_.size(); i++)
   {
+    mt::dynTrajCompiled traj = trajs_[i];
     mt::obstacleForOpt obstacle_for_opt;
+
+    // Generate the uncertainty samples
+    Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    
+    // Get projected times and uncertainty
+    std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
+    obstacle_for_opt.uncertainty_ctrl_pts = fitter_ ->fit(tmp.second);
 
     // Take future samples of the trajectory
     std::vector<Eigen::Vector3d> samples;
@@ -477,17 +488,17 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
     for (int k = 0; k < par_.fitter_num_samples; k++)
     {
       double tk = t_start + k * delta;
-      Eigen::Vector3d pos_k = evalMeanDynTrajCompiled(trajs_[i], tk);
+      Eigen::Vector3d pos_k = evalMeanDynTrajCompiled(traj, tk);
 
       samples.push_back(pos_k);
     }
 
     obstacle_for_opt.ctrl_pts = fitter_->fit(samples);
 
-    Eigen::Vector3d bbox_inflated = trajs_[i].bbox + par_.drone_bbox;
+    Eigen::Vector3d bbox_inflated = traj.bbox + par_.drone_bbox;
 
     obstacle_for_opt.bbox_inflated = bbox_inflated;
-    obstacle_for_opt.is_agent = trajs_[i].is_agent;
+    obstacle_for_opt.is_agent = traj.is_agent;
 
     obstacles_for_opt.push_back(obstacle_for_opt);
 
@@ -874,7 +885,7 @@ void Panther::adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& ob
 // ------------------------------------------------------------------------------------------------------
 //
 
-std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double projection_time)
+std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double t_start, double t_end)
 {
   // Projects the uncertainty of the trajectory into the future using an EKF and a constant acceleration model
   Eigen::Matrix3d sigma_0 = initial_variance.asDiagonal();
@@ -889,7 +900,7 @@ std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUnc
   std::vector<Eigen::Vector3d> projected_uncertainty;
 
   Eigen::Matrix3d sigma_t = sigma_0;
-  for (double t = 0; t < projection_time; t += int_dt)
+  for (double t = t_start; t < t_end; t += int_dt)
   {
     sigma_t = F * sigma_t * F.transpose();
     projected_time.push_back(t);
@@ -2021,19 +2032,11 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
 
   Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]) * par_.initial_covariance_factor;
   // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
-  double int_dt = 0.1;
-  double projection_time = 6.0; // this is coming from prediction.m
 
   // get projected times and uncertainty
-  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, int_dt, projection_time);
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
   std::vector<double> projected_time = tmp.first;
   std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
-
-  // add t_start to projected times
-  for (auto& t : projected_time)
-  {
-    t += t_start;
-  }
 
   for (int i = 0; i <= par_.num_seg; i++)
   {
@@ -2048,7 +2051,7 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
 //
 
 // See https://doc.cgal.org/Manual/3.7/examples/Convex_hull_3/quickhull_3.cpp
-CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty)
+CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
 {
 
   std::vector<Eigen::Vector3d> points = vertexesOfIntervalUncertaintyInflated(traj, t_start, t_end, projected_time, projected_uncertainty);
@@ -2066,7 +2069,7 @@ CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, doubl
 // ------------------------------------------------------------------------------------------------------
 //
 
-std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty)
+std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
 {
   Eigen::Vector3d delta = Eigen::Vector3d::Zero();
   Eigen::Vector3d drone_boundarybox = par_.drone_bbox;
@@ -2142,6 +2145,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
   {  // is an agent --> use the pwp field
     // TODO: If it's agent then we need to apply different uncertainty inflation to bbox
     std::cout << "TODO: If it's agent then we need to apply different uncertainty inflation to bbox" << std::endl;
+    return std::vector<Eigen::Vector3d>();
   }
 }
 
