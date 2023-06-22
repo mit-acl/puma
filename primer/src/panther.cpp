@@ -480,6 +480,15 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
     
     // Get projected times and uncertainty
     std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
+
+    // Check if the number of samples is correct (it should be equal to par_.fitter_num_samples) TODO: Kind of hacky
+    if (tmp.second.size() > par_.fitter_num_samples)
+    {
+      // Pop the last element
+      tmp.second.pop_back();
+    }
+
+    // Fit the uncertainty samples
     obstacle_for_opt.uncertainty_ctrl_pts = fitter_ ->fit(tmp.second);
 
     // Take future samples of the trajectory
