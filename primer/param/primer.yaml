@@ -50,6 +50,13 @@ use_expert: true
 use_student: false
 
 #############################################
+# Tracker Predictor setting
+#############################################
+
+obstacle_visualization_duration: 2.0 #seconds #how long you wanna propagate and visualize obstacles
+initial_covariance_factor: 1.0 #initial covariance = initial_covariance_given_by_fitting * initial_covariance_factor (this equation is used in convexHullsOfCurve in panther.cpp)
+
+#############################################
 # Training setting
 #############################################
 

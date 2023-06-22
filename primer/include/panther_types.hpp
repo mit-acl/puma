@@ -815,6 +815,8 @@ struct parameters
 {
   //
   // clang-format off
+  double          initial_covariance_factor;
+  double          obstacle_visualization_duration;
   bool            add_noise_to_obst;
   bool            use_expert_for_other_agents_in_training;
   double          goal_seen_radius_training;

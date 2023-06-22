@@ -802,11 +802,8 @@ void Panther::pubObstacleEdge(mt::Edges& edges_obstacles_out, const Eigen::Affin
   // Get edges_obstacles
   //
 
-  // TODO: expose this
-  double obstacle_visualization_duration = 2.0;
-
   double t_start = ros::Time::now().toSec();
-  double t_final = t_start + obstacle_visualization_duration;
+  double t_final = t_start + par_.obstacle_visualization_duration;
 
   ConvexHullsOfCurves hulls = convexHullsOfCurvesForObstacleEdge(t_start, t_final, c_T_b, w_T_b);
 
@@ -2022,9 +2019,7 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   ConvexHullsOfCurve convexHulls;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
-  // TODO: expose parameters
-  // TODO: add parameter to the initial covariance
-  Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+  Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]) * par_.initial_covariance_factor;
   // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
   double int_dt = 0.1;
   double projection_time = 6.0; // this is coming from prediction.m

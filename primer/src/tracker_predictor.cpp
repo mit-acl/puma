@@ -92,6 +92,7 @@ TrackerPredictor::TrackerPredictor(ros::NodeHandle nh) : nh_(nh)
   safeGetParam(nh_, "max_cluster_size", max_cluster_size_);
   safeGetParam(nh_, "min_dim_cluster_size", min_dim_cluster_size_);
   safeGetParam(nh_, "leaf_size_filter", leaf_size_filter_);
+  safeGetParam(nh_, "obstacle_visualization_duration", obstacle_visualization_duration_);
 
   for (int i = min_size_sliding_window_; i <= max_size_sliding_window_; i++)
   {
@@ -623,8 +624,9 @@ void TrackerPredictor::cloud_cb(const sensor_msgs::PointCloud2ConstPtr& pcl2ptr_
     // track_j.pwp.print();
 
     std::string ns = "predicted_traj_" + std::to_string(j);
+
     pub_marker_predicted_traj_.publish(
-        pwp2ColoredMarkerArray(track_j.pwp_mean, time_pcloud, time_pcloud + 2.0, samples, ns, track_j.color));
+        pwp2ColoredMarkerArray(track_j.pwp_mean, time_pcloud, time_pcloud + obstacle_visualization_duration_, samples, ns, track_j.color));
 
     /////////////////// construct a DynTraj msg. //TODO: use the pwp instead (this will require modifications in the
     /// panther code, for when it's not an agent)

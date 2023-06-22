@@ -327,6 +327,8 @@ private:
   ros::Subscriber sub_;
   std::string name_file_;
   // double last_time_done_logging_ = -100.0;
+
+  double obstacle_visualization_duration_;
 };
 
 #endif

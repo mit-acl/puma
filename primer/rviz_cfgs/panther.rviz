@@ -27,7 +27,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PCloudFiltered
   - Class: rviz/Displays
     Help Height: 0
     Name: Displays
@@ -71,9 +71,15 @@ Visualization Manager:
       Frame Timeout: 1000
       Frames:
         All Enabled: false
+        SQ01s:
+          Value: true
+        SQ01s/camera_depth_optical_frame:
+          Value: true
+        SQ01s/camera_link:
+          Value: true
         obs_4000:
           Value: true
-        obs_4001:
+        vicon:
           Value: true
         world:
           Value: false
@@ -87,8 +93,11 @@ Visualization Manager:
         world:
           obs_4000:
             {}
-          obs_4001:
-            {}
+          vicon:
+            SQ01s:
+              SQ01s/camera_link:
+                SQ01s/camera_depth_optical_frame:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -250,7 +259,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/fov
       Name: SQ01sFOV
       Namespaces:
-        {}
+        marker_fov: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -298,7 +307,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/tracker_predictor_node/marker_predicted_traj
       Name: Predictions
       Namespaces:
-        {}
+        predicted_traj_0: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -306,7 +315,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/tracker_predictor_node/marker_bbox_obstacles
       Name: bbox_obstacles_predictor
       Namespaces:
-        {}
+        predictor: true
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -610,21 +619,21 @@ Visualization Manager:
       frame: obs_4004
       line_width: 0.03999999910593033
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /SQ02s/primer/obstacles
       Name: ObsEdgeSQ02s
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /SQ01s/primer/actual_traj

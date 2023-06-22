@@ -126,6 +126,12 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "use_expert", par_.use_expert);
   safeGetParam(nh1_, "use_student", par_.use_student);
 
+  //
+  // Tracker Predictor params
+  //
+  
+  safeGetParam(nh1_, "obstacle_visualization_duration", par_.obstacle_visualization_duration);
+  safeGetParam(nh1_, "initial_covariance_factor", par_.initial_covariance_factor);
 
   //
   // training params
