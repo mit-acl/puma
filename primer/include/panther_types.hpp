@@ -90,6 +90,7 @@ struct obstacleForOpt
   // casadi::DM bbox_inflated;
   // casadi::DM ctrl_pts;
   std::vector<Eigen::Vector3d> ctrl_pts;
+  std::vector<Eigen::Vector3d> uncertainty_ctrl_pts;
   Eigen::Vector3d bbox_inflated;
   bool is_dummy = false;
   bool is_agent = false;
@@ -100,6 +101,11 @@ struct obstacleForOpt
     for (auto& q : ctrl_pts)
     {
       std::cout << termcolor::yellow << q.transpose() << termcolor::reset << std::endl;
+    }
+    std::cout << termcolor::red << "uncertainty_ctrl_pts=" << termcolor::reset << std::endl;
+    for (auto& q : uncertainty_ctrl_pts)
+    {
+      std::cout << termcolor::red << q.transpose() << termcolor::reset << std::endl;
     }
     std::cout << termcolor::blue << "bbox_inflated=" << bbox_inflated.transpose() << termcolor::reset << std::endl;
   }

@@ -747,6 +747,8 @@ std::map<std::string, casadi::DM> SolverIpopt::getMapConstantArguments()
   {
     map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_uncertainty_ctrl_pts"] =
+        stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].uncertainty_ctrl_pts);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
         eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }

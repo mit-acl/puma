@@ -49,7 +49,7 @@ public:
   std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end,
                                                   const Eigen::Vector3d& delta);
   std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end);
-  std::vector<Eigen::Vector3d> vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty);
+  std::vector<Eigen::Vector3d> vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
   void updateState(mt::state data);
 
   bool getNextGoal(mt::state& next_goal);
@@ -68,7 +68,7 @@ public:
   void convertsolOrGuess2pwp(mt::PieceWisePol& pwp_p, si::solOrGuess& solorguess, double dc);
   void adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& obstacles_for_opt);
 
-  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double projection_time);
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double t_start, double t_end);
 
 private:
   // pybind11::module calc_;
@@ -88,7 +88,7 @@ private:
   ConvexHullsOfCurves convexHullsOfCurves(double t_start, double t_end);
   ConvexHullsOfCurves convexHullsOfCurvesForObstacleEdge(double t_start, double t_end, const Eigen::Affine3d& c_T_b, const Eigen::Affine3d& w_T_b);
   ConvexHullsOfCurve convexHullsOfCurve(mt::dynTrajCompiled& traj, double t_start, double t_end);
-  CGAL_Polyhedron_3 convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double> projected_time, std::vector<Eigen::Vector3d> projected_uncertainty);
+  CGAL_Polyhedron_3 convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
 
   std::vector<mt::obstacleForOpt> getObstaclesForOpt(double t_start, double t_end,
                                                      std::vector<si::solOrGuess>& splines_fitted);
