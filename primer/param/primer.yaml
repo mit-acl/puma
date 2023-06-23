@@ -54,7 +54,9 @@ use_student: false
 #############################################
 
 obstacle_visualization_duration: 2.0 #seconds #how long you wanna propagate and visualize obstacles
-initial_covariance_factor: 1.0 #initial covariance = initial_covariance_given_by_fitting * initial_covariance_factor (this equation is used in convexHullsOfCurve in panther.cpp)
+initial_position_covariance_multiplier: 5
+initial_velocity_covariance_adjust: 0.05
+initial_acceleration_covariance_adjust: 0.001
 
 #############################################
 # Training setting
