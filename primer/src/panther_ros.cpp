@@ -131,7 +131,9 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   //
   
   safeGetParam(nh1_, "obstacle_visualization_duration", par_.obstacle_visualization_duration);
-  safeGetParam(nh1_, "initial_covariance_factor", par_.initial_covariance_factor);
+  safeGetParam(nh1_, "initial_position_covariance_multiplier", par_.initial_position_covariance_multiplier);
+  safeGetParam(nh1_, "initial_velocity_covariance_adjust", par_.initial_velocity_covariance_adjust);
+  safeGetParam(nh1_, "initial_acceleration_covariance_adjust", par_.initial_acceleration_covariance_adjust);
 
   //
   // training params

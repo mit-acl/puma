@@ -821,7 +821,9 @@ struct parameters
 {
   //
   // clang-format off
-  double          initial_covariance_factor;
+  double          initial_position_covariance_multiplier;
+  double          initial_velocity_covariance_adjust;
+  double          initial_acceleration_covariance_adjust;
   double          obstacle_visualization_duration;
   bool            add_noise_to_obst;
   bool            use_expert_for_other_agents_in_training;

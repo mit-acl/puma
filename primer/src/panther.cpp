@@ -476,7 +476,18 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
     mt::obstacleForOpt obstacle_for_opt;
 
     // Generate the uncertainty samples
-    Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    Eigen::Matrix<double, 9, 1> initial_variance;
+    initial_variance << 
+      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust,
+      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust,
+      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust;
     
     // Get projected times and uncertainty
     std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
@@ -894,26 +905,34 @@ void Panther::adjustObstaclesForOptimization(std::vector<mt::obstacleForOpt>& ob
 // ------------------------------------------------------------------------------------------------------
 //
 
-std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Vector3d& initial_variance, double int_dt, double t_start, double t_end)
+std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUncertainty(const Eigen::Matrix<double, 9, 1>& initial_variance, double int_dt, double t_start, double t_end)
 {
   // Projects the uncertainty of the trajectory into the future using an EKF and a constant acceleration model
-  Eigen::Matrix3d sigma_0 = initial_variance.asDiagonal();
+  Eigen::Matrix<double, 9, 9> sigma_0 = initial_variance.asDiagonal();
 
   // Define the state transition matrix using the matrix exponential of the dynamics
-  Eigen::Matrix3d A;
-  A << 0, 1, 0, 0, 0, 1, 0, 0, 0;
-  Eigen::Matrix3d F = Eigen::Matrix3d::Identity() + A * int_dt + 0.5 * A * A * int_dt * int_dt;
+  Eigen::Matrix3d dyn;
+  dyn << 0, 1, 0, 0, 0, 1, 0, 0, 0;
+
+  Eigen::Matrix<double, 9, 9> A = Eigen::Matrix<double, 9, 9>::Zero();
+  A.block<3, 3>(0, 0) = dyn;
+  A.block<3, 3>(3, 3) = dyn;
+  A.block<3, 3>(6, 6) = dyn;
+  
+  Eigen::Matrix<double, 9, 9> F = Eigen::Matrix<double, 9, 9>::Identity() + A * int_dt + 0.5 * A * A * int_dt * int_dt;
 
   // Project the uncertainty into the future
   std::vector<double> projected_time;
   std::vector<Eigen::Vector3d> projected_uncertainty;
 
-  Eigen::Matrix3d sigma_t = sigma_0;
+  Eigen::Matrix<double, 9, 9>  sigma_t = sigma_0;
   for (double t = t_start; t < t_end; t += int_dt)
   {
     sigma_t = F * sigma_t * F.transpose();
     projected_time.push_back(t);
-    projected_uncertainty.push_back(sigma_t.diagonal());
+    Eigen::Vector3d pos_uncertainty;
+    pos_uncertainty << sigma_t(0, 0), sigma_t(3, 3), sigma_t(6, 6);
+    projected_uncertainty.push_back(pos_uncertainty);
   }
 
   return std::make_pair(projected_time, projected_uncertainty);
@@ -2154,7 +2173,18 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   ConvexHullsOfCurve convexHulls;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
-  Eigen::Vector3d initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]) * par_.initial_covariance_factor;
+  Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+  Eigen::Matrix<double, 9, 1> initial_variance;
+  initial_variance << 
+    initial_position_variance(0) * par_.initial_position_covariance_multiplier,
+    par_.initial_velocity_covariance_adjust,
+    par_.initial_acceleration_covariance_adjust,
+    initial_position_variance(1) * par_.initial_position_covariance_multiplier,
+    par_.initial_velocity_covariance_adjust,
+    par_.initial_acceleration_covariance_adjust,
+    initial_position_variance(2) * par_.initial_position_covariance_multiplier,
+    par_.initial_velocity_covariance_adjust,
+    par_.initial_acceleration_covariance_adjust;
   // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
 
   // get projected times and uncertainty
@@ -2209,6 +2239,12 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
     //   std::cout << u.transpose() << std::endl;
     // }
 
+<<<<<<< HEAD
+=======
+    // print t_start and t_end
+    // std::cout << "t_start: " << t_start << std::endl;
+    // std::cout << "t_end: " << t_end << std::endl;
+>>>>>>> ccde7300743cfaaed7999538b9134b6b8c497147
 
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
 
@@ -2239,6 +2275,11 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
         return fabs(a - t) < fabs(b - t);
       }) - projected_time.begin();
 
+<<<<<<< HEAD
+=======
+      // std::cout << "idx: " << idx << std::endl;
+
+>>>>>>> ccde7300743cfaaed7999538b9134b6b8c497147
       // get the uncertainty at the current time
       Eigen::Vector3d unc = projected_uncertainty[idx];
 
