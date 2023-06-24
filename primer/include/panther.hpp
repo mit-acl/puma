@@ -48,7 +48,8 @@ public:
                                  const double& t_end);
   std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end,
                                                   const Eigen::Vector3d& delta);
-  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end);
+  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
+  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end, const Eigen::Vector3d& delta, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
   std::vector<Eigen::Vector3d> vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
   void updateState(mt::state data);
 

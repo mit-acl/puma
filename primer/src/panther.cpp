@@ -1519,6 +1519,23 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   double d_i;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);
 
+  // project uncertainty
+  Eigen::Vector3d initial_variance;
+  if (traj.is_agent)
+  {
+    // TODO: expose this param
+    initial_variance << 0.1, 0.1, 0.1;
+  }
+  else // if it's obstacle
+  {
+    initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]) * par_.initial_covariance_factor;
+  }
+  
+  // get projected times and uncertainty
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
+  std::vector<double> projected_time = tmp.first;
+  std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
+
   for (int i = 0; i < par_.num_seg; i++)  // for each interval
   {
     // This is my trajectory (no inflation)
@@ -1526,8 +1543,7 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
         vertexesOfInterval(pwp, t_start + i * deltaT, t_start + (i + 1) * deltaT, Eigen::Vector3d::Zero());
 
     // This is the trajectory of the other agent/obstacle
-
-    std::vector<Eigen::Vector3d> pointsB = vertexesOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT);
+    std::vector<Eigen::Vector3d> pointsB = vertexesOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT, projected_time, projected_uncertainty);
 
     if (separator_solver_->solveModel(n_i, d_i, pointsA, pointsB) == false)
     {
@@ -1543,7 +1559,7 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
 // ------------------------------------------------------------------------------------------------------
 //
 
-std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end)
+std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
 {
   Eigen::Vector3d delta = Eigen::Vector3d::Zero();
   Eigen::Vector3d drone_boundarybox = par_.drone_bbox;
@@ -1567,15 +1583,26 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
       double z = traj.s_mean[2].value();
       mtx_t_.unlock();
 
+      // get the index of the projected time that is closest to the current time
+      int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
+        return fabs(a - t) < fabs(b - t);
+      }) - projected_time.begin();
+
+      // get the uncertainty at the current time
+      Eigen::Vector3d unc = projected_uncertainty[idx];
+
+      // get inflated delta
+      Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+
       //"Minkowski sum along the trajectory: box centered on the trajectory"
-      points.push_back(Eigen::Vector3d(x + delta.x(), y + delta.y(), z + delta.z()));
-      points.push_back(Eigen::Vector3d(x + delta.x(), y - delta.y(), z - delta.z()));
-      points.push_back(Eigen::Vector3d(x + delta.x(), y + delta.y(), z - delta.z()));
-      points.push_back(Eigen::Vector3d(x + delta.x(), y - delta.y(), z + delta.z()));
-      points.push_back(Eigen::Vector3d(x - delta.x(), y - delta.y(), z - delta.z()));
-      points.push_back(Eigen::Vector3d(x - delta.x(), y + delta.y(), z + delta.z()));
-      points.push_back(Eigen::Vector3d(x - delta.x(), y + delta.y(), z - delta.z()));
-      points.push_back(Eigen::Vector3d(x - delta.x(), y - delta.y(), z + delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
     }
 
     return points;
@@ -1583,8 +1610,98 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
   else
   {  // is an agent --> use the pwp field
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
-    return vertexesOfInterval(traj.pwp_mean, t_start, t_end, delta);
+    return vertexesOfInterval(traj.pwp_mean, t_start, t_end, delta, projected_time, projected_uncertainty);
   }
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end,
+                                                         const Eigen::Vector3d& delta, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
+{
+  std::vector<Eigen::Vector3d> points;
+
+  std::vector<double>::iterator low = std::lower_bound(pwp.times.begin(), pwp.times.end(), t_start);
+  std::vector<double>::iterator up = std::upper_bound(pwp.times.begin(), pwp.times.end(), t_end);
+
+  // // Example: times=[1 2 3 4 5 6 7]
+  // // t_start=1.5;
+  // // t_end=5.5
+  // // then low points to "2" (low - pwp.times.begin() is 1)
+  // // and up points to "6" (up - pwp.times.begin() is 5)
+
+  int index_first_interval = low - pwp.times.begin() - 1;  // index of the interval [1,2]
+  int index_last_interval = up - pwp.times.begin() - 1;    // index of the interval [5,6]
+
+  saturate(index_first_interval, 0, (int)(pwp.all_coeff_x.size() - 1));
+  saturate(index_last_interval, 0, (int)(pwp.all_coeff_x.size() - 1));
+
+  Eigen::Matrix<double, 3, 4> P;
+  Eigen::Matrix<double, 3, 4> V;
+
+  mt::basisConverter basis_converter;
+  Eigen::Matrix<double, 4, 4> A_rest_pos_basis_inverse = basis_converter.getArestMinvoDeg3().inverse();
+
+  // push all the complete intervals
+  for (int i = index_first_interval; i <= index_last_interval; i++)
+  {
+
+    // get t
+    double t = pwp.times[i];
+    
+    // get the index of the projected time that is closest to the current time
+    int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
+      return fabs(a - t) < fabs(b - t);
+    }) - projected_time.begin();
+
+    // get the uncertainty at the current time
+    Eigen::Vector3d unc = projected_uncertainty[idx];
+
+    // get inflated delta
+    Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+
+    P.row(0) = pwp.all_coeff_x[i];
+    P.row(1) = pwp.all_coeff_y[i];
+    P.row(2) = pwp.all_coeff_z[i];
+
+    V = P * A_rest_pos_basis_inverse;
+
+    for (int j = 0; j < V.cols(); j++)
+    {
+      double x = V(0, j);
+      double y = V(1, j);
+      double z = V(2, j);  //[x,y,z] is the point
+
+      if (delta.norm() < 1e-6)
+      {  // no inflation
+        points.push_back(Eigen::Vector3d(x, y, z));
+      }
+      else
+      {
+        // points.push_back(Eigen::Vector3d(V(1, j), V(2, j), V(3, j)));  // x,y,z
+
+        if (j == V.cols() - 1)
+        {
+          points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+          points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+        }
+        else
+        {
+          points.push_back(Eigen::Vector3d(x, y, z));
+        }
+      }
+    }
+  }
+
+  return points;
 }
 
 //
@@ -1611,9 +1728,6 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::PieceWisePol& pwp, 
   saturate(index_first_interval, 0, (int)(pwp.all_coeff_x.size() - 1));
   saturate(index_last_interval, 0, (int)(pwp.all_coeff_x.size() - 1));
 
-  // int index_first_interval = 0;
-  // int index_last_interval = static_cast<int>(pwp.coeff_x.size() - 1);
-
   Eigen::Matrix<double, 3, 4> P;
   Eigen::Matrix<double, 3, 4> V;
 
@@ -1623,6 +1737,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::PieceWisePol& pwp, 
   // push all the complete intervals
   for (int i = index_first_interval; i <= index_last_interval; i++)
   {
+
     P.row(0) = pwp.all_coeff_x[i];
     P.row(1) = pwp.all_coeff_y[i];
     P.row(2) = pwp.all_coeff_z[i];
@@ -2094,9 +2209,6 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
     //   std::cout << u.transpose() << std::endl;
     // }
 
-    // print t_start and t_end
-    std::cout << "t_start: " << t_start << std::endl;
-    std::cout << "t_end: " << t_end << std::endl;
 
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
 
@@ -2126,8 +2238,6 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
       int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
         return fabs(a - t) < fabs(b - t);
       }) - projected_time.begin();
-
-      std::cout << "idx: " << idx << std::endl;
 
       // get the uncertainty at the current time
       Eigen::Vector3d unc = projected_uncertainty[idx];
