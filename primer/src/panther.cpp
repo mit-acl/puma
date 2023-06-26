@@ -477,18 +477,13 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
 
     // Generate the uncertainty samples
     Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+    Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
     Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust
+      initial_position_variance, initial_velocity_variance, initial_acceleration_variance
     );
-    
+
     // Get projected times and uncertainty
     std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
 
@@ -1540,7 +1535,12 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
 
   // Generate the uncertainty samples
   Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-  Eigen::Matrix<double, 9, 1> initial_variance;
+  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
+  Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
+    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+  );
 
   // project uncertainty
   if (traj.is_agent)
@@ -1550,20 +1550,6 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
       0.1, 0.1, 0.1,
       0.1, 0.1, 0.1,
       0.1, 0.1, 0.1  
-    );
-  }
-  else // if it's obstacle
-  {
-    initial_variance = buildVarianceVector(
-      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust
     );
   }
 
@@ -2191,16 +2177,11 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
   Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-    initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust,
-    initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust,
-    initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust
+    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
   );
   // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
 

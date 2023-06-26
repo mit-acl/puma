@@ -64,8 +64,8 @@ PYBIND11_MODULE(py_panther, m)
       // clang-format off
 
       .def_readwrite("initial_position_covariance_multiplier", &mt::parameters::initial_position_covariance_multiplier)
-      .def_readwrite("initial_velocity_covariance_adjust", &mt::parameters::initial_velocity_covariance_adjust)
-      .def_readwrite("initial_acceleration_covariance_adjust", &mt::parameters::initial_acceleration_covariance_adjust)
+      .def_readwrite("initial_velocity_covariance_multiplier", &mt::parameters::initial_velocity_covariance_multiplier)
+      .def_readwrite("initial_acceleration_covariance_multiplier", &mt::parameters::initial_acceleration_covariance_multiplier)
       .def_readwrite("obstacle_visualization_duration", &mt::parameters::obstacle_visualization_duration)
       .def_readwrite("use_expert_for_other_agents_in_training", &mt::parameters::use_expert_for_other_agents_in_training)
       .def_readwrite("add_noise_to_obst", &mt::parameters::add_noise_to_obst)

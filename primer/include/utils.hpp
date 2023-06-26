@@ -176,6 +176,9 @@ Eigen::Matrix<double, 9, 1> buildVarianceVector(double sigma_pos_x, double sigma
                                                 double sigma_pos_y, double sigma_vel_y, double sigma_acc_y,
                                                 double sigma_pos_z, double sigma_vel_z, double sigma_acc_z);
 
+Eigen::Matrix<double, 9, 1> buildVarianceVector(Eigen::Vector3d sigma_pos, Eigen::Vector3d sigma_vel,
+                                                Eigen::Vector3d sigma_acc);
+
 int nChoosek(int n, int k);
 void linearTransformPoly(const Eigen::VectorXd& coeff_old, Eigen::VectorXd& coeff_new, double a, double b);
 void changeDomPoly(const Eigen::VectorXd& coeff_p, double tp1, double tp2, Eigen::VectorXd& coeff_q, double tq1,

@@ -1012,6 +1012,15 @@ Eigen::Matrix<double, 9, 1> buildVarianceVector(double sigma_pos_x, double sigma
   return tmp;
 }
 
+Eigen::Matrix<double, 9, 1> buildVarianceVector(Eigen::Vector3d sigma_pos, Eigen::Vector3d sigma_vel,
+                                                Eigen::Vector3d sigma_acc)
+{
+  Eigen::Matrix<double, 9, 1> tmp;
+  tmp << sigma_pos(0), sigma_vel(0), sigma_acc(0), sigma_pos(1), sigma_vel(1), sigma_acc(1), sigma_pos(2), sigma_vel(2),
+      sigma_acc(2);
+  return tmp;
+}
+
 visualization_msgs::MarkerArray trajectory2ColoredMarkerArray(const mt::trajectory& data, double max_value, int increm,
                                                               std::string ns, double scale, std::string color_type,
                                                               int id_agent, int n_agents, double min_aug_cost,
