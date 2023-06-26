@@ -53,7 +53,7 @@ use_student: false
 # Tracker Predictor setting
 #############################################
 
-obstacle_visualization_duration: 2.0 #seconds #how long you wanna propagate and visualize obstacles
+obstacle_visualization_duration: 4.0 #seconds #how long you wanna propagate and visualize obstacles
 initial_position_covariance_multiplier: 5
 initial_velocity_covariance_adjust: 0.05
 initial_acceleration_covariance_adjust: 0.001

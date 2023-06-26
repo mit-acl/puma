@@ -98,7 +98,7 @@ for i=1:num_max_of_obst
 end
 fitter.bs=       MyClampedUniformSpline(0,1, fitter.deg_pos, fitter.dim_pos, fitter.num_seg, opti);
 %The total time of the fit past obstacle trajectory (horizon length[NOTE: This is also the max horizon length of the drone's trajectory])
-fitter.total_time=6.0; %Time from (time at point d) to end of the fitted spline
+fitter.total_time=4.0; %Time from (time at point d) to end of the fitted spline
 
 %%%%
 %%%% NOTE: Everything uses B-Spline control points except for obstacle constraints which use the set basis (usually MINVO)
