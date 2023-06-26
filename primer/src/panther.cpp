@@ -925,9 +925,19 @@ std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUnc
   {
     sigma_t = F * sigma_t * F.transpose();
     projected_time.push_back(t);
-    Eigen::Vector3d pos_uncertainty;
-    pos_uncertainty << sigma_t(0, 0), sigma_t(3, 3), sigma_t(6, 6);
-    projected_uncertainty.push_back(pos_uncertainty);
+    Eigen::Vector3d pos_variance;
+    pos_variance << sigma_t(0, 0), sigma_t(3, 3), sigma_t(6, 6);
+
+    // Calculate the Mahalanobis radius of the error ellipsoid
+    // From MATLAB: chi2inv(0.95, 3) 3DOF, 95% confidence interval
+    double s = 7.814727903251178;
+    
+    // Scale the variance by the Mahalanobis radius
+    pos_variance *= s;
+
+    // We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
+    Eigen::Vector3d pos_std_dev = pos_variance.cwiseSqrt();
+    projected_uncertainty.push_back(2 * pos_std_dev);
   }
 
   return std::make_pair(projected_time, projected_uncertainty);
