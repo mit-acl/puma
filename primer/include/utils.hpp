@@ -172,6 +172,10 @@ geometry_msgs::Vector3 vectorNull();
 
 geometry_msgs::Vector3 vectorUniform(double a);
 
+Eigen::Matrix<double, 9, 1> buildVarianceVector(double sigma_pos_x, double sigma_vel_x, double sigma_acc_x,
+                                                double sigma_pos_y, double sigma_vel_y, double sigma_acc_y,
+                                                double sigma_pos_z, double sigma_vel_z, double sigma_acc_z);
+
 int nChoosek(int n, int k);
 void linearTransformPoly(const Eigen::VectorXd& coeff_old, Eigen::VectorXd& coeff_new, double a, double b);
 void changeDomPoly(const Eigen::VectorXd& coeff_p, double tp1, double tp2, Eigen::VectorXd& coeff_q, double tq1,
