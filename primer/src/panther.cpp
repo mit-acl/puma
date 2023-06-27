@@ -480,18 +480,13 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
 
     // Generate the uncertainty samples
     Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-    Eigen::Matrix<double, 9, 1> initial_variance;
-    initial_variance << 
-      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust;
-    
+    Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+    Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
+    Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
+      initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+    );
+
     // Get projected times and uncertainty
     std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
 
@@ -935,9 +930,19 @@ std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUnc
   {
     sigma_t = F * sigma_t * F.transpose();
     projected_time.push_back(t);
-    Eigen::Vector3d pos_uncertainty;
-    pos_uncertainty << sigma_t(0, 0), sigma_t(3, 3), sigma_t(6, 6);
-    projected_uncertainty.push_back(pos_uncertainty);
+    Eigen::Vector3d pos_variance;
+    pos_variance << sigma_t(0, 0), sigma_t(3, 3), sigma_t(6, 6);
+
+    // Calculate the Mahalanobis radius of the error ellipsoid
+    // From MATLAB: chi2inv(0.95, 3) 3DOF, 95% confidence interval
+    double s = 7.814727903251178;
+    
+    // Scale the variance by the Mahalanobis radius
+    pos_variance *= s;
+
+    // We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
+    Eigen::Vector3d pos_std_dev = pos_variance.cwiseSqrt();
+    projected_uncertainty.push_back(2 * pos_std_dev);
   }
 
   return std::make_pair(projected_time, projected_uncertainty);
@@ -1543,28 +1548,26 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   double d_i;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);
 
+  // Generate the uncertainty samples
+  Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
+  Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
+    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+  );
+
   // project uncertainty
-  Eigen::Matrix<double, 9, 1> initial_variance;
   if (traj.is_agent)
   {
     // TODO: expose this param
-    initial_variance << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
+    initial_variance = buildVarianceVector(
+      0.1, 0.1, 0.1,
+      0.1, 0.1, 0.1,
+      0.1, 0.1, 0.1  
+    );
   }
-  else // if it's obstacle
-  {
-    Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-    initial_variance << 
-      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust,
-      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-      par_.initial_velocity_covariance_adjust,
-      par_.initial_acceleration_covariance_adjust;
-  }
-  
+
   // get projected times and uncertainty
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
   std::vector<double> projected_time = tmp.first;
@@ -2189,17 +2192,13 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
   Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-  Eigen::Matrix<double, 9, 1> initial_variance;
-  initial_variance << 
-    initial_position_variance(0) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust,
-    initial_position_variance(1) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust,
-    initial_position_variance(2) * par_.initial_position_covariance_multiplier,
-    par_.initial_velocity_covariance_adjust,
-    par_.initial_acceleration_covariance_adjust;
+  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+
+  Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
+    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+  );
+  // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
 
   // get projected times and uncertainty
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
@@ -2210,8 +2209,6 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   {
     convexHulls.push_back(convexHullOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT, projected_time, projected_uncertainty));
   }
-
-  std::cout << "convexHulls.size(): " << convexHulls.size() << std::endl;
 
   return convexHulls;
 }
@@ -2253,21 +2250,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
   if (traj.is_agent == false)
   {
     std::vector<Eigen::Vector3d> points;
-
-    // print out projected_uncertainty
-    // std::cout << "projected_uncertainty: " << std::endl;
-    // for (auto& u : projected_uncertainty)
-    // {
-    //   std::cout << u.transpose() << std::endl;
-    // }
-
-    delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
-
-    // Will always have a sample at the beginning of the interval, and another at the end.
     double t_current = ros::Time::now().toSec();
-    // std::cout << "t_current: " << t_current << std::endl;
-    // std::cout << "t_start: " << t_start << std::endl;
-    // std::cout << "t_end: " << t_end << std::endl;
 
     if (t_current > t_end){
       std::cout << "t_current > t_end" << std::endl;
@@ -2305,8 +2288,6 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
 
       // get inflated delta
       Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
-
-      // std::cout << "unc: " << unc << std::endl;
 
       //"Minkowski sum along the trajectory: box centered on the trajectory"
       points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));

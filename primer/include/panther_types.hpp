@@ -673,6 +673,12 @@ struct PieceWisePol
     return U;
   }
 
+  Eigen::VectorXd uDeriv(Eigen::VectorXd U) const
+  {
+    // Remove the first element
+    return U.tail(U.rows() - 1);
+  }
+
   int getInterval(double t) const
   {
     if (t >= times[times.size() - 1])
@@ -728,6 +734,17 @@ struct PieceWisePol
     return u;
   }
 
+  Eigen::VectorXd coeffDeriv(Eigen::VectorXd coeff) const
+  {
+    int coeff_degree = coeff.rows() - 1;
+    Eigen::VectorXd coeff_der(coeff_degree);
+    for (int i = 0; i < coeff_der.rows(); i++)
+    {
+      coeff_der(i) = coeff(i) * (coeff_degree - i);
+    }
+    return coeff_der;
+  }
+
   Eigen::Vector3d eval(double t) const
   {
     Eigen::Vector3d result;
@@ -748,6 +765,36 @@ struct PieceWisePol
     result.x() = all_coeff_x[j].transpose() * tmp;
     result.y() = all_coeff_y[j].transpose() * tmp;
     result.z() = all_coeff_z[j].transpose() * tmp;
+    return result;
+  }
+
+  Eigen::Vector3d evalDeriv(double t, int degree) const
+  {
+    Eigen::Vector3d result;
+
+    double tt = t;
+    // Saturate
+    saturateMinMax(tt, times[0], times[times.size() - 1]);
+
+    double u = t2u(tt);
+    int j = getInterval(tt);  // TODO [Improve efficiency]: note that t2u is already calling getInterval()
+
+    Eigen::VectorXd tmp_u = getU(u);
+    Eigen::VectorXd tmp_coeff_x = all_coeff_x[j];
+    Eigen::VectorXd tmp_coeff_y = all_coeff_y[j];
+    Eigen::VectorXd tmp_coeff_z = all_coeff_z[j];
+
+    for (int i = 0; i < degree; i++)
+    {
+      tmp_u = uDeriv(tmp_u);
+      tmp_coeff_x = coeffDeriv(tmp_coeff_x);
+      tmp_coeff_y = coeffDeriv(tmp_coeff_y);
+      tmp_coeff_z = coeffDeriv(tmp_coeff_z);
+    }
+
+    result.x() = tmp_coeff_x.transpose() * tmp_u;
+    result.y() = tmp_coeff_y.transpose() * tmp_u;
+    result.z() = tmp_coeff_z.transpose() * tmp_u;
     return result;
   }
 
@@ -822,8 +869,8 @@ struct parameters
   //
   // clang-format off
   double          initial_position_covariance_multiplier;
-  double          initial_velocity_covariance_adjust;
-  double          initial_acceleration_covariance_adjust;
+  double          initial_velocity_covariance_multiplier;
+  double          initial_acceleration_covariance_multiplier;
   double          obstacle_visualization_duration;
   bool            add_noise_to_obst;
   bool            use_expert_for_other_agents_in_training;

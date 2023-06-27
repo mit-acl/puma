@@ -1002,6 +1002,25 @@ geometry_msgs::Vector3 vectorUniform(double a)
   return tmp;
 }
 
+Eigen::Matrix<double, 9, 1> buildVarianceVector(double sigma_pos_x, double sigma_vel_x, double sigma_acc_x,
+                                                double sigma_pos_y, double sigma_vel_y, double sigma_acc_y,
+                                                double sigma_pos_z, double sigma_vel_z, double sigma_acc_z)
+{
+  Eigen::Matrix<double, 9, 1> tmp;
+  tmp << sigma_pos_x, sigma_vel_x, sigma_acc_x, sigma_pos_y, sigma_vel_y, sigma_acc_y, sigma_pos_z, sigma_vel_z,
+      sigma_acc_z;
+  return tmp;
+}
+
+Eigen::Matrix<double, 9, 1> buildVarianceVector(Eigen::Vector3d sigma_pos, Eigen::Vector3d sigma_vel,
+                                                Eigen::Vector3d sigma_acc)
+{
+  Eigen::Matrix<double, 9, 1> tmp;
+  tmp << sigma_pos(0), sigma_vel(0), sigma_acc(0), sigma_pos(1), sigma_vel(1), sigma_acc(1), sigma_pos(2), sigma_vel(2),
+      sigma_acc(2);
+  return tmp;
+}
+
 visualization_msgs::MarkerArray trajectory2ColoredMarkerArray(const mt::trajectory& data, double max_value, int increm,
                                                               std::string ns, double scale, std::string color_type,
                                                               int id_agent, int n_agents, double min_aug_cost,
