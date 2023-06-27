@@ -729,6 +729,7 @@ void PantherRos::obstacleEdgeCB(const ros::TimerEvent& e)
   mtx_w_T_b_.lock();
   panther_ptr_->pubObstacleEdge(edges_obstacles, c_T_b_, w_T_b_);
   mtx_w_T_b_.unlock();
+  clearObstacleEdges();
   pubObstacles(edges_obstacles);
 }
 
@@ -891,7 +892,7 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
       visual_tools_->deleteAllMarkers();
       visual_tools_->enableBatchPublishing();
 
-      std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
+      // std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
       pubObstacles(edges_obstacles);
       pubTraj(X_safe);
       publishPlanes(planes);
@@ -1301,6 +1302,16 @@ void PantherRos::clearMarkerColoredTraj()
   m.scale.y = 1;
   m.scale.z = 1;
   pub_actual_traj_.publish(m);
+}
+
+void PantherRos::clearObstacleEdges()
+{
+  // clear only the edges of the obstacles that are published 5 seconds ago
+  visualization_msgs::Marker m;
+  m.type = visualization_msgs::Marker::LINE_LIST;
+  m.action = visualization_msgs::Marker::DELETEALL;
+  m.id = 0;
+  pub_obstacles_.publish(m);
 }
 
 void PantherRos::pubState(const mt::state& data, const ros::Publisher pub)

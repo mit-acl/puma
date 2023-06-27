@@ -75,6 +75,7 @@ private:
   // void clearMarkerSetOfArrows();
   void clearMarkerActualTraj();
   void clearMarkerColoredTraj();
+  void clearObstacleEdges();
 
   void pubActualTraj();
   visualization_msgs::MarkerArray clearArrows();

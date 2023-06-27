@@ -288,6 +288,9 @@ void Panther::removeOldTrajectories()
   {
     if ((time_now - trajs_[index_traj].time_received) > par_.max_seconds_keeping_traj)
     {
+      // std::cout << "remove traj " << std::endl;
+      // std::cout << "time_now " << time_now << std::endl;
+      // std::cout << "trajs_[" << index_traj << "].time_received " << trajs_[index_traj].time_received << std::endl; 
       ids_to_remove.push_back(trajs_[index_traj].id);
     }
   }
@@ -836,8 +839,10 @@ void Panther::pubObstacleEdge(mt::Edges& edges_obstacles_out, const Eigen::Affin
   double t_start = ros::Time::now().toSec();
   double t_final = t_start + par_.obstacle_visualization_duration;
 
-  ConvexHullsOfCurves hulls = convexHullsOfCurvesForObstacleEdge(t_start, t_final, c_T_b, w_T_b);
+  // remove old trajectories
+  removeOldTrajectories();
 
+  ConvexHullsOfCurves hulls = convexHullsOfCurvesForObstacleEdge(t_start, t_final, c_T_b, w_T_b);
   edges_obstacles_out = cu::vectorGCALPol2edges(hulls);
 }
 
@@ -1539,15 +1544,25 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);
 
   // project uncertainty
-  Eigen::Vector3d initial_variance;
+  Eigen::Matrix<double, 9, 1> initial_variance;
   if (traj.is_agent)
   {
     // TODO: expose this param
-    initial_variance << 0.1, 0.1, 0.1;
+    initial_variance << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
   }
   else // if it's obstacle
   {
-    initial_variance = traj.pwp_var.eval(traj.pwp_var.times[0]) * par_.initial_covariance_factor;
+    Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    initial_variance << 
+      initial_position_variance(0) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust,
+      initial_position_variance(1) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust,
+      initial_position_variance(2) * par_.initial_position_covariance_multiplier,
+      par_.initial_velocity_covariance_adjust,
+      par_.initial_acceleration_covariance_adjust;
   }
   
   // get projected times and uncertainty
@@ -2133,7 +2148,6 @@ ConvexHullsOfCurves Panther::convexHullsOfCurvesForObstacleEdge(double t_start, 
 {
   ConvexHullsOfCurves result;
 
-
   mtx_trajs_.lock();
   for (auto traj : trajs_)
   {
@@ -2154,7 +2168,8 @@ ConvexHullsOfCurves Panther::convexHullsOfCurvesForObstacleEdge(double t_start, 
 
       if (inFOV == false)
       {
-        continue;
+        t_start = traj.time_received;
+        t_end = t_start + par_.obstacle_visualization_duration;
       }
     }
     result.push_back(convexHullsOfCurve(traj, t_start, t_end));
@@ -2185,7 +2200,6 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
     initial_position_variance(2) * par_.initial_position_covariance_multiplier,
     par_.initial_velocity_covariance_adjust,
     par_.initial_acceleration_covariance_adjust;
-  // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
 
   // get projected times and uncertainty
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
@@ -2196,6 +2210,8 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   {
     convexHulls.push_back(convexHullOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT, projected_time, projected_uncertainty));
   }
+
+  std::cout << "convexHulls.size(): " << convexHulls.size() << std::endl;
 
   return convexHulls;
 }
@@ -2216,7 +2232,13 @@ CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, doubl
     points_cgal.push_back(Point_3(point_i.x(), point_i.y(), point_i.z()));
   }
 
-  return cu::convexHullOfPoints(points_cgal);
+  if (points_cgal.size() == 0){
+    std::cout << "points_cgal.size(): " << points_cgal.size() << std::endl;
+    return CGAL_Polyhedron_3();
+  } else {
+    return cu::convexHullOfPoints(points_cgal);
+  }
+
 }
 
 //
@@ -2239,17 +2261,20 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
     //   std::cout << u.transpose() << std::endl;
     // }
 
-<<<<<<< HEAD
-=======
-    // print t_start and t_end
-    // std::cout << "t_start: " << t_start << std::endl;
-    // std::cout << "t_end: " << t_end << std::endl;
->>>>>>> ccde7300743cfaaed7999538b9134b6b8c497147
-
     delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
 
     // Will always have a sample at the beginning of the interval, and another at the end.
-    for (double t = t_start;                           /////////////
+    double t_current = ros::Time::now().toSec();
+    // std::cout << "t_current: " << t_current << std::endl;
+    // std::cout << "t_start: " << t_start << std::endl;
+    // std::cout << "t_end: " << t_end << std::endl;
+
+    if (t_current > t_end){
+      std::cout << "t_current > t_end" << std::endl;
+      return std::vector<Eigen::Vector3d>();
+    }
+
+    for (double t = t_current;                           /////////////
          (t < t_end) ||                                /////////////
          ((t > t_end) && ((t - t_end) < par_.gamma));  /////// This is to ensure we have a sample a the end
          t = t + par_.gamma)
@@ -2275,11 +2300,6 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
         return fabs(a - t) < fabs(b - t);
       }) - projected_time.begin();
 
-<<<<<<< HEAD
-=======
-      // std::cout << "idx: " << idx << std::endl;
-
->>>>>>> ccde7300743cfaaed7999538b9134b6b8c497147
       // get the uncertainty at the current time
       Eigen::Vector3d unc = projected_uncertainty[idx];
 
