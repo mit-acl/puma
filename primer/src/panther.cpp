@@ -2244,8 +2244,7 @@ CGAL_Polyhedron_3 Panther::convexHullOfInterval(mt::dynTrajCompiled& traj, doubl
 
 std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
 {
-  Eigen::Vector3d delta = Eigen::Vector3d::Zero();
-  Eigen::Vector3d drone_boundarybox = par_.drone_bbox;
+  Eigen::Vector3d delta = traj.bbox + par_.drone_bbox / 2.0;
 
   if (traj.is_agent == false)
   {

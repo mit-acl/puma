@@ -403,45 +403,48 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
 
   for (const auto &obstacle_i : obstacles_for_opt_)
   {
-    VertexesObstacle vertexes_obstacle_i;
+    if (!obstacle_i.is_agent){
+      VertexesObstacle vertexes_obstacle_i;
 
-    // std::vector<Eigen::Vector3d> ctrl_pts_obs_i = casadiMatrix2StdVectorEigen3d(obstacle_i.ctrl_pts);
-
-    for (int j = 0; j < par_.num_seg; j++)
-    {
-      std::vector<double> times =
-          linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
-
-      // std::cout << "times.size()= " << times.size() << std::endl;
-
-      VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
-
-      for (int k = 0; k < times.size(); k++)
+      for (int j = 0; j < par_.num_seg; j++)
       {
-        // std::cout << "times[k]= " << times[k] << std::endl;
+        std::vector<double> times =
+            linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
+        VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
 
-        mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
+        for (int k = 0; k < times.size(); k++)
+        {
+          mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
+          mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
+          Eigen::Vector3d delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
 
-        Eigen::Vector3d delta = obstacle_i.bbox_inflated / 2.0;
+          // std::cout << "times[" << k << "]= " << times[k] << std::endl;
+          // std::cout << "state.pos= " << state.pos.transpose() << std::endl;
+          // std::cout << "unc.pos= " << unc.pos.transpose() << std::endl;
+          // std::cout << "delta= " << delta.transpose() << std::endl;
 
-        // clang-format off
-         vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
-        // clang-format on
+          // clang-format off
+          vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+          vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+          vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+          vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+          vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+          vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+          vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+          vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+          // clang-format on
 
-        // std::cout << "vertexes_interval_j= \n" << vertexes_interval_j << std::endl;
+        }
+
+        vertexes_obstacle_i.push_back(vertexes_interval_j);
       }
 
-      vertexes_obstacle_i.push_back(vertexes_interval_j);
-    }
+      hulls_.push_back(vertexes_obstacle_i);
 
-    hulls_.push_back(vertexes_obstacle_i);
+    } else { // agent
+      std::cout << "in case of agents, we need to inflate the hulls differently?" << std::endl;
+      abort();
+    }
   }
 
   num_of_obst_ = hulls_.size();

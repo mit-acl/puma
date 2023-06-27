@@ -44,7 +44,7 @@ a_max: [20.0, 20.0, 20.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may
 j_max: [30.0, 30.0, 30.0]   #[m/s3] 
 factor_alpha: 1.0 #[-] DeltaT = factor_alpha*States_took_previous_replan
 lower_bound_alpha: 1.0 # [s] when alpha (total time of trajectory) is too small, PARM fails a lot
-max_seconds_keeping_traj: 6.0     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
+max_seconds_keeping_traj: 4.0     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
 gamma: 0.1 #[seconds] >0 Time step between discretization points
 use_expert: true
 use_student: false
@@ -174,12 +174,12 @@ c_visibility_yaw_search: 10.0  #weight for the yaw search
 c_maxydot_yaw_search: 10.0     #weight for the yaw search
 c_pos_smooth: 0.0          #weight for the optimization
 c_yaw_smooth: 0.01          #weight for the optimization
-c_fov: 100.0                 #weight for the optimization
-c_final_pos: 100.0           #weight for the optimization
+c_fov: 10.0                 #weight for the optimization
+c_final_pos: 10000.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
 c_total_time: 0.001           #weight for the optimization
-lambda_obst_avoidance_violation: 10000.0   #To compute the augmented cost
-lambda_dyn_lim_violation: 10000.0          #To compute the augmented cost
+lambda_obst_avoidance_violation: 100.0   #To compute the augmented cost
+lambda_dyn_lim_violation: 100.0          #To compute the augmented cost
 num_of_intervals: 7                       #nlopt/num_pol in rmader.yaml (TODO: could be the same as num_seg in params_casadi.yaml)
 
 #############################################
