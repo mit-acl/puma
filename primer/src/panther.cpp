@@ -484,7 +484,9 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
     Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
 
     Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-      initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+      initial_position_variance * par_.initial_position_variance_multiplier,
+      initial_velocity_variance * par_.initial_velocity_variance_multiplier,
+      initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
     );
 
     // Get projected times and uncertainty
@@ -1554,7 +1556,9 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+    initial_position_variance * par_.initial_position_variance_multiplier,
+    initial_velocity_variance * par_.initial_velocity_variance_multiplier,
+    initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
   );
 
   // project uncertainty
@@ -2196,9 +2200,10 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-    initial_position_variance, initial_velocity_variance, initial_acceleration_variance
+    initial_position_variance * par_.initial_position_variance_multiplier,
+    initial_velocity_variance * par_.initial_velocity_variance_multiplier,
+    initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
   );
-  // Eigen::Vector3d initial_variance(0.1, 0.1, 0.1);
 
   // get projected times and uncertainty
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);

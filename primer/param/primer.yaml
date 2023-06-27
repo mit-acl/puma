@@ -54,9 +54,9 @@ use_student: false
 #############################################
 
 obstacle_visualization_duration: 4.0 #seconds #how long you wanna propagate and visualize obstacles
-initial_position_covariance_multiplier: 1 #TODO: Implement
-initial_velocity_covariance_multiplier: 1
-initial_acceleration_covariance_multiplier: 1
+initial_position_variance_multiplier: 1.0
+initial_velocity_variance_multiplier: 1.0
+initial_acceleration_variance_multiplier: 0.0
 
 #############################################
 # Training setting

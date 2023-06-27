@@ -7,4 +7,5 @@
 *.m~
 *core
 *.o
-.vscode
+.vscode/*
+build
