@@ -433,7 +433,7 @@ void Panther::addDummyObstacle(double t_start, double t_end, std::vector<mt::obs
 
   dummy_obstacle_for_opt.ctrl_pts = fitter_->fit(samples);
   dummy_obstacle_for_opt.uncertainty_ctrl_pts = std::vector<Eigen::Vector3d>(dummy_obstacle_for_opt.ctrl_pts.size(), Eigen::Vector3d::Zero());
-  dummy_obstacle_for_opt.bbox_inflated = dummy_traj_compiled.bbox + par_.drone_bbox;
+  dummy_obstacle_for_opt.bbox_inflated = dummy_traj_compiled.bbox + par_.drone_bbox / 2;
   dummy_obstacle_for_opt.is_dummy = true;
 
   obstacles_for_opt.push_back(dummy_obstacle_for_opt);
@@ -515,7 +515,7 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
 
     obstacle_for_opt.ctrl_pts = fitter_->fit(samples);
 
-    Eigen::Vector3d bbox_inflated = traj.bbox + par_.drone_bbox;
+    Eigen::Vector3d bbox_inflated = traj.bbox + par_.drone_bbox / 2;
 
     obstacle_for_opt.bbox_inflated = bbox_inflated;
     obstacle_for_opt.is_agent = traj.is_agent;
@@ -1608,7 +1608,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
   if (traj.is_agent == false)
   {
     std::vector<Eigen::Vector3d> points;
-    delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
+    delta = traj.bbox + drone_boundarybox / 2.0;
 
     // Will always have a sample at the beginning of the interval, and another at the end.
     for (double t = t_start;                           /////////////
@@ -1633,7 +1633,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
       Eigen::Vector3d unc = projected_uncertainty[idx];
 
       // get inflated delta
-      Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+      Eigen::Vector3d uncertainty_inflated_delta = (unc + delta) / 2.0;
 
       //"Minkowski sum along the trajectory: box centered on the trajectory"
       points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
@@ -1650,7 +1650,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::dynTrajCompiled& tr
   }
   else
   {  // is an agent --> use the pwp field
-    delta = traj.bbox / 2.0 + drone_boundarybox / 2.0;
+    delta = traj.bbox + drone_boundarybox / 2.0;
     return vertexesOfInterval(traj.pwp_mean, t_start, t_end, delta, projected_time, projected_uncertainty);
   }
 }
@@ -1701,7 +1701,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfInterval(mt::PieceWisePol& pwp, 
     Eigen::Vector3d unc = projected_uncertainty[idx];
 
     // get inflated delta
-    Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+    Eigen::Vector3d uncertainty_inflated_delta = (unc + delta) / 2.0;
 
     P.row(0) = pwp.all_coeff_x[i];
     P.row(1) = pwp.all_coeff_y[i];
@@ -2291,7 +2291,7 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
       Eigen::Vector3d unc = projected_uncertainty[idx];
 
       // get inflated delta
-      Eigen::Vector3d uncertainty_inflated_delta = unc + delta;
+      Eigen::Vector3d uncertainty_inflated_delta = (unc + delta) / 2.0;
 
       //"Minkowski sum along the trajectory: box centered on the trajectory"
       points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
