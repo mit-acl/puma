@@ -261,6 +261,30 @@ end
 deltaT=total_time/num_seg; %Time allocated for each segment
 obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the interval j
 
+%% Uncertainty Propagation
+% simga_0 = opti.parameter(9, 9);
+simga_0 = [0.001, 0, 0, 0, 0, 0, 0, 0, 0;
+           0, 0.001, 0, 0, 0, 0, 0, 0, 0;
+           0, 0, 0.001, 0, 0, 0, 0, 0, 0;
+           0, 0, 0, 0.001, 0, 0, 0, 0, 0;
+           0, 0, 0, 0, 0.001, 0, 0, 0, 0;
+           0, 0, 0, 0, 0, 0.001, 0, 0, 0;
+           0, 0, 0, 0, 0, 0, 0.001, 0, 0;
+           0, 0, 0, 0, 0, 0, 0, 0.001, 0;
+           0, 0, 0, 0, 0, 0, 0, 0, 0.001];
+
+% Dynamic Model and State Transition
+dynamics = [0, 1, 0;
+            0, 0, 1;
+            0, 0, 0];
+
+A = [dynamics, zeros(3, 3), zeros(3, 3);
+     zeros(3, 3), dynamics, zeros(3, 3);
+     zeros(3, 3), zeros(3, 3), dynamics];
+
+% State transition is the matrix exponential of (dynamics * deltaT)
+F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
+
 %%
 %% Creates points (centers of the obstacles and verticies) used for obstacle constraints
 %%
@@ -272,8 +296,26 @@ for i=1:num_max_of_obst
         for k=1:sampler.num_samples_obstacle_per_segment
             t_obs = deltaT*(j-1) + (k/sampler.num_samples_obstacle_per_segment)*deltaT;
             t_nobs= max( t_obs/fitter.total_time,  1.0 );  %Note that fitter.bs_casadi{i}.knots=[0...1]
+            
+            % Propagate uncertainty
+            simga_p = F * simga_0 * F';
+            S = sigma_p + R; % TODO: Implement R
+            K = sigma_p * inv(S);
+            simga = (eye(9) - K) * sigma_p;
+
+            % Unpack the position variance fro positions (1, 1), (4, 4), and (7, 7)
+            sigma_pos = [simga(1, 1), simga(4, 4), simga(7, 7)];
+
+            % Calculate the Mahalanobis radius of the error ellipsoid
+            s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
+
+            % Scale the variance by the Mahalanobis radius
+            sigma_pos = sigma_pos * s;
+
+            %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
+            uncertainty = sqrt(sigma_pos);
+
             pos_center_obs=fitter.bs_casadi{i}.getPosT(t_nobs);
-            uncertainty=fitter.uncertainty_bs_casadi{i}.getPosT(t_nobs);
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
         end
