@@ -66,8 +66,8 @@ num_seg=7; %The number of segments in the trajectory (the more segments the less
 
 %% ATTENTION!!!!! TODO: make this automatic
 %% if you change these two numbers, don't forget to run this main file twice, once with use_panther_star=true and once with use_panther_star=false
-num_max_of_obst = 4; % This is the maximum num of the obstacles that will be considered in the constraints
-num_obst_in_FOV = 2; % This is different from max_num_obst, which is the max number of obst that an agent includes for constraints
+num_max_of_obst = 1; % This is the maximum num of the obstacles that will be considered in the constraints
+num_obst_in_FOV = 1; % This is different from max_num_obst, which is the max number of obst that an agent includes for constraints
 %% END ATTENTION!!!!!
 
 dim_pos=3; %The dimension of the position trajectory (R3)
@@ -263,15 +263,15 @@ obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the 
 
 %% Uncertainty Propagation
 % simga_0 = opti.parameter(9, 9);
-simga_0 = [0.001, 0, 0, 0, 0, 0, 0, 0, 0;
-           0, 0.001, 0, 0, 0, 0, 0, 0, 0;
-           0, 0, 0.001, 0, 0, 0, 0, 0, 0;
-           0, 0, 0, 0.001, 0, 0, 0, 0, 0;
-           0, 0, 0, 0, 0.001, 0, 0, 0, 0;
-           0, 0, 0, 0, 0, 0.001, 0, 0, 0;
-           0, 0, 0, 0, 0, 0, 0.001, 0, 0;
-           0, 0, 0, 0, 0, 0, 0, 0.001, 0;
-           0, 0, 0, 0, 0, 0, 0, 0, 0.001];
+simga_0 = [0.01, 0, 0, 0, 0, 0, 0, 0, 0;
+           0, 0.01, 0, 0, 0, 0, 0, 0, 0;
+           0, 0, 0.01, 0, 0, 0, 0, 0, 0;
+           0, 0, 0, 0.01, 0, 0, 0, 0, 0;
+           0, 0, 0, 0, 0.01, 0, 0, 0, 0;
+           0, 0, 0, 0, 0, 0.01, 0, 0, 0;
+           0, 0, 0, 0, 0, 0, 0.01, 0, 0;
+           0, 0, 0, 0, 0, 0, 0, 0.01, 0;
+           0, 0, 0, 0, 0, 0, 0, 0, 0.01];
 
 % Dynamic Model and State Transition
 dynamics = [0, 1, 0;
@@ -291,8 +291,9 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
 
 %% reuse the time t from the previous iteration
 
-replan_times = 0:1/(num_seg * sampler.num_samples_obstacle_per_segment):1;
-disp(replan_times(1))
+replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
+
+uncertainty_sum = 0.0;
 
 for i=1:num_max_of_obst
     all_centers=[];
@@ -329,6 +330,7 @@ for i=1:num_max_of_obst
 
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = sqrt(sigma_pos);
+            uncertainty_sum = uncertainty_sum + sum(uncertainty);
 
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
@@ -528,6 +530,10 @@ end
 %% Cost
 %%
 
+%% TODO expose this
+c_uncertainty = 100000.0;
+% disp(uncertainty_sum)
+
 pos_smooth_cost=sp.getControlCost()/(alpha^(sp.p-1));
 final_pos_cost=(sp.getPosT(tf_n)- pf)'*(sp.getPosT(tf_n)- pf);
 total_time_cost=alpha*(tf_n-t0_n);
@@ -538,7 +544,9 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
            c_final_pos*final_pos_cost+...
            c_yaw_smooth*yaw_smooth_cost+...
            c_final_yaw*final_yaw_cost+...
-           c_total_time*total_time_cost;
+           c_total_time*total_time_cost+...
+           c_fov*fov_cost+...
+           c_uncertainty*uncertainty_sum;
 
 %%
 %% First option: Hard constraints
