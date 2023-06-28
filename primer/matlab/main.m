@@ -289,14 +289,23 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
 %% Creates points (centers of the obstacles and verticies) used for obstacle constraints
 %%
 
+%% reuse the time t from the previous iteration
+
+replan_times = [0:1/(num_seg + sampler.num_samples_obstacle_per_segment):1];
+disp(replan_times(1))
+replan_time_index = 1;
+
 for i=1:num_max_of_obst
     all_centers=[];
     for j=1:num_seg
         all_vertexes_segment_j=[];
         for k=1:sampler.num_samples_obstacle_per_segment
             t_obs = deltaT*(j-1) + (k/sampler.num_samples_obstacle_per_segment)*deltaT;
-            t_nobs= max( t_obs/fitter.total_time,  1.0 );  %Note that fitter.bs_casadi{i}.knots=[0...1]
+            t_nobs= min( t_obs/fitter.total_time,  1.0 );  %Note that fitter.bs_casadi{i}.knots=[0...1]
             
+            % get the center of the obstacle
+            pos_center_obs=fitter.bs_casadi{i}.getPosT(t_nobs);
+
             % Propagate uncertainty
             sigma_p = F * simga_0 * F';
             sigma_0 = sigma_p;
@@ -305,7 +314,7 @@ for i=1:num_max_of_obst
             % S = sigma_p + ones(9, 9) * 0.001;
             % K = sigma_p * inv(S);
             % sigma_u = (eye(9) - K) * sigma_p;
-            S = diag(sigma_p) + ones(9, 1) * 0.01;
+            S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
 
@@ -321,9 +330,10 @@ for i=1:num_max_of_obst
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = sqrt(sigma_pos);
 
-            pos_center_obs=fitter.bs_casadi{i}.getPosT(t_nobs);
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
+
+            replan_time_index = replan_time_index + 1;
         end
         obst{i}.vertexes{j}=all_vertexes_segment_j;
     end  
