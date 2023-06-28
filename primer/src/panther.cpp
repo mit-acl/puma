@@ -463,25 +463,30 @@ void Panther::addDummyObstacle(double t_start, double t_end, std::vector<mt::obs
 std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, double t_end,
                                                             std::vector<si::solOrGuess>& splines_fitted)
 {
-  // std::cout << "In getObstaclesForOpt" << std::endl;
-
   std::vector<mt::obstacleForOpt> obstacles_for_opt;
 
   double delta = (t_end - t_start) / par_.fitter_num_samples;
-
-  // std::cout << "delta= " << delta << std::endl;
-
-  // std::cout << "trajs_.size() " << trajs_.size() << std::endl;
 
   for (int i = 0; i < trajs_.size(); i++)
   {
     mt::dynTrajCompiled traj = trajs_[i];
     mt::obstacleForOpt obstacle_for_opt;
 
+    Eigen::Vector3d initial_position_variance;
+    Eigen::Vector3d initial_velocity_variance;
+    Eigen::Vector3d initial_acceleration_variance; 
+
     // Generate the uncertainty samples
-    Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-    Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
-    Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+    if (traj.use_pwp_field){
+      initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+      initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+      initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+    } else
+    {
+      initial_position_variance << 0.0, 0.0, 0.0;
+      initial_velocity_variance << 0.0, 0.0, 0.0;
+      initial_acceleration_variance << 0.0, 0.0, 0.0;
+    }
 
     Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
       initial_position_variance * par_.initial_position_variance_multiplier,
@@ -1025,13 +1030,7 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_soluti
   }
 
   k_index = plan_.size() - 1 - k_index_end;
-
-  std::cout << "plan_.size()" << plan_.size() << std::endl;
-
   A = plan_.get(k_index);
-
-  // std::cout << "When selection A, plan_.size()= " << plan_.size() << std::endl;
-
   mtx_plan_.unlock();
 
   //////////////////////////////////////////////////////////////////////////
@@ -1551,9 +1550,20 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);
 
   // Generate the uncertainty samples
-  Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
-  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+  Eigen::Vector3d initial_position_variance;
+  Eigen::Vector3d initial_velocity_variance;
+  Eigen::Vector3d initial_acceleration_variance;
+
+  if (traj.use_pwp_field){
+    initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+    initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+  } else
+  {
+    initial_position_variance << 0.0, 0.0, 0.0;
+    initial_velocity_variance << 0.0, 0.0, 0.0;
+    initial_acceleration_variance << 0.0, 0.0, 0.0;
+  }
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
     initial_position_variance * par_.initial_position_variance_multiplier,
@@ -2195,9 +2205,20 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   ConvexHullsOfCurve convexHulls;
   double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
 
-  Eigen::Vector3d initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
-  Eigen::Vector3d initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
-  Eigen::Vector3d initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+  Eigen::Vector3d initial_position_variance;
+  Eigen::Vector3d initial_velocity_variance;
+  Eigen::Vector3d initial_acceleration_variance;
+
+  if (traj.use_pwp_field){
+    initial_position_variance = traj.pwp_var.eval(traj.pwp_var.times[0]);
+    initial_velocity_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 1);
+    initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
+  } else
+  {
+    initial_position_variance << 0.0, 0.0, 0.0;
+    initial_velocity_variance << 0.0, 0.0, 0.0;
+    initial_acceleration_variance << 0.0, 0.0, 0.0;
+  }
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
     initial_position_variance * par_.initial_position_variance_multiplier,
