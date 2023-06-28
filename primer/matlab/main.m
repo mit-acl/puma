@@ -291,12 +291,12 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
 
 %% reuse the time t from the previous iteration
 
-replan_times = [0:1/(num_seg + sampler.num_samples_obstacle_per_segment):1];
+replan_times = 0:1/(num_seg * sampler.num_samples_obstacle_per_segment):1;
 disp(replan_times(1))
-replan_time_index = 1;
 
 for i=1:num_max_of_obst
     all_centers=[];
+    replan_time_index = 1;
     for j=1:num_seg
         all_vertexes_segment_j=[];
         for k=1:sampler.num_samples_obstacle_per_segment
