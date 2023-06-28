@@ -75,7 +75,7 @@ dim_yaw=1; %The dimension of the yaw trajectory (R1)
 offset_vel=0.1;
 basis="MINVO"; %MINVO OR B_SPLINE or BEZIER. This is the basis used for collision checking (in position, velocity, accel and jerk space), both in Matlab and in C++
 linear_solver_name='ma27'; %mumps [default, comes when installing casadi], ma27, ma57, ma77, ma86, ma97 
-print_level=0; %From 0 (no verbose) to 12 (very verbose), default is 5
+print_level=5; %From 0 (no verbose) to 12 (very verbose), default is 5
 jit=false;
 fov_depth = 5.0; %TODO: hardcoded
 
@@ -298,13 +298,19 @@ for i=1:num_max_of_obst
             t_nobs= max( t_obs/fitter.total_time,  1.0 );  %Note that fitter.bs_casadi{i}.knots=[0...1]
             
             % Propagate uncertainty
-            simga_p = F * simga_0 * F';
-            S = sigma_p + R; % TODO: Implement R
-            K = sigma_p * inv(S);
-            simga = (eye(9) - K) * sigma_p;
+            sigma_p = F * simga_0 * F';
+            sigma_0 = sigma_p;
 
-            % Unpack the position variance fro positions (1, 1), (4, 4), and (7, 7)
-            sigma_pos = [simga(1, 1), simga(4, 4), simga(7, 7)];
+            % Vectorize this step
+            % S = sigma_p + ones(9, 9) * 0.001;
+            % K = sigma_p * inv(S);
+            % sigma_u = (eye(9) - K) * sigma_p;
+            S = diag(sigma_p) + ones(9, 1) * 0.01;
+            K = diag(sigma_p) .* 1 ./ S;
+            sigma_u = (1 - K) .* diag(sigma_p);
+
+            % Unpack the position variance
+            sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
 
             % Calculate the Mahalanobis radius of the error ellipsoid
             s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
