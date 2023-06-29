@@ -868,6 +868,10 @@ struct parameters
 {
   //
   // clang-format off
+  bool            use_yaw_guess_for_opt;
+  double          initial_position_variance_for_agents;
+  double          initial_velocity_variance_for_agents;
+  double          initial_acceleration_variance_for_agents;
   double          initial_position_variance_multiplier;
   double          initial_velocity_variance_multiplier;
   double          initial_acceleration_variance_multiplier;

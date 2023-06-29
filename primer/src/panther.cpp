@@ -483,9 +483,9 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
       initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
     } else
     {
-      initial_position_variance << 0.0, 0.0, 0.0;
-      initial_velocity_variance << 0.0, 0.0, 0.0;
-      initial_acceleration_variance << 0.0, 0.0, 0.0;
+      initial_position_variance << par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents;
+      initial_velocity_variance << par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents;
+      initial_acceleration_variance << par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents;
     }
 
     Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
@@ -1560,9 +1560,9 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
     initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
   } else
   {
-    initial_position_variance << 0.0, 0.0, 0.0;
-    initial_velocity_variance << 0.0, 0.0, 0.0;
-    initial_acceleration_variance << 0.0, 0.0, 0.0;
+    initial_position_variance << par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents;
+    initial_velocity_variance << par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents;
+    initial_acceleration_variance << par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents;
   }
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
@@ -2215,9 +2215,9 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
     initial_acceleration_variance = traj.pwp_var.evalDeriv(traj.pwp_var.times[0], 2);
   } else
   {
-    initial_position_variance << 0.0, 0.0, 0.0;
-    initial_velocity_variance << 0.0, 0.0, 0.0;
-    initial_acceleration_variance << 0.0, 0.0, 0.0;
+    initial_position_variance << par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents, par_.initial_position_variance_for_agents;
+    initial_velocity_variance << par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents, par_.initial_velocity_variance_for_agents;
+    initial_acceleration_variance << par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents;
   }
 
   Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(

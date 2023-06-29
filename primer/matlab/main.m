@@ -75,7 +75,7 @@ dim_yaw=1; %The dimension of the yaw trajectory (R1)
 offset_vel=0.1;
 basis="MINVO"; %MINVO OR B_SPLINE or BEZIER. This is the basis used for collision checking (in position, velocity, accel and jerk space), both in Matlab and in C++
 linear_solver_name='ma27'; %mumps [default, comes when installing casadi], ma27, ma57, ma77, ma86, ma97 
-print_level=5; %From 0 (no verbose) to 12 (very verbose), default is 5
+print_level=0; %From 0 (no verbose) to 12 (very verbose), default is 5
 jit=false;
 fov_depth = 5.0; %TODO: hardcoded
 
@@ -263,15 +263,15 @@ obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the 
 
 %% Uncertainty Propagation
 % simga_0 = opti.parameter(9, 9);
-simga_0 = [0.01, 0, 0, 0, 0, 0, 0, 0, 0;
-           0, 0.01, 0, 0, 0, 0, 0, 0, 0;
-           0, 0, 0.01, 0, 0, 0, 0, 0, 0;
-           0, 0, 0, 0.01, 0, 0, 0, 0, 0;
-           0, 0, 0, 0, 0.01, 0, 0, 0, 0;
-           0, 0, 0, 0, 0, 0.01, 0, 0, 0;
-           0, 0, 0, 0, 0, 0, 0.01, 0, 0;
-           0, 0, 0, 0, 0, 0, 0, 0.01, 0;
-           0, 0, 0, 0, 0, 0, 0, 0, 0.01];
+simga_0 = [1.0, 0, 0, 0, 0, 0, 0, 0, 0;
+           0, 1.0, 0, 0, 0, 0, 0, 0, 0;
+           0, 0, 1.0, 0, 0, 0, 0, 0, 0;
+           0, 0, 0, 1.0, 0, 0, 0, 0, 0;
+           0, 0, 0, 0, 1.0, 0, 0, 0, 0;
+           0, 0, 0, 0, 0, 1.0, 0, 0, 0;
+           0, 0, 0, 0, 0, 0, 1.0, 0, 0;
+           0, 0, 0, 0, 0, 0, 0, 1.0, 0;
+           0, 0, 0, 0, 0, 0, 0, 0, 1.0];
 
 % Dynamic Model and State Transition
 dynamics = [0, 1, 0;
@@ -309,7 +309,6 @@ for i=1:num_max_of_obst
 
             % Propagate uncertainty
             sigma_p = F * simga_0 * F';
-            sigma_0 = sigma_p;
 
             % Vectorize this step
             % S = sigma_p + ones(9, 9) * 0.001;
@@ -318,6 +317,7 @@ for i=1:num_max_of_obst
             S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
+            sigma_0 = sigma_u;
 
             % Unpack the position variance
             sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
@@ -331,6 +331,7 @@ for i=1:num_max_of_obst
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = sqrt(sigma_pos);
             uncertainty_sum = uncertainty_sum + sum(uncertainty);
+            % uncertainty_sum = uncertainty_sum + sum(diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth)));
 
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
@@ -531,8 +532,7 @@ end
 %%
 
 %% TODO expose this
-c_uncertainty = 100000.0;
-% disp(uncertainty_sum)
+c_uncertainty = 0.0;
 
 pos_smooth_cost=sp.getControlCost()/(alpha^(sp.p-1));
 final_pos_cost=(sp.getPosT(tf_n)- pf)'*(sp.getPosT(tf_n)- pf);

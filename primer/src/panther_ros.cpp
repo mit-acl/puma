@@ -134,6 +134,9 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "initial_position_variance_multiplier", par_.initial_position_variance_multiplier);
   safeGetParam(nh1_, "initial_velocity_variance_multiplier", par_.initial_velocity_variance_multiplier);
   safeGetParam(nh1_, "initial_acceleration_variance_multiplier", par_.initial_acceleration_variance_multiplier);
+  safeGetParam(nh1_, "initial_position_variance_for_agents", par_.initial_position_variance_for_agents);
+  safeGetParam(nh1_, "initial_velocity_variance_for_agents", par_.initial_velocity_variance_for_agents);
+  safeGetParam(nh1_, "initial_acceleration_variance_for_agents", par_.initial_acceleration_variance_for_agents);
 
   //
   // training params
@@ -248,6 +251,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "lambda_obst_avoidance_violation", par_.lambda_obst_avoidance_violation);
   safeGetParam(nh1_, "lambda_dyn_lim_violation", par_.lambda_dyn_lim_violation);
   safeGetParam(nh1_, "num_of_intervals", par_.num_of_intervals);
+  safeGetParam(nh1_, "use_yaw_guess_for_opt", par_.use_yaw_guess_for_opt);
 
   //
   // other

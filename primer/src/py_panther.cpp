@@ -62,7 +62,10 @@ PYBIND11_MODULE(py_panther, m)
       .def(py::init<>())  /////////////////////////
       // This part below should be copied/pasted from parameters of panther_types.hpp
       // clang-format off
-
+      .def_readwrite("use_yaw_guess_for_opt", &mt::parameters::use_yaw_guess_for_opt)
+      .def_readwrite("initial_position_variance_for_agents", &mt::parameters::initial_position_variance_for_agents)
+      .def_readwrite("initial_velocity_variance_for_agents", &mt::parameters::initial_velocity_variance_for_agents)
+      .def_readwrite("initial_acceleration_variance_for_agents", &mt::parameters::initial_acceleration_variance_for_agents)
       .def_readwrite("initial_position_variance_multiplier", &mt::parameters::initial_position_variance_multiplier)
       .def_readwrite("initial_velocity_variance_multiplier", &mt::parameters::initial_velocity_variance_multiplier)
       .def_readwrite("initial_acceleration_variance_multiplier", &mt::parameters::initial_acceleration_variance_multiplier)

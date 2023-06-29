@@ -11,7 +11,7 @@
   <arg name="rviz" default="true"/>
   <arg name="gazebo" default="true"/>
   <arg name="gzclient" default="false"/>
-  <arg name="type_of_obst_traj" default="square"/>   <!-- trefoil   eightCurve    square  epitrochoid  static -->
+  <arg name="type_of_obst_traj" default="trefoil"/>   <!-- trefoil   eightCurve    square  epitrochoid  static -->
   <arg name="alpha_scale_obst_traj" default="2.0"/>   
   <arg name="beta_faster_obst_traj" default="0.666666666666666666666"/>   
   <arg name="num_of_obs" default="1" />  <!--  Only one obstacle is supported right now -->

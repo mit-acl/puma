@@ -1,36 +1,29 @@
 function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth)
 
-
-    import casadi.*
     %%
     %% Get R depending on FOV 
     %%
 
-    disp('replan time: ')
-    disp(t_n)
-    disp('pos_center_obs: ')
-    disp(pos_center_obs)
-
     %% TODO: hardcoded
-    R_large = [100.0, 0, 0, 0, 0, 0, 0, 0, 0;
-                0, 100.0, 0, 0, 0, 0, 0, 0, 0;
-                0, 0, 100.0, 0, 0, 0, 0, 0, 0;
-                0, 0, 0, 100.0, 0, 0, 0, 0, 0;
-                0, 0, 0, 0, 100.0, 0, 0, 0, 0;
-                0, 0, 0, 0, 0, 100.0, 0, 0, 0;
-                0, 0, 0, 0, 0, 0, 100.0, 0, 0;
-                0, 0, 0, 0, 0, 0, 0, 100.0, 0;
-                0, 0, 0, 0, 0, 0, 0, 0, 100.0];
+    R_large = [10000.0, 0, 0, 0, 0, 0, 0, 0, 0;
+                0, 10000.0, 0, 0, 0, 0, 0, 0, 0;
+                0, 0, 10000.0, 0, 0, 0, 0, 0, 0;
+                0, 0, 0, 10000.0, 0, 0, 0, 0, 0;
+                0, 0, 0, 0, 10000.0, 0, 0, 0, 0;
+                0, 0, 0, 0, 0, 10000.0, 0, 0, 0;
+                0, 0, 0, 0, 0, 0, 10000.0, 0, 0;
+                0, 0, 0, 0, 0, 0, 0, 10000.0, 0;
+                0, 0, 0, 0, 0, 0, 0, 0, 10000.0];
     
-    R_small = [0.001, 0, 0, 0, 0, 0, 0, 0, 0;
-                0, 0.001, 0, 0, 0, 0, 0, 0, 0;
-                0, 0, 0.001, 0, 0, 0, 0, 0, 0;
-                0, 0, 0, 0.001, 0, 0, 0, 0, 0;
-                0, 0, 0, 0, 0.001, 0, 0, 0, 0;
-                0, 0, 0, 0, 0, 0.001, 0, 0, 0;
-                0, 0, 0, 0, 0, 0, 0.001, 0, 0;
-                0, 0, 0, 0, 0, 0, 0, 0.001, 0;
-                0, 0, 0, 0, 0, 0, 0, 0, 0.001];
+    % R_small = [0.001, 0, 0, 0, 0, 0, 0, 0, 0;
+    %             0, 0.001, 0, 0, 0, 0, 0, 0, 0;
+    %             0, 0, 0.001, 0, 0, 0, 0, 0, 0;
+    %             0, 0, 0, 0.001, 0, 0, 0, 0, 0;
+    %             0, 0, 0, 0, 0.001, 0, 0, 0, 0;
+    %             0, 0, 0, 0, 0, 0.001, 0, 0, 0;
+    %             0, 0, 0, 0, 0, 0, 0.001, 0, 0;
+    %             0, 0, 0, 0, 0, 0, 0, 0.001, 0;
+    %             0, 0, 0, 0, 0, 0, 0, 0, 0.001];
     
     %% get pos, accel, and yaw from spline
     yaw = sy.getPosT(t_n);
@@ -56,10 +49,10 @@ function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg
     
     %FOV is a cone:  (See more possible versions of this constraint at the end of this file) (inFOV in Panther paper table 2)
     is_in_FOV_tmp=-cos(thetax_half_FOV_deg*pi/180.0) + (c_P(1:3)'/norm(c_P((1:3))))*[0;0;1]; % Constraint is is_in_FOV1>=0
-    
-    R = if_else(is_in_FOV_tmp(1) > 0.0, R_small, R_large); % Constraint is is_in_FOV1>=0
-    % disp('is_in_FOV: ')
-    % disp(is_in_FOV)
+    R = R_large * 1 / (1+is_in_FOV_tmp + 0.001) * (1-is_in_FOV_tmp);
+
+    % this approach is not working (maybe because of the if_else)
+    % R = if_else(is_in_FOV_tmp(1) > 0.0, R_small, R_large); % Constraint is is_in_FOV1>=0
     % is_in_FOV = if_else(c_P(3) < fov_depth, true, false); %If the obstacle is farther than fov_depth, then it is not in the FOV (https://www.mathworks.com/matlabcentral/answers/714068-cannot-convert-logical-to-casadi-sx)
     % is_in_FOV_tmp = is_in_FOV_tmp * (1.5*fov_depth - c_P(3))/(1.5*fov_depth);
 

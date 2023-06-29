@@ -884,10 +884,11 @@ bool SolverIpopt::optimize(bool supress_all_prints)
     map_arguments["pCPs"] = matrix_qp_guess;
 
     ////////////////////////////////Generate Yaw Guess
-    casadi::DM matrix_qy_guess(1, sy_.N);  // TODO: do this just once?
+    casadi::DM matrix_qy_guess(1, sy_.N+1);  // TODO: do this just once?
 
-    matrix_qy_guess = generateYawGuess(matrix_qp_guess, initial_state_.yaw, initial_state_.dyaw, final_state_.dyaw,
-                                       t_init_, t_final_guess_);
+    if (par_.use_yaw_guess_for_opt){
+      matrix_qy_guess = generateYawGuess(matrix_qp_guess, initial_state_.yaw, initial_state_.dyaw, final_state_.dyaw, t_init_, t_final_guess_);
+    }
 
     map_arguments["yCPs"] = matrix_qy_guess;
 
