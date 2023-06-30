@@ -262,16 +262,16 @@ deltaT=total_time/num_seg; %Time allocated for each segment
 obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the interval j
 
 %% Uncertainty Propagation
-% simga_0 = opti.parameter(9, 9);
-simga_0 = [1.0, 0, 0, 0, 0, 0, 0, 0, 0;
-           0, 1.0, 0, 0, 0, 0, 0, 0, 0;
-           0, 0, 1.0, 0, 0, 0, 0, 0, 0;
-           0, 0, 0, 1.0, 0, 0, 0, 0, 0;
-           0, 0, 0, 0, 1.0, 0, 0, 0, 0;
-           0, 0, 0, 0, 0, 1.0, 0, 0, 0;
-           0, 0, 0, 0, 0, 0, 1.0, 0, 0;
-           0, 0, 0, 0, 0, 0, 0, 1.0, 0;
-           0, 0, 0, 0, 0, 0, 0, 0, 1.0];
+% sigma_0 = opti.parameter(9, 9);
+sigma_0 = [0.1, 0, 0, 0, 0, 0, 0, 0, 0;
+           0, 0.1, 0, 0, 0, 0, 0, 0, 0;
+           0, 0, 0.1, 0, 0, 0, 0, 0, 0;
+           0, 0, 0, 0.1, 0, 0, 0, 0, 0;
+           0, 0, 0, 0, 0.1, 0, 0, 0, 0;
+           0, 0, 0, 0, 0, 0.1, 0, 0, 0;
+           0, 0, 0, 0, 0, 0, 0.1, 0, 0;
+           0, 0, 0, 0, 0, 0, 0, 0.1, 0;
+           0, 0, 0, 0, 0, 0, 0, 0, 0.1];
 
 % Dynamic Model and State Transition
 dynamics = [0, 1, 0;
@@ -308,7 +308,7 @@ for i=1:num_max_of_obst
             pos_center_obs=fitter.bs_casadi{i}.getPosT(t_nobs);
 
             % Propagate uncertainty
-            sigma_p = F * simga_0 * F';
+            sigma_p = F * sigma_0 * F';
 
             % Vectorize this step
             % S = sigma_p + ones(9, 9) * 0.001;
@@ -317,7 +317,7 @@ for i=1:num_max_of_obst
             S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
-            sigma_0 = sigma_u;
+            sigma_0 = diag(sigma_u);
 
             % Unpack the position variance
             sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
