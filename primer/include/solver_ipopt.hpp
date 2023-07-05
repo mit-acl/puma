@@ -44,6 +44,9 @@ namespace si  // Solver Ipopt
 {
 struct solOrGuess
 {
+
+  std::vector<double> uncertainty_list;
+
   std::vector<Eigen::Vector3d> qp;  // control points for position
   std::vector<double> qy;           // control points for yaw
 
@@ -354,6 +357,7 @@ private:
   casadi::Function cf_fit_yaw_;
   casadi::Function cf_visibility_;
   casadi::Function cf_compute_cost_;
+  casadi::Function cf_get_uncertainty_list_;
   casadi::Function cf_compute_dyn_limits_constraints_violation_;
   casadi::Function cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_;
 
@@ -369,6 +373,8 @@ private:
       std::cout << "yaw= " << yaw << ", layer= " << layer << std::endl;
     }
   };
+
+  std::vector<double> uncertainty_list_;
 
   typedef float cost_graph;
 

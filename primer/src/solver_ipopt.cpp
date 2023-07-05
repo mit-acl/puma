@@ -1035,6 +1035,7 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       //   qp.push_back(Eigen::Vector3d(double(qp_casadi(0, i)), double(qp_casadi(1, i)), double(qp_casadi(2, i))));
       // }
 
+      solution.uncertainty_list = casadiMatrix2StdVectorDouble(result["uncertainty_list"]);
       solution.qp = casadiMatrix2StdVectorEigen3d(result["pCPs"]);
 
       solution.knots_p = getKnotsSolution(guess.knots_p, alpha_guess, double(result["alpha"]));
