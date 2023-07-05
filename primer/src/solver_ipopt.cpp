@@ -791,6 +791,7 @@ std::map<std::string, casadi::DM> SolverIpopt::getMapConstantArguments()
   }
 
   map_arguments["max_variance"] = eigenXd2CasadiMatrix(par_.max_variance);
+  map_arguments["max_variance_for_moving_direction"] = eigenXd2CasadiMatrix(par_.max_variance_for_moving_direction);
   map_arguments["infeasibility_adjust"] = par_.infeasibility_adjust;
 
   map_arguments["c_pos_smooth"] = par_.c_pos_smooth;

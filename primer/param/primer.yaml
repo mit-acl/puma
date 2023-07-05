@@ -65,13 +65,14 @@ initial_acceleration_variance_multiplier: 1.0
 
 initial_position_variance_search_multiplier: 1.0
 initial_velocity_variance_search_multiplier: 0.1
-initial_acceleration_variance_search_multiplier: 0.01
+initial_acceleration_variance_search_multiplier: 0.1
 
 initial_position_variance_for_agents: 0.1
-initial_velocity_variance_for_agents: 0.1
-initial_acceleration_variance_for_agents: 0.1
+initial_velocity_variance_for_agents: 0.01
+initial_acceleration_variance_for_agents: 0.01
 
 max_variance: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+max_variance_for_moving_direction: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
 infeasibility_adjust: 0.001
 
 #############################################
@@ -80,8 +81,8 @@ infeasibility_adjust: 0.001
 
 # training:
 # training parameters
-num_of_trajs_per_replan: 10 # num of traj (n_s in Table I in deep panther paper)
-max_num_of_initial_guesses: 10 # (n_runs in Table I)
+num_of_trajs_per_replan: 5 # num of traj (n_s in Table I in deep panther paper)
+max_num_of_initial_guesses: 5 # (n_runs in Table I)
 drone_extra_radius_for_NN: 0.0  #(m) Used for collision checking
 use_closed_form_yaw_student: false #If false, the NN will predict this closed form for the yaw angle
 make_yaw_NN: false
@@ -189,9 +190,9 @@ c_smooth_yaw_search: 0.0      #weight for the yaw search
 c_visibility_yaw_search: 10.0  #weight for the yaw search
 c_maxydot_yaw_search: 10.0     #weight for the yaw search
 c_pos_smooth: 0.0          #weight for the optimization
-c_yaw_smooth: 0.001          #weight for the optimization
+c_yaw_smooth: 0.0          #weight for the optimization
 c_fov: 0.0                 #weight for the optimization
-c_final_pos: 100000.0           #weight for the optimization
+c_final_pos: 1.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
 c_total_time: 0.00001           #weight for the optimization
 lambda_obst_avoidance_violation: 100.0   #To compute the augmented cost

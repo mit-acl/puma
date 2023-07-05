@@ -153,6 +153,11 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   par_.max_variance << max_variance_tmp[0], max_variance_tmp[1], max_variance_tmp[2],
                        max_variance_tmp[3], max_variance_tmp[4], max_variance_tmp[5],
                        max_variance_tmp[6], max_variance_tmp[7], max_variance_tmp[8];
+  std::vector<double> max_variance_for_moving_direction_tmp;
+  safeGetParam(nh1_, "max_variance_for_moving_direction", max_variance_for_moving_direction_tmp);
+  par_.max_variance_for_moving_direction << max_variance_for_moving_direction_tmp[0], max_variance_for_moving_direction_tmp[1], max_variance_for_moving_direction_tmp[2],
+                       max_variance_for_moving_direction_tmp[3], max_variance_for_moving_direction_tmp[4], max_variance_for_moving_direction_tmp[5],
+                       max_variance_for_moving_direction_tmp[6], max_variance_for_moving_direction_tmp[7], max_variance_for_moving_direction_tmp[8];
   safeGetParam(nh1_, "infeasibility_adjust", par_.infeasibility_adjust);
 
   //

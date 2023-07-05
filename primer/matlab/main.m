@@ -188,7 +188,8 @@ total_time=alpha*(tf_n-t0_n); %Total time is (tf_n-t0_n)*alpha. (should be 1 * a
 
 p0=opti.parameter(3,1); v0=opti.parameter(3,1); a0=opti.parameter(3,1);
 pf=opti.parameter(3,1); vf=opti.parameter(3,1); af=opti.parameter(3,1);
-v_max=opti.parameter(3,1);
+% v_max=opti.parameter(3,1);
+v_max=opti.variable(3,num_seg);
 a_max=opti.parameter(3,1);
 j_max=opti.parameter(3,1);
 
@@ -264,6 +265,7 @@ obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the 
 
 %% Uncertainty Propagation
 max_variance = opti.parameter(9, 1);
+max_variance_for_moving_direction = opti.parameter(9, 1);
 infeasibility_adjust = opti.parameter(1, 1);
 
 % Dynamic Model and State Transition
@@ -287,7 +289,7 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2.0;
 replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 
 uncertainty_sum = 0.0;
-uncertainty_list = [];
+uncertainty_list = []; % just for printing out. only supported for a single agent
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
@@ -338,6 +340,48 @@ for i=1:num_max_of_obst
 end
 
 t_opt_n_samples=linspace(0,1,sampler.num_samples);
+
+%%
+%% Moving direction uncertainty
+%%
+
+replan_times = linspace(0,1,num_seg);
+moving_direction_lookup_horizon = 1.0 / fitter.total_time; %TODO: make this a parameter
+uncertainty_list_moving_direction = []; %TODO: support multiple obstacles
+for i=1:num_max_of_obst
+    replan_time_index = 1;
+    sigma_i = diag(fitter.sigma_0{i});
+    for j=1:num_seg
+        t_nobs= (1 / num_seg) * j;  %Note that fitter.bs_casadi{i}.knots=[0...1]
+            
+        % get the look-up pos of trajectory
+        looked_up_pos=sp.getPosT(min(t_nobs + moving_direction_lookup_horizon, 1.0));
+
+        % Propagate uncertainty
+        sigma_p = F * sigma_i * F';
+        S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance_for_moving_direction, infeasibility_adjust));
+        K = diag(sigma_p) .* 1 ./ S;
+        sigma_u = (1 - K) .* diag(sigma_p);
+        sigma_i = diag(sigma_u);
+
+        % Unpack the position variance
+        sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
+
+        % Calculate the Mahalanobis radius of the error ellipsoid
+        s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
+
+        % Scale the variance by the Mahalanobis radius
+        sigma_pos = sigma_pos * s;
+
+        % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
+        uncertainty = sqrt(sigma_pos);
+        uncertainty_list_moving_direction = [uncertainty_list_moving_direction uncertainty];
+
+        % index
+        replan_time_index = replan_time_index + 1;
+    end  
+end
+
 
 %%
 %% CONSTRAINTS! 
@@ -548,7 +592,7 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
 
 const_p_dyn_limits={};
 const_y_dyn_limits={};
-[const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n);
+[const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, uncertainty_list_moving_direction);
 
 %%
 %% Determines violation of constraints used for training by python
@@ -636,6 +680,7 @@ alpha_value=15.0;
 
 sigma_0_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
 max_variance_value = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0];
+max_variance_for_moving_direction_value = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0];
 infeasibility_adjust_value = 0.001;
 
 ydot_max_value=1.0; 
@@ -712,6 +757,7 @@ par_and_init_guess= [ {createStruct('thetax_FOV_deg', thetax_FOV_deg, thetax_FOV
               {createStruct('z_lim', z_lim, z_lim_value)},...
               {createStruct('alpha', alpha, alpha_value)},...
               {createStruct('max_variance', max_variance, max_variance_value)},...
+              {createStruct('max_variance_for_moving_direction', max_variance_for_moving_direction, max_variance_for_moving_direction_value)},...
               {createStruct('infeasibility_adjust', infeasibility_adjust, infeasibility_adjust_value)},...
               {createStruct('c_pos_smooth', c_pos_smooth, 0.0)},...
               {createStruct('c_yaw_smooth', c_yaw_smooth, 0.0)},...
@@ -1296,13 +1342,28 @@ end
 %% ---------------------------------------------------------------------------------------------------------------
 %%
 
-function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n)
+function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, uncertainty_list_moving_direction)
 
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n)];      %Max vel constraints (position)
+    constrainted_v_max = adjustVMaxBasedOnUncertainty(v_max_n, uncertainty_list_moving_direction);
+
+     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, constrainted_v_max)];      %Max vel constraints (position)
+    %  const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n)];      %Max vel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
-     const_y_dyn_limits=[const_y_dyn_limits sy.getMaxVelConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
+     const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
 
+end
+
+%%
+%% ---------------------------------------------------------------------------------------------------------------
+%%
+
+function constrainted_v_max = adjustVMaxBasedOnUncertainty(v_max, uncertainty_list_moving_direction)
+    constrainted_v_max=v_max;
+    % constrainted_v_max = constrainted_v_max * 10000 ./ (1 * (10000+min(uncertainty_list_moving_direction)));
+    for i=1:size(uncertainty_list_moving_direction,2)
+        constrainted_v_max(:,i)= constrainted_v_max(:,i) * 100000 ./ (1 * (100000+uncertainty_list_moving_direction(:,i)));
+    end
 end
 
 %%

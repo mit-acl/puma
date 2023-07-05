@@ -36,6 +36,10 @@ import argparse
 from datetime import datetime
 import yaml
 
+##
+## -------------------------------------------------------------------------
+##
+
 def getColorJet(v, vmin, vmax): 
 
   c=ColorRGBA()
@@ -69,6 +73,10 @@ def getColorJet(v, vmin, vmax):
 
   return c
 
+##
+## -------------------------------------------------------------------------
+##
+
 class DynCorridor:
 
     def getTrajectoryPosMeshBBox(self, i):
@@ -80,10 +88,11 @@ class DynCorridor:
         z=random.uniform(self.z_min, self.z_max)
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
-        x = 3
-        y = 0
-        z = 1
-        offset = 0
+        # if you want to fix the position of the obstacles, uncomment the following lines
+        # x = 3
+        # y = 0
+        # z = 1
+        # offset = 0
 
         slower=random.uniform(self.slower_min, self.slower_max)
         s=self.scale
@@ -130,11 +139,11 @@ class DynCorridor:
         self.num_of_dyn_objects=int(1.0*total_num_obs)
         self.num_of_stat_objects=total_num_obs-self.num_of_dyn_objects; 
         self.x_min= 1.0 
-        self.x_max= 3.0
-        self.y_min= 1.0 
+        self.x_max= 50.0
+        self.y_min= -3.0 
         self.y_max= 3.0
-        self.z_min= 1.0
-        self.z_max= 1.0
+        self.z_min= 0.0
+        self.z_max= 2.0
         # self.scale= [(self.x_max-self.x_min)/self.total_num_obs, 5.0, 1.0]
         self.scale= [alpha_scale_obst_traj, alpha_scale_obst_traj, alpha_scale_obst_traj+2.0]
         self.slower_min=3.0   #1.2 or 2.3
