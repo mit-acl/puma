@@ -54,12 +54,25 @@ use_student: false
 #############################################
 
 obstacle_visualization_duration: 4.0 #seconds #how long you wanna propagate and visualize obstacles
+
+#############################################
+# Uncertainty Propagation setting
+#############################################
+
 initial_position_variance_multiplier: 1.0
 initial_velocity_variance_multiplier: 1.0
-initial_acceleration_variance_multiplier: 0.0
-initial_position_variance_for_agents: 0.01
-initial_velocity_variance_for_agents: 0.001
-initial_acceleration_variance_for_agents: 0.001
+initial_acceleration_variance_multiplier: 1.0
+
+initial_position_variance_search_multiplier: 1.0
+initial_velocity_variance_search_multiplier: 0.1
+initial_acceleration_variance_search_multiplier: 0.01
+
+initial_position_variance_for_agents: 0.1
+initial_velocity_variance_for_agents: 0.1
+initial_acceleration_variance_for_agents: 0.1
+
+max_variance: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+infeasibility_adjust: 0.001
 
 #############################################
 # Training setting

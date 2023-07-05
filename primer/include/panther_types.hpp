@@ -91,6 +91,7 @@ struct obstacleForOpt
   // casadi::DM ctrl_pts;
   std::vector<Eigen::Vector3d> ctrl_pts;
   std::vector<Eigen::Vector3d> uncertainty_ctrl_pts;
+  Eigen::Matrix<double, 9, 1> sigma_0;
   Eigen::Vector3d bbox_inflated;
   bool is_dummy = false;
   bool is_agent = false;
@@ -107,6 +108,7 @@ struct obstacleForOpt
     {
       std::cout << termcolor::red << q.transpose() << termcolor::reset << std::endl;
     }
+    std::cout << termcolor::blue << "simga_0=" << sigma_0.transpose() << termcolor::reset << std::endl;
     std::cout << termcolor::blue << "bbox_inflated=" << bbox_inflated.transpose() << termcolor::reset << std::endl;
   }
 };
@@ -875,6 +877,9 @@ struct parameters
   double          initial_position_variance_multiplier;
   double          initial_velocity_variance_multiplier;
   double          initial_acceleration_variance_multiplier;
+  double          initial_position_variance_search_multiplier;
+  double          initial_velocity_variance_search_multiplier;
+  double          initial_acceleration_variance_search_multiplier;
   double          obstacle_visualization_duration;
   bool            add_noise_to_obst;
   bool            use_expert_for_other_agents_in_training;
@@ -968,6 +973,8 @@ struct parameters
   double          alpha_shrink;                       //void setVar_alpha_shrink(const std::string& value) { alpha_shrink = std::stod(value); };
   double          norminv_prob;                       //void setVar_norminv_prob(const std::string& value) { norminv_prob = std::stod(value); };
   int             disc_pts_per_interval_oct_search;   //void setVar_disc_pts_per_interval_oct_search(const std::string& value) { disc_pts_per_interval_oct_search = std::stoi(value); };
+  Eigen::Matrix<double, 9, 1> max_variance;           //void setVar_max_variance(const std::string& value) { max_variance = std::stod(value); };
+  double          infeasibility_adjust;               //void setVar_infeasibility_adjust(const std::string& value) { infeasibility_adjust = std::stod(value); };
   double          c_smooth_yaw_search;                //void setVar_c_smooth_yaw_search(const std::string& value) { c_smooth_yaw_search = std::stod(value); };
   double          c_visibility_yaw_search;            //void setVar_c_visibility_yaw_search(const std::string& value) { c_visibility_yaw_search = std::stod(value); };
   double          c_maxydot_yaw_search;               //void setVar_c_maxydot_yaw_search(const std::string& value) { c_maxydot_yaw_search = std::stod(value); }; 

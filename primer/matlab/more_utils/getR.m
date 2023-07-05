@@ -1,30 +1,9 @@
-function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth)
+function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance, infeasibility_adjust)
 
     %%
     %% Get R depending on FOV 
     %%
 
-    %% TODO: hardcoded
-    R_large = [10000.0, 0, 0, 0, 0, 0, 0, 0, 0;
-                0, 10000.0, 0, 0, 0, 0, 0, 0, 0;
-                0, 0, 10000.0, 0, 0, 0, 0, 0, 0;
-                0, 0, 0, 10000.0, 0, 0, 0, 0, 0;
-                0, 0, 0, 0, 10000.0, 0, 0, 0, 0;
-                0, 0, 0, 0, 0, 10000.0, 0, 0, 0;
-                0, 0, 0, 0, 0, 0, 10000.0, 0, 0;
-                0, 0, 0, 0, 0, 0, 0, 10000.0, 0;
-                0, 0, 0, 0, 0, 0, 0, 0, 10000.0];
-    
-    % R_small = [0.001, 0, 0, 0, 0, 0, 0, 0, 0;
-    %             0, 0.001, 0, 0, 0, 0, 0, 0, 0;
-    %             0, 0, 0.001, 0, 0, 0, 0, 0, 0;
-    %             0, 0, 0, 0.001, 0, 0, 0, 0, 0;
-    %             0, 0, 0, 0, 0.001, 0, 0, 0, 0;
-    %             0, 0, 0, 0, 0, 0.001, 0, 0, 0;
-    %             0, 0, 0, 0, 0, 0, 0.001, 0, 0;
-    %             0, 0, 0, 0, 0, 0, 0, 0.001, 0;
-    %             0, 0, 0, 0, 0, 0, 0, 0, 0.001];
-    
     %% get pos, accel, and yaw from spline
     yaw = sy.getPosT(t_n);
     w_t_b = sp.getPosT(t_n); %Translation between the body and the world frame
@@ -49,7 +28,7 @@ function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg
     
     %FOV is a cone:  (See more possible versions of this constraint at the end of this file) (inFOV in Panther paper table 2)
     is_in_FOV_tmp=-cos(thetax_half_FOV_deg*pi/180.0) + (c_P(1:3)'/norm(c_P((1:3))))*[0;0;1]; % Constraint is is_in_FOV1>=0
-    R = R_large * 1 / (1+is_in_FOV_tmp + 0.001) * (1-is_in_FOV_tmp);
+    R = diag(max_variance) * 1 / (1+is_in_FOV_tmp + infeasibility_adjust) * (1-is_in_FOV_tmp);
 
     % this approach is not working (maybe because of the if_else)
     % R = if_else(is_in_FOV_tmp(1) > 0.0, R_small, R_large); % Constraint is is_in_FOV1>=0

@@ -38,7 +38,7 @@ std::vector<Eigen::Vector3d> casadiMatrix2StdVectorEigen3d(const casadi::DM &qp_
 std::vector<double> casadiMatrix2StdVectorDouble(const casadi::DM &qy_casadi);
 casadi::DM stdVectorEigen3d2CasadiMatrix(const std::vector<Eigen::Vector3d> &qp);
 casadi::DM stdVectorDouble2CasadiRowVector(const std::vector<Eigen::Vector3d> &qp);
-casadi::DM eigen3d2CasadiMatrix(const Eigen::Vector3d &data);
+casadi::DM eigenXd2CasadiMatrix(const Eigen::VectorXd &data);
 
 namespace si  // Solver Ipopt
 {

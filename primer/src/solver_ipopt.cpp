@@ -85,13 +85,14 @@ casadi::DM stdVectorDouble2CasadiRowVector(const std::vector<double> &qy)
   return casadi_matrix;
 }
 
-casadi::DM eigen3d2CasadiMatrix(const Eigen::Vector3d &data)
+casadi::DM eigenXd2CasadiMatrix(const Eigen::Matrix<double, Eigen::Dynamic, 1> &data)
 {
-  casadi::DM casadi_matrix(3, 1);
+  casadi::DM casadi_matrix(data.rows(), 1);
 
-  casadi_matrix(0, 0) = data.x();
-  casadi_matrix(1, 0) = data.y();
-  casadi_matrix(2, 0) = data.z();
+  for (int i = 0; i < data.rows(); i++)
+  {
+    casadi_matrix(i, 0) = data(i);
+  }
 
   return casadi_matrix;
 }
@@ -654,7 +655,7 @@ double SolverIpopt::computeCost(si::solOrGuess sol_or_guess)
     map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
-        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }
 
   // map_arguments["all_nd"] = all_nd;                                 // Only appears in the constraints
@@ -680,8 +681,12 @@ std::vector<double> SolverIpopt::getUncertainty(si::solOrGuess sol_or_guess)
   {
     map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_uncertainty_ctrl_pts"] =
+        stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].uncertainty_ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_sigma_0"] =
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].sigma_0);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
-        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }
 
   std::map<std::string, casadi::DM> result = cf_get_uncertainty_list_(map_arguments);
@@ -779,9 +784,14 @@ std::map<std::string, casadi::DM> SolverIpopt::getMapConstantArguments()
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
     map_arguments["obs_" + std::to_string(i) + "_uncertainty_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].uncertainty_ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_sigma_0"] =
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].sigma_0);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
-        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }
+
+  map_arguments["max_variance"] = eigenXd2CasadiMatrix(par_.max_variance);
+  map_arguments["infeasibility_adjust"] = par_.infeasibility_adjust;
 
   map_arguments["c_pos_smooth"] = par_.c_pos_smooth;
   map_arguments["c_yaw_smooth"] = par_.c_yaw_smooth;

@@ -131,12 +131,29 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   //
   
   safeGetParam(nh1_, "obstacle_visualization_duration", par_.obstacle_visualization_duration);
+
+  //
+  // Uncertainty Prediction params
+  //
+
   safeGetParam(nh1_, "initial_position_variance_multiplier", par_.initial_position_variance_multiplier);
   safeGetParam(nh1_, "initial_velocity_variance_multiplier", par_.initial_velocity_variance_multiplier);
   safeGetParam(nh1_, "initial_acceleration_variance_multiplier", par_.initial_acceleration_variance_multiplier);
+
+  safeGetParam(nh1_, "initial_position_variance_search_multiplier", par_.initial_position_variance_search_multiplier);
+  safeGetParam(nh1_, "initial_velocity_variance_search_multiplier", par_.initial_velocity_variance_search_multiplier);
+  safeGetParam(nh1_, "initial_acceleration_variance_search_multiplier", par_.initial_acceleration_variance_search_multiplier);
+
   safeGetParam(nh1_, "initial_position_variance_for_agents", par_.initial_position_variance_for_agents);
   safeGetParam(nh1_, "initial_velocity_variance_for_agents", par_.initial_velocity_variance_for_agents);
   safeGetParam(nh1_, "initial_acceleration_variance_for_agents", par_.initial_acceleration_variance_for_agents);
+
+  std::vector<double> max_variance_tmp;
+  safeGetParam(nh1_, "max_variance", max_variance_tmp);
+  par_.max_variance << max_variance_tmp[0], max_variance_tmp[1], max_variance_tmp[2],
+                       max_variance_tmp[3], max_variance_tmp[4], max_variance_tmp[5],
+                       max_variance_tmp[6], max_variance_tmp[7], max_variance_tmp[8];
+  safeGetParam(nh1_, "infeasibility_adjust", par_.infeasibility_adjust);
 
   //
   // training params
@@ -313,6 +330,8 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
                                                                 "hold");
   verify((par_.c_visibility_yaw_search >= 0), "par_.c_visibility_yaw_search>=0 must hold");
   verify((par_.num_of_yaw_per_layer >= 1), "par_.num_of_yaw_per_layer>=1 must hold");
+
+  verify((par_.infeasibility_adjust > 0), "par_.infeasibility_adjust>0 must hold");
 
   verify((par_.c_pos_smooth >= 0), "par_.c_pos_smooth>=0 must hold");
   verify((par_.c_yaw_smooth >= 0), "par_.c_yaw_smooth>=0 must hold");

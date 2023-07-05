@@ -93,6 +93,7 @@ for i=1:num_max_of_obst
     fitter.bbox_inflated{i}=opti.parameter(fitter.dim_pos,1); %This comes from C++
     fitter.bs_casadi{i}=MyCasadiClampedUniformSpline(0,1,fitter.deg_pos,fitter.dim_pos,fitter.num_seg,fitter.ctrl_pts{i}, false);
 
+    fitter.sigma_0{i}=opti.parameter(fitter.dim_pos*3, 1); %This comes from C++
     fitter.uncertainty_ctrl_pts{i}=opti.parameter(fitter.dim_pos,fitter_num_of_cps); %This comes from C++
     fitter.uncertainty_bs_casadi{i}=MyCasadiClampedUniformSpline(0,1,fitter.deg_pos,fitter.dim_pos,fitter.num_seg,fitter.uncertainty_ctrl_pts{i}, false);
 end
@@ -262,16 +263,8 @@ deltaT=total_time/num_seg; %Time allocated for each segment
 obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the interval j
 
 %% Uncertainty Propagation
-% sigma_0 = opti.parameter(9, 9);
-sigma_0 = [0.1, 0, 0, 0, 0, 0, 0, 0, 0;
-           0, 0.1, 0, 0, 0, 0, 0, 0, 0;
-           0, 0, 0.1, 0, 0, 0, 0, 0, 0;
-           0, 0, 0, 0.1, 0, 0, 0, 0, 0;
-           0, 0, 0, 0, 0.1, 0, 0, 0, 0;
-           0, 0, 0, 0, 0, 0.1, 0, 0, 0;
-           0, 0, 0, 0, 0, 0, 0.1, 0, 0;
-           0, 0, 0, 0, 0, 0, 0, 0.1, 0;
-           0, 0, 0, 0, 0, 0, 0, 0, 0.1];
+max_variance = opti.parameter(9, 1);
+infeasibility_adjust = opti.parameter(1, 1);
 
 % Dynamic Model and State Transition
 dynamics = [0, 1, 0;
@@ -283,7 +276,7 @@ A = [dynamics, zeros(3, 3), zeros(3, 3);
      zeros(3, 3), zeros(3, 3), dynamics];
 
 % State transition is the matrix exponential of (dynamics * deltaT)
-F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
+F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2.0;
 
 %%
 %% Creates points (centers of the obstacles and verticies) used for obstacle constraints
@@ -298,6 +291,7 @@ uncertainty_list = [];
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
+    sigma_i = diag(fitter.sigma_0{i});
     for j=1:num_seg
         all_vertexes_segment_j=[];
         for k=1:sampler.num_samples_obstacle_per_segment
@@ -308,16 +302,16 @@ for i=1:num_max_of_obst
             pos_center_obs=fitter.bs_casadi{i}.getPosT(t_nobs);
 
             % Propagate uncertainty
-            sigma_p = F * sigma_0 * F';
+            sigma_p = F * sigma_i * F';
 
             % Vectorize this step
             % S = sigma_p + ones(9, 9) * 0.001;
             % K = sigma_p * inv(S);
             % sigma_u = (eye(9) - K) * sigma_p;
-            S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth));
+            S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance, infeasibility_adjust));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
-            sigma_0 = diag(sigma_u);
+            sigma_i = diag(sigma_u);
 
             % Unpack the position variance
             sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
@@ -640,6 +634,10 @@ j_max_value=50*ones(3,1);
 
 alpha_value=15.0;
 
+sigma_0_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
+max_variance_value = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0];
+infeasibility_adjust_value = 0.001;
+
 ydot_max_value=1.0; 
 % total_time_value=10.5;
 thetax_FOV_deg_value=80;
@@ -713,6 +711,8 @@ par_and_init_guess= [ {createStruct('thetax_FOV_deg', thetax_FOV_deg, thetax_FOV
               {createStruct('y_lim', y_lim, y_lim_value)},...
               {createStruct('z_lim', z_lim, z_lim_value)},...
               {createStruct('alpha', alpha, alpha_value)},...
+              {createStruct('max_variance', max_variance, max_variance_value)},...
+              {createStruct('infeasibility_adjust', infeasibility_adjust, infeasibility_adjust_value)},...
               {createStruct('c_pos_smooth', c_pos_smooth, 0.0)},...
               {createStruct('c_yaw_smooth', c_yaw_smooth, 0.0)},...
               {createStruct('c_fov', c_fov, 1.0)},...
@@ -1178,12 +1178,14 @@ function result=createCellArrayofStructsForObstacles(fitter)
         name_crtl_pts=['obs_', num2str(i-1), '_ctrl_pts'];  %Note that we use i-1 here because it will be called from C++
         name_uncertainty_crtl_pts=['obs_', num2str(i-1), '_uncertainty_ctrl_pts'];  %Note that we use i-1 here because it will be called from C++
         name_bbox_inflated=['obs_', num2str(i-1), '_bbox_inflated'];          %Note that we use i-1 here because it will be called from C++
+        name_sigma_0=['obs_', num2str(i-1), '_sigma_0'];          %Note that we use i-1 here because it will be called from C++
         crtl_pts_value=zeros(size(fitter.bs_casadi{i}.CPoints));
         uncertainty_crtl_pts_value=zeros(size(fitter.uncertainty_bs_casadi{i}.CPoints));
         result=[result,...
                 {createStruct(name_crtl_pts,   fitter.ctrl_pts{i} , crtl_pts_value)},...
                 {createStruct(name_uncertainty_crtl_pts,   fitter.uncertainty_ctrl_pts{i} , uncertainty_crtl_pts_value)},...
-                {createStruct(name_bbox_inflated, fitter.bbox_inflated{i} ,  [1;1;1]  )}];
+                {createStruct(name_bbox_inflated, fitter.bbox_inflated{i} ,  [1;1;1]  )},...
+                {createStruct(name_sigma_0, fitter.sigma_0{i} , ones(9, 1) )}];
     end
          
 end

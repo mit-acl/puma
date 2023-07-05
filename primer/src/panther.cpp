@@ -93,6 +93,7 @@ Panther::Panther(mt::parameters par) : par_(par)
 
       tmp.ctrl_pts = fitter_->fit(samples);
       tmp.uncertainty_ctrl_pts = std::vector<Eigen::Vector3d>(tmp.ctrl_pts.size(), Eigen::Vector3d::Zero());
+      tmp.sigma_0 = Eigen::Matrix<double, 9, 1>::Ones();
 
       obstacles_for_opt.push_back(tmp);
       adjustObstaclesForOptimization(obstacles_for_opt);
@@ -433,6 +434,7 @@ void Panther::addDummyObstacle(double t_start, double t_end, std::vector<mt::obs
 
   dummy_obstacle_for_opt.ctrl_pts = fitter_->fit(samples);
   dummy_obstacle_for_opt.uncertainty_ctrl_pts = std::vector<Eigen::Vector3d>(dummy_obstacle_for_opt.ctrl_pts.size(), Eigen::Vector3d::Zero());
+  dummy_obstacle_for_opt.sigma_0 = Eigen::Matrix<double, 9, 1>::Ones();
   dummy_obstacle_for_opt.bbox_inflated = dummy_traj_compiled.bbox + par_.drone_bbox / 2;
   dummy_obstacle_for_opt.is_dummy = true;
 
@@ -494,8 +496,14 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
       initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
     );
 
+    Eigen::Matrix<double, 9, 1> initial_variance_search = buildVarianceVector(
+      initial_position_variance * par_.initial_position_variance_search_multiplier,
+      initial_velocity_variance * par_.initial_velocity_variance_search_multiplier,
+      initial_acceleration_variance * par_.initial_acceleration_variance_search_multiplier
+    );
+
     // Get projected times and uncertainty
-    std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, delta, t_start, t_end);
+    std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance_search, delta, t_start, t_end);
 
     // Check if the number of samples is correct (it should be equal to par_.fitter_num_samples) TODO: Kind of hacky
     if (tmp.second.size() > par_.fitter_num_samples)
@@ -506,6 +514,7 @@ std::vector<mt::obstacleForOpt> Panther::getObstaclesForOpt(double t_start, doub
 
     // Fit the uncertainty samples
     obstacle_for_opt.uncertainty_ctrl_pts = fitter_ ->fit(tmp.second);
+    obstacle_for_opt.sigma_0 = initial_variance;
 
     // Take future samples of the trajectory
     std::vector<Eigen::Vector3d> samples;
@@ -1578,17 +1587,17 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
     initial_acceleration_variance << par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents;
   }
 
-  Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-    initial_position_variance * par_.initial_position_variance_multiplier,
-    initial_velocity_variance * par_.initial_velocity_variance_multiplier,
-    initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
+  Eigen::Matrix<double, 9, 1> initial_variance_search = buildVarianceVector(
+    initial_position_variance * par_.initial_position_variance_search_multiplier,
+    initial_velocity_variance * par_.initial_velocity_variance_search_multiplier,
+    initial_acceleration_variance * par_.initial_acceleration_variance_search_multiplier
   );
 
   // project uncertainty
   if (traj.is_agent)
   {
     // TODO: expose this param
-    initial_variance = buildVarianceVector(
+    initial_variance_search = buildVarianceVector(
       0.1, 0.1, 0.1,
       0.1, 0.1, 0.1,
       0.1, 0.1, 0.1  
@@ -1596,7 +1605,7 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
   }
 
   // get projected times and uncertainty
-  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance_search, deltaT, t_start, t_end);
   std::vector<double> projected_time = tmp.first;
   std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
 
@@ -2233,14 +2242,14 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
     initial_acceleration_variance << par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents, par_.initial_acceleration_variance_for_agents;
   }
 
-  Eigen::Matrix<double, 9, 1> initial_variance = buildVarianceVector(
-    initial_position_variance * par_.initial_position_variance_multiplier,
-    initial_velocity_variance * par_.initial_velocity_variance_multiplier,
-    initial_acceleration_variance * par_.initial_acceleration_variance_multiplier
+  Eigen::Matrix<double, 9, 1> initial_variance_search = buildVarianceVector(
+    initial_position_variance * par_.initial_position_variance_search_multiplier,
+    initial_velocity_variance * par_.initial_velocity_variance_search_multiplier,
+    initial_acceleration_variance * par_.initial_acceleration_variance_search_multiplier
   );
 
   // get projected times and uncertainty
-  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance, deltaT, t_start, t_end);
+  std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance_search, deltaT, t_start, t_end);
   std::vector<double> projected_time = tmp.first;
   std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
 
