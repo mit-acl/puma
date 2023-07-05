@@ -752,6 +752,10 @@ results_names={'pCPs','yCPs', 'uncertainty_list', 'all_nd','total_cost', 'yaw_sm
 %% compute cost
 %%
 
+%%
+%% compute cost
+%%
+
 compute_cost = Function('compute_cost', par_and_init_guess_exprs ,{total_cost},...
                                         par_and_init_guess_names ,{'total_cost'});
 compute_cost(names_value{:})
@@ -761,6 +765,20 @@ if use_panther_star
     compute_cost.save('./casadi_generated_files/compute_cost.casadi') %The file generated is quite big
 else
     compute_cost.save('./casadi_generated_files/panther_compute_cost.casadi') %The file generated is quite big
+end
+
+%%
+%% get uncertainty growth
+%%
+
+get_uncertainty = Function('get_uncertainty', par_and_init_guess_exprs ,{uncertainty_list}, par_and_init_guess_names ,{'uncertainty_list'});
+get_uncertainty(names_value{:});
+get_uncertainty=get_uncertainty.expand();
+
+if use_panther_star
+    get_uncertainty.save('./casadi_generated_files/get_uncertainty.casadi') %The file generated is quite big
+else
+    get_uncertainty.save('./casadi_generated_files/panther_get_uncertainty.casadi') %The file generated is quite big
 end
 
 %%

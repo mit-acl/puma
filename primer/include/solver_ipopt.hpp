@@ -226,6 +226,7 @@ public:
 
   si::solOrGuess fillTrajBestSolutionAndGetIt();
   double computeCost(si::solOrGuess guess);
+  std::vector<double> getUncertainty(si::solOrGuess sol_or_guess);
   double computeDynLimitsConstraintsViolation(si::solOrGuess guess);
   // std::pair<double, double> computeTransAndYawDynLimitsConstraintsViolation(si::solOrGuess sol_or_guess);
 
