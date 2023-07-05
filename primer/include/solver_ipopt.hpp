@@ -223,6 +223,7 @@ public:
 
   si::solOrGuess fillTrajBestSolutionAndGetIt();
   double computeCost(si::solOrGuess guess);
+  std::vector<double> getUncertainty(si::solOrGuess sol_or_guess);
   double computeDynLimitsConstraintsViolation(si::solOrGuess guess);
   // std::pair<double, double> computeTransAndYawDynLimitsConstraintsViolation(si::solOrGuess sol_or_guess);
 
@@ -354,6 +355,7 @@ private:
   casadi::Function cf_fit_yaw_;
   casadi::Function cf_visibility_;
   casadi::Function cf_compute_cost_;
+  casadi::Function cf_get_uncertainty_list_;
   casadi::Function cf_compute_dyn_limits_constraints_violation_;
   casadi::Function cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_;
 

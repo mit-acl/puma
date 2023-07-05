@@ -294,7 +294,7 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2;
 replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 
 uncertainty_sum = 0.0;
-
+uncertainty_list = [];
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
@@ -331,7 +331,7 @@ for i=1:num_max_of_obst
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = sqrt(sigma_pos);
             uncertainty_sum = uncertainty_sum + sum(uncertainty);
-            % uncertainty_sum = uncertainty_sum + sum(diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth)));
+            uncertainty_list = [uncertainty_list; uncertainty];
 
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
@@ -721,8 +721,8 @@ par_and_init_guess= [ {createStruct('thetax_FOV_deg', thetax_FOV_deg, thetax_FOV
               {createStruct('c_total_time', c_total_time, 1000.0)},...
               {createStruct('all_nd', all_nd, all_nd_value)},...
               {createStruct('pCPs', pCPs, tmp1)},...
-             {createStruct('yCPs', yCPs, tmp2)},...
-             createCellArrayofStructsForObstacles(fitter)];   
+              {createStruct('yCPs', yCPs, tmp2)},...
+              createCellArrayofStructsForObstacles(fitter)];   
               
 [par_and_init_guess_exprs, par_and_init_guess_names, names_value]=toExprsNamesAndNamesValue(par_and_init_guess);
 
@@ -748,6 +748,10 @@ end
 results_expresion={pCPs,yCPs, all_nd, total_cost, yaw_smooth_cost, pos_smooth_cost, alpha, fov_cost, final_yaw_cost, final_pos_cost}; %Note that this containts both parameters, variables, and combination of both. If they are parameters, the corresponding value will be returned
 results_names={'pCPs','yCPs','all_nd','total_cost', 'yaw_smooth_cost', 'pos_smooth_cost','alpha','fov_cost','final_yaw_cost','final_pos_cost'};
 
+%%
+%% compute cost
+%%
+
 compute_cost = Function('compute_cost', par_and_init_guess_exprs ,{total_cost},...
                                         par_and_init_guess_names ,{'total_cost'});
 compute_cost(names_value{:})
@@ -757,6 +761,20 @@ if use_panther_star
     compute_cost.save('./casadi_generated_files/compute_cost.casadi') %The file generated is quite big
 else
     compute_cost.save('./casadi_generated_files/panther_compute_cost.casadi') %The file generated is quite big
+end
+
+%%
+%% get uncertainty growth
+%%
+
+get_uncertainty = Function('get_uncertainty', par_and_init_guess_exprs ,{uncertainty_list}, par_and_init_guess_names ,{'uncertainty_list'});
+get_uncertainty(names_value{:});
+get_uncertainty=get_uncertainty.expand();
+
+if use_panther_star
+    get_uncertainty.save('./casadi_generated_files/get_uncertainty.casadi') %The file generated is quite big
+else
+    get_uncertainty.save('./casadi_generated_files/panther_get_uncertainty.casadi') %The file generated is quite big
 end
 
 %%

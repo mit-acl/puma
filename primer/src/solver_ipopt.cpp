@@ -232,6 +232,7 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
     std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
     myfile >> index_instruction_;
     cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
+    cf_get_uncertainty_list_ = casadi::Function::load(folder + "get_uncertainty.casadi");
     cf_op_ = casadi::Function::load(folder + "op.casadi");
     cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
     cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
@@ -248,6 +249,7 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
     std::fstream myfile(folder + "panther_index_instruction.txt", std::ios_base::in);
     myfile >> index_instruction_;
     cf_compute_cost_ = casadi::Function::load(folder + "panther_compute_cost.casadi");
+    cf_get_uncertainty_list_ = casadi::Function::load(folder + "panther_get_uncertainty.casadi");
     cf_op_ = casadi::Function::load(folder + "panther_op.casadi");
     cf_fit_yaw_ = casadi::Function::load(folder + "panther_fit_yaw.casadi");
     cf_visibility_ = casadi::Function::load(folder + "panther_visibility.casadi");
@@ -661,6 +663,31 @@ double SolverIpopt::computeCost(si::solOrGuess sol_or_guess)
 
   double cost = double(result["total_cost"]);
   return cost;
+}
+
+std::vector<double> SolverIpopt::getUncertainty(si::solOrGuess sol_or_guess)
+{
+  std::map<std::string, casadi::DM> map_arguments = getMapConstantArguments();
+
+  casadi::DM matrix_qp = stdVectorEigen3d2CasadiMatrix(sol_or_guess.qp);
+  casadi::DM matrix_qy = stdVectorDouble2CasadiRowVector(sol_or_guess.qy);
+
+  map_arguments["alpha"] = sol_or_guess.getTotalTime();
+  map_arguments["pCPs"] = matrix_qp;
+  map_arguments["yCPs"] = matrix_qy;
+
+  for (int i = 0; i < par_.num_max_of_obst; i++)
+  {
+    map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
+        stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
+        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+  }
+
+  std::map<std::string, casadi::DM> result = cf_get_uncertainty_list_(map_arguments);
+
+  std::vector<double> uncertainty_list = casadiMatrix2StdVectorDouble(result["uncertainty_list"]);
+  return uncertainty_list;
 }
 
 double SolverIpopt::computeDynLimitsConstraintsViolation(si::solOrGuess sol_or_guess)

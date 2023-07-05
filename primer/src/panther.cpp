@@ -1355,6 +1355,20 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_soluti
 
   solutions_found_++;
 
+  //
+  // get uncertainty list computed in optmization
+  //
+
+  if (par_.use_expert){
+    std::vector<double> uncertainty_list = solver_->getUncertainty(best_solution);
+    // print uncertainty list
+    std::cout << "Uncertainty list: ";
+    for (int i = 0; i < uncertainty_list.size(); i++){
+      std::cout << uncertainty_list[i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
   ///////////////////////////////////////////////////////////
   ///////////////       OTHER STUFF    //////////////////////
   //////////////////////////////////////////////////////////
