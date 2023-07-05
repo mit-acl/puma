@@ -1593,16 +1593,16 @@ bool Panther::trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWise
     initial_acceleration_variance * par_.initial_acceleration_variance_search_multiplier
   );
 
-  // project uncertainty
-  if (traj.is_agent)
-  {
-    // TODO: expose this param
-    initial_variance_search = buildVarianceVector(
-      0.1, 0.1, 0.1,
-      0.1, 0.1, 0.1,
-      0.1, 0.1, 0.1  
-    );
-  }
+  // // project uncertainty
+  // if (traj.is_agent)
+  // {
+  //   // TODO: expose this param
+  //   initial_variance_search = buildVarianceVector(
+  //     0.1, 0.1, 0.1,
+  //     0.1, 0.1, 0.1,
+  //     0.1, 0.1, 0.1  
+  //   );
+  // }
 
   // get projected times and uncertainty
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance_search, deltaT, t_start, t_end);
@@ -2294,67 +2294,58 @@ std::vector<Eigen::Vector3d> Panther::vertexesOfIntervalUncertaintyInflated(mt::
 {
   Eigen::Vector3d delta = traj.bbox + par_.drone_bbox / 2.0;
 
-  if (traj.is_agent == false)
-  {
-    std::vector<Eigen::Vector3d> points;
-    double t_current = ros::Time::now().toSec();
+  std::vector<Eigen::Vector3d> points;
+  double t_current = ros::Time::now().toSec();
 
-    if (t_current > t_end){
-      std::cout << "t_current > t_end" << std::endl;
-      return std::vector<Eigen::Vector3d>();
-    }
-
-    for (double t = t_current;                           /////////////
-         (t < t_end) ||                                /////////////
-         ((t > t_end) && ((t - t_end) < par_.gamma));  /////// This is to ensure we have a sample a the end
-         t = t + par_.gamma)
-    {
-
-      mtx_t_.lock();
-      t_ = std::min(t, t_end);  // this min only has effect on the last sample
-
-      double x, y, z;
-      if (traj.use_pwp_field){
-        x = traj.pwp_mean.eval(t_)[0];
-        y = traj.pwp_mean.eval(t_)[1];
-        z = traj.pwp_mean.eval(t_)[2];
-      } else{
-        x = traj.s_mean[0].value();
-        y = traj.s_mean[1].value();
-        z = traj.s_mean[2].value();
-      }
-      mtx_t_.unlock();
-
-      // get the index of the projected time that is closest to the current time
-      int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
-        return fabs(a - t) < fabs(b - t);
-      }) - projected_time.begin();
-
-      // get the uncertainty at the current time
-      Eigen::Vector3d unc = projected_uncertainty[idx];
-
-      // get inflated delta
-      Eigen::Vector3d uncertainty_inflated_delta = (unc + delta) / 2.0;
-
-      //"Minkowski sum along the trajectory: box centered on the trajectory"
-      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
-      points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
-    }
-
-    return points;
-  }
-  else
-  {  // is an agent --> use the pwp field
-    // TODO: If it's agent then we need to apply different uncertainty inflation to bbox
-    std::cout << "TODO: If it's agent then we need to apply different uncertainty inflation to bbox" << std::endl;
+  if (t_current > t_end){
+    std::cout << "t_current > t_end" << std::endl;
     return std::vector<Eigen::Vector3d>();
   }
+
+  for (double t = t_current;                           /////////////
+        (t < t_end) ||                                /////////////
+        ((t > t_end) && ((t - t_end) < par_.gamma));  /////// This is to ensure we have a sample a the end
+        t = t + par_.gamma)
+  {
+
+    mtx_t_.lock();
+    t_ = std::min(t, t_end);  // this min only has effect on the last sample
+
+    double x, y, z;
+    if (traj.use_pwp_field){
+      x = traj.pwp_mean.eval(t_)[0];
+      y = traj.pwp_mean.eval(t_)[1];
+      z = traj.pwp_mean.eval(t_)[2];
+    } else{
+      x = traj.s_mean[0].value();
+      y = traj.s_mean[1].value();
+      z = traj.s_mean[2].value();
+    }
+    mtx_t_.unlock();
+
+    // get the index of the projected time that is closest to the current time
+    int idx = std::min_element(projected_time.begin(), projected_time.end(), [t](double a, double b) {
+      return fabs(a - t) < fabs(b - t);
+    }) - projected_time.begin();
+
+    // get the uncertainty at the current time
+    Eigen::Vector3d unc = projected_uncertainty[idx];
+
+    // get inflated delta
+    Eigen::Vector3d uncertainty_inflated_delta = (unc + delta) / 2.0;
+
+    //"Minkowski sum along the trajectory: box centered on the trajectory"
+    points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x + uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y + uncertainty_inflated_delta.y(), z - uncertainty_inflated_delta.z()));
+    points.push_back(Eigen::Vector3d(x - uncertainty_inflated_delta.x(), y - uncertainty_inflated_delta.y(), z + uncertainty_inflated_delta.z()));
+  }
+
+  return points;
 }
 
 //
