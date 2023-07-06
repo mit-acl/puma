@@ -66,7 +66,7 @@ num_seg=7; %The number of segments in the trajectory (the more segments the less
 
 %% ATTENTION!!!!! TODO: make this automatic
 %% if you change these two numbers, don't forget to run this main file twice, once with use_panther_star=true and once with use_panther_star=false
-num_max_of_obst = 1; % This is the maximum num of the obstacles that will be considered in the constraints
+num_max_of_obst = 3; % This is the maximum num of the obstacles that will be considered in the constraints
 num_obst_in_FOV = 1; % This is different from max_num_obst, which is the max number of obst that an agent includes for constraints
 %% END ATTENTION!!!!!
 
@@ -290,8 +290,6 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2.0;
 
 replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 
-uncertainty_sum = 0.0;
-uncertainty_list = []; % just for printing out. only supported for a single agent
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
@@ -307,11 +305,6 @@ for i=1:num_max_of_obst
 
             % Propagate uncertainty
             sigma_p = F * sigma_i * F';
-
-            % Vectorize this step
-            % S = sigma_p + ones(9, 9) * 0.001;
-            % K = sigma_p * inv(S);
-            % sigma_u = (eye(9) - K) * sigma_p;
             S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance, infeasibility_adjust));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
@@ -328,9 +321,6 @@ for i=1:num_max_of_obst
 
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = 2.0 * sqrt(sigma_pos); % Factor of 2.0 to account for sigma_pos being the "radius" of the ellipsoid
-            uncertainty_sum = uncertainty_sum + sum(uncertainty);
-            uncertainty_list = [uncertainty_list; uncertainty];
-
             all_centers=[all_centers pos_center_obs];
             all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
 
@@ -351,7 +341,6 @@ replan_times = linspace(0,1,num_seg);
 
 moving_direction_lookup_horizon = 0.0 / fitter.total_time; %TODO: make this a parameter
 moving_direction_uncertainty_list = [];
-moving_direction_uncertainty_sum = 0.0;
 replan_time_index = 1;
 sigma_i = diag(drone_initial_variance);
 for j=1:num_seg
@@ -370,16 +359,9 @@ for j=1:num_seg
     % Unpack the position variance
     sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
 
-    % Calculate the Mahalanobis radius of the error ellipsoid
-    % s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
-
-    % Scale the variance by the Mahalanobis radius
-    % sigma_pos = sigma_pos * s;
-
     % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
     uncertainty = sqrt(sigma_pos);
     moving_direction_uncertainty_list = [moving_direction_uncertainty_list uncertainty];
-    moving_direction_uncertainty_sum = moving_direction_uncertainty_sum + sum(uncertainty);
 
     % index
     replan_time_index = replan_time_index + 1;
@@ -571,10 +553,6 @@ end
 %% Cost
 %%
 
-%% TODO expose this
-c_uncertainty = 0.0;
-c_moving_direction_uncertainty = 0.0;
-
 pos_smooth_cost=sp.getControlCost()/(alpha^(sp.p-1));
 final_pos_cost=(sp.getPosT(tf_n)- pf)'*(sp.getPosT(tf_n)- pf);
 total_time_cost=alpha*(tf_n-t0_n);
@@ -585,10 +563,7 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
            c_final_pos*final_pos_cost+...
            c_yaw_smooth*yaw_smooth_cost+...
            c_final_yaw*final_yaw_cost+...
-           c_total_time*total_time_cost+...
-           c_moving_direction_uncertainty*moving_direction_uncertainty_sum+...
-           c_uncertainty*uncertainty_sum;
-           %    c_fov*fov_cost+...
+           c_total_time*total_time_cost;
 
 %%
 %% First option: Hard constraints
@@ -784,7 +759,7 @@ opts = struct;
 opts.expand=true; %When this option is true, it goes WAY faster!
 opts.print_time=0;
 opts.ipopt.print_level=print_level; 
-opts.ipopt.max_iter=100;
+opts.ipopt.max_iter=500;
 opts.ipopt.linear_solver=linear_solver_name;
 opts.jit=jit;%If true, when I call solve(), Matlab will automatically generate a .c file, convert it to a .mex and then solve the problem using that compiled code
 opts.compiler='shell';
@@ -799,8 +774,8 @@ else
     opti.subject_to([const_p, const_y]);
 end
 
-results_expresion={pCPs,yCPs, uncertainty_list, all_nd, total_cost, yaw_smooth_cost, pos_smooth_cost, alpha, fov_cost, final_yaw_cost, final_pos_cost}; %Note that this containts both parameters, variables, and combination of both. If they are parameters, the corresponding value will be returned
-results_names={'pCPs','yCPs', 'uncertainty_list', 'all_nd','total_cost', 'yaw_smooth_cost', 'pos_smooth_cost','alpha','fov_cost','final_yaw_cost','final_pos_cost'};
+results_expresion={pCPs,yCPs, all_nd, total_cost, yaw_smooth_cost, pos_smooth_cost, alpha, fov_cost, final_yaw_cost, final_pos_cost}; %Note that this containts both parameters, variables, and combination of both. If they are parameters, the corresponding value will be returned
+results_names={'pCPs','yCPs','all_nd','total_cost', 'yaw_smooth_cost', 'pos_smooth_cost','alpha','fov_cost','final_yaw_cost','final_pos_cost'};
 
 %%
 %% compute cost
@@ -819,20 +794,6 @@ if use_panther_star
     compute_cost.save('./casadi_generated_files/compute_cost.casadi') %The file generated is quite big
 else
     compute_cost.save('./casadi_generated_files/panther_compute_cost.casadi') %The file generated is quite big
-end
-
-%%
-%% get uncertainty growth
-%%
-
-get_uncertainty = Function('get_uncertainty', par_and_init_guess_exprs ,{uncertainty_list}, par_and_init_guess_names ,{'uncertainty_list'});
-get_uncertainty(names_value{:});
-get_uncertainty=get_uncertainty.expand();
-
-if use_panther_star
-    get_uncertainty.save('./casadi_generated_files/get_uncertainty.casadi') %The file generated is quite big
-else
-    get_uncertainty.save('./casadi_generated_files/panther_get_uncertainty.casadi') %The file generated is quite big
 end
 
 %%
