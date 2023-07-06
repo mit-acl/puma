@@ -27,7 +27,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: PCloudFiltered
+    SyncSource: ""
   - Class: rviz/Displays
     Help Height: 0
     Name: Displays
@@ -259,7 +259,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/fov
       Name: SQ01sFOV
       Namespaces:
-        marker_fov: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -307,7 +307,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/tracker_predictor_node/marker_predicted_traj
       Name: Predictions
       Namespaces:
-        predicted_traj_0: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -315,7 +315,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/tracker_predictor_node/marker_bbox_obstacles
       Name: bbox_obstacles_predictor
       Namespaces:
-        predictor: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -623,7 +623,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
-        markertacles: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -778,9 +778,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7647949457168579
+      Pitch: 1.3047947883605957
       Target Frame: <Fixed Frame>
-      Yaw: 3.138178825378418
+      Yaw: 3.128178834915161
     Saved: ~
 Window Geometry:
   DepthImage:
@@ -802,5 +802,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1920
-  X: 8320
-  Y: 0
+  X: 7920
+  Y: 772

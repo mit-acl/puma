@@ -629,7 +629,7 @@ classdef MyClampedUniformSpline < handle
             end
         end
         
-        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled)
+        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled, uncertainty_list_moving_direction)
             constraints={};
             for j=1:obj.num_seg
                 cps=obj.getCPs_XX_Vel_ofInterval(basis, j);
@@ -637,14 +637,11 @@ classdef MyClampedUniformSpline < handle
                     if(j==1 && (u==1 || u==2) && obj.dim==3)
                         continue   %Not impose constraint on the first vel ctrl points for position[to allow "infeasible" initial velocities due to planning in body frame and v constraints in each axis].
                     end
-%                     constraints{end+1}=(cps{u}'*cps{u})<=(v_max_scaled^2);
-%                     total_squared=0;
+
                     for xyz=1:size(cps{u},1)
-                        constraints{end+1}=cps{u}(xyz) <= v_max_scaled(xyz, j);
-                        constraints{end+1}=cps{u}(xyz) >= -v_max_scaled(xyz, j);
-%                         total_squared=total_squared+(cps{u}(xyz)^2);
+                        constraints{end+1}=cps{u}(xyz) <= v_max_scaled(xyz) * 1 / (1 + 0.001 * uncertainty_list_moving_direction(xyz, j));
+                        constraints{end+1}=cps{u}(xyz) >= -v_max_scaled(xyz) * 1 / (1 + 0.001 * uncertainty_list_moving_direction(xyz, j));
                     end
-%                     constraints{end+1}=total_squared<=(v_max_scaled^2);
                 end
             end
         end
@@ -677,14 +674,11 @@ classdef MyClampedUniformSpline < handle
                     if(j==1 && (u==1 || u==2) && obj.dim==3)
                         continue   %Not impose constraint on the first accel ctrl points [to allow "infeasible" initial accelerations due to planning in body frame and a constraints in each axis].
                     end
-%                     constraints{end+1}=(cps{u}'*cps{u})<=(a_max_scaled^2);
-%                     total_squared=0;
+
                     for xyz=1:size(cps{u},1)
                         constraints{end+1}=cps{u}(xyz) <= a_max_scaled(xyz);
                         constraints{end+1}=cps{u}(xyz) >= -a_max_scaled(xyz);
-%                         total_squared=total_squared+(cps{u}(xyz)^2);
                     end
-%                     constraints{end+1}=total_squared<=(a_max_scaled^2);
                 end
             end
         end

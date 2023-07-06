@@ -4,7 +4,7 @@
 
 # deployment:
 replanning_trigger_time_student: 0.01 #[seconds] 
-replanning_trigger_time_expert: 2.0  #[seconds] 
+replanning_trigger_time_expert: 1.0  #[seconds] 
 pause_time_when_replanning: true
 replanning_lookahead_time: 0.5 #[seconds] #distance in time space = t_in - t_1 in Table I
 use_mesh_network: false
@@ -59,7 +59,7 @@ obstacle_visualization_duration: 4.0 #seconds #how long you wanna propagate and 
 # Uncertainty Propagation setting
 #############################################
 
-initial_position_variance_multiplier: 1.0
+initial_position_variance_multiplier: 10.0
 initial_velocity_variance_multiplier: 1.0
 initial_acceleration_variance_multiplier: 1.0
 
@@ -68,11 +68,11 @@ initial_velocity_variance_search_multiplier: 0.1
 initial_acceleration_variance_search_multiplier: 0.1
 
 initial_position_variance_for_agents: 0.1
-initial_velocity_variance_for_agents: 0.01
+initial_velocity_variance_for_agents: 0.1
 initial_acceleration_variance_for_agents: 0.01
 
 max_variance: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
-max_variance_for_moving_direction: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+max_variance_for_moving_direction: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 infeasibility_adjust: 0.001
 
 #############################################
@@ -81,8 +81,8 @@ infeasibility_adjust: 0.001
 
 # training:
 # training parameters
-num_of_trajs_per_replan: 5 # num of traj (n_s in Table I in deep panther paper)
-max_num_of_initial_guesses: 5 # (n_runs in Table I)
+num_of_trajs_per_replan: 10 # num of traj (n_s in Table I in deep panther paper)
+max_num_of_initial_guesses: 10 # (n_runs in Table I)
 drone_extra_radius_for_NN: 0.0  #(m) Used for collision checking
 use_closed_form_yaw_student: false #If false, the NN will predict this closed form for the yaw angle
 make_yaw_NN: false

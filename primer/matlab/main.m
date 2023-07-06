@@ -188,8 +188,7 @@ total_time=alpha*(tf_n-t0_n); %Total time is (tf_n-t0_n)*alpha. (should be 1 * a
 
 p0=opti.parameter(3,1); v0=opti.parameter(3,1); a0=opti.parameter(3,1);
 pf=opti.parameter(3,1); vf=opti.parameter(3,1); af=opti.parameter(3,1);
-% v_max=opti.parameter(3,1);
-v_max=opti.variable(3,num_seg);
+v_max=opti.parameter(3,1);
 a_max=opti.parameter(3,1);
 j_max=opti.parameter(3,1);
 
@@ -346,42 +345,41 @@ t_opt_n_samples=linspace(0,1,sampler.num_samples);
 %%
 
 replan_times = linspace(0,1,num_seg);
-moving_direction_lookup_horizon = 1.0 / fitter.total_time; %TODO: make this a parameter
+moving_direction_lookup_horizon = 0.0 / fitter.total_time; %TODO: make this a parameter
 uncertainty_list_moving_direction = []; %TODO: support multiple obstacles
-for i=1:num_max_of_obst
-    replan_time_index = 1;
-    sigma_i = diag(fitter.sigma_0{i});
-    for j=1:num_seg
-        t_nobs= (1 / num_seg) * j;  %Note that fitter.bs_casadi{i}.knots=[0...1]
-            
-        % get the look-up pos of trajectory
-        looked_up_pos=sp.getPosT(min(t_nobs + moving_direction_lookup_horizon, 1.0));
+yaw_uncertainty_sum = 0.0;
+replan_time_index = 1;
+sigma_i = diag(fitter.sigma_0{i});
+for j=1:num_seg
+    t_n= (1 / num_seg) * j;  %Note that fitter.bs_casadi{i}.knots=[0...1]
+        
+    % get the look-up pos of trajectory
+    looked_up_pos=sp.getPosT(min(t_n + moving_direction_lookup_horizon, 1.0));
 
-        % Propagate uncertainty
-        sigma_p = F * sigma_i * F';
-        S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance_for_moving_direction, infeasibility_adjust));
-        K = diag(sigma_p) .* 1 ./ S;
-        sigma_u = (1 - K) .* diag(sigma_p);
-        sigma_i = diag(sigma_u);
+    % Propagate uncertainty
+    sigma_p = F * sigma_i * F';
+    S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, looked_up_pos, thetax_half_FOV_deg, fov_depth, max_variance_for_moving_direction, infeasibility_adjust));
+    K = diag(sigma_p) .* 1 ./ S;
+    sigma_u = (1 - K) .* diag(sigma_p);
+    sigma_i = diag(sigma_u);
 
-        % Unpack the position variance
-        sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
+    % Unpack the position variance
+    sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
 
-        % Calculate the Mahalanobis radius of the error ellipsoid
-        s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
+    % Calculate the Mahalanobis radius of the error ellipsoid
+    % s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
 
-        % Scale the variance by the Mahalanobis radius
-        sigma_pos = sigma_pos * s;
+    % Scale the variance by the Mahalanobis radius
+    % sigma_pos = sigma_pos * s;
 
-        % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
-        uncertainty = sqrt(sigma_pos);
-        uncertainty_list_moving_direction = [uncertainty_list_moving_direction uncertainty];
+    % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
+    uncertainty = sqrt(sigma_pos);
+    uncertainty_list_moving_direction = [uncertainty_list_moving_direction uncertainty];
+    % yaw_uncertainty_sum = yaw_uncertainty_sum + weighted_yaw;
 
-        % index
-        replan_time_index = replan_time_index + 1;
-    end  
-end
-
+    % index
+    replan_time_index = replan_time_index + 1;
+end  
 
 %%
 %% CONSTRAINTS! 
@@ -571,6 +569,7 @@ end
 
 %% TODO expose this
 c_uncertainty = 0.0;
+c_moving_direction_uncertainty = 0.0;
 
 pos_smooth_cost=sp.getControlCost()/(alpha^(sp.p-1));
 final_pos_cost=(sp.getPosT(tf_n)- pf)'*(sp.getPosT(tf_n)- pf);
@@ -583,6 +582,7 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
            c_yaw_smooth*yaw_smooth_cost+...
            c_final_yaw*final_yaw_cost+...
            c_total_time*total_time_cost+...
+           c_moving_direction_uncertainty*yaw_uncertainty_sum+...
            c_uncertainty*uncertainty_sum;
            %    c_fov*fov_cost+...
 
@@ -1344,26 +1344,11 @@ end
 
 function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, uncertainty_list_moving_direction)
 
-    constrainted_v_max = adjustVMaxBasedOnUncertainty(v_max_n, uncertainty_list_moving_direction);
-
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, constrainted_v_max)];      %Max vel constraints (position)
-    %  const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n)];      %Max vel constraints (position)
+     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n, uncertainty_list_moving_direction)];      %Max vel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
      const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
 
-end
-
-%%
-%% ---------------------------------------------------------------------------------------------------------------
-%%
-
-function constrainted_v_max = adjustVMaxBasedOnUncertainty(v_max, uncertainty_list_moving_direction)
-    constrainted_v_max=v_max;
-    % constrainted_v_max = constrainted_v_max * 10000 ./ (1 * (10000+min(uncertainty_list_moving_direction)));
-    for i=1:size(uncertainty_list_moving_direction,2)
-        constrainted_v_max(:,i)= constrainted_v_max(:,i) * 100000 ./ (1 * (100000+uncertainty_list_moving_direction(:,i)));
-    end
 end
 
 %%
