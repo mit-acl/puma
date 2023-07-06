@@ -629,7 +629,7 @@ classdef MyClampedUniformSpline < handle
             end
         end
         
-        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled, uncertainty_list_moving_direction)
+        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled, moving_direction_uncertainty_list, moving_direction_factor)
             constraints={};
             for j=1:obj.num_seg
                 cps=obj.getCPs_XX_Vel_ofInterval(basis, j);
@@ -639,8 +639,8 @@ classdef MyClampedUniformSpline < handle
                     end
 
                     for xyz=1:size(cps{u},1)
-                        constraints{end+1}=cps{u}(xyz) <= v_max_scaled(xyz) * 1 / (1 + 0.001 * uncertainty_list_moving_direction(xyz, j));
-                        constraints{end+1}=cps{u}(xyz) >= -v_max_scaled(xyz) * 1 / (1 + 0.001 * uncertainty_list_moving_direction(xyz, j));
+                        constraints{end+1}=cps{u}(xyz) <= v_max_scaled(xyz) * moving_direction_factor / (moving_direction_factor + moving_direction_uncertainty_list(xyz, j));
+                        constraints{end+1}=cps{u}(xyz) >= -v_max_scaled(xyz) * moving_direction_factor / (moving_direction_factor + moving_direction_uncertainty_list(xyz, j));
                     end
                 end
             end

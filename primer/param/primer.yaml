@@ -73,7 +73,9 @@ initial_acceleration_variance_for_agents: 0.01
 
 max_variance: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 max_variance_for_moving_direction: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+drone_initial_variance: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 infeasibility_adjust: 0.001
+moving_direction_factor: 1.0
 
 #############################################
 # Training setting

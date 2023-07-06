@@ -974,8 +974,10 @@ struct parameters
   double          norminv_prob;                       //void setVar_norminv_prob(const std::string& value) { norminv_prob = std::stod(value); };
   int             disc_pts_per_interval_oct_search;   //void setVar_disc_pts_per_interval_oct_search(const std::string& value) { disc_pts_per_interval_oct_search = std::stoi(value); };
   Eigen::Matrix<double, 9, 1> max_variance;           //void setVar_max_variance(const std::string& value) { max_variance = std::stod(value); };
-  Eigen::Matrix<double, 9, 1> max_variance_for_moving_direction;           //void setVar_max_variance(const std::string& value) { max_variance = std::stod(value); };
+  Eigen::Matrix<double, 9, 1> max_variance_for_moving_direction; //void setVar_max_variance_for_moving_direction(const std::string& value) { max_variance_for_moving_direction = std::stod(value); };
+  Eigen::Matrix<double, 9, 1> drone_initial_variance; //void setVar_ego_initial_variance(const std::string& value) { ego_initial_variance = std::stod(value); };
   double          infeasibility_adjust;               //void setVar_infeasibility_adjust(const std::string& value) { infeasibility_adjust = std::stod(value); };
+  double          moving_direction_factor;            //void setVar_moving_direction_factor(const std::string& value) { moving_direction_factor = std::stod(value); };
   double          c_smooth_yaw_search;                //void setVar_c_smooth_yaw_search(const std::string& value) { c_smooth_yaw_search = std::stod(value); };
   double          c_visibility_yaw_search;            //void setVar_c_visibility_yaw_search(const std::string& value) { c_visibility_yaw_search = std::stod(value); };
   double          c_maxydot_yaw_search;               //void setVar_c_maxydot_yaw_search(const std::string& value) { c_maxydot_yaw_search = std::stod(value); }; 

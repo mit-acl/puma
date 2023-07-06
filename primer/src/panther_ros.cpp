@@ -153,12 +153,21 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   par_.max_variance << max_variance_tmp[0], max_variance_tmp[1], max_variance_tmp[2],
                        max_variance_tmp[3], max_variance_tmp[4], max_variance_tmp[5],
                        max_variance_tmp[6], max_variance_tmp[7], max_variance_tmp[8];
+
   std::vector<double> max_variance_for_moving_direction_tmp;
   safeGetParam(nh1_, "max_variance_for_moving_direction", max_variance_for_moving_direction_tmp);
   par_.max_variance_for_moving_direction << max_variance_for_moving_direction_tmp[0], max_variance_for_moving_direction_tmp[1], max_variance_for_moving_direction_tmp[2],
                        max_variance_for_moving_direction_tmp[3], max_variance_for_moving_direction_tmp[4], max_variance_for_moving_direction_tmp[5],
                        max_variance_for_moving_direction_tmp[6], max_variance_for_moving_direction_tmp[7], max_variance_for_moving_direction_tmp[8];
+
+  std::vector<double> drone_initial_variance_tmp;
+  safeGetParam(nh1_, "drone_initial_variance", drone_initial_variance_tmp);
+  par_.drone_initial_variance << drone_initial_variance_tmp[0], drone_initial_variance_tmp[1], drone_initial_variance_tmp[2],
+                       drone_initial_variance_tmp[3], drone_initial_variance_tmp[4], drone_initial_variance_tmp[5],
+                       drone_initial_variance_tmp[6], drone_initial_variance_tmp[7], drone_initial_variance_tmp[8];  
+
   safeGetParam(nh1_, "infeasibility_adjust", par_.infeasibility_adjust);
+  safeGetParam(nh1_, "moving_direction_factor", par_.moving_direction_factor);
 
   //
   // training params
@@ -337,6 +346,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   verify((par_.num_of_yaw_per_layer >= 1), "par_.num_of_yaw_per_layer>=1 must hold");
 
   verify((par_.infeasibility_adjust > 0), "par_.infeasibility_adjust>0 must hold");
+  verify((par_.moving_direction_factor != 0), "par_.moving_direction_factor!=0 must hold");
 
   verify((par_.c_pos_smooth >= 0), "par_.c_pos_smooth>=0 must hold");
   verify((par_.c_yaw_smooth >= 0), "par_.c_yaw_smooth>=0 must hold");

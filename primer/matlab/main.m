@@ -265,7 +265,10 @@ obst={}; %Obs{i}{j} Contains the vertexes (as columns) of the obstacle i in the 
 %% Uncertainty Propagation
 max_variance = opti.parameter(9, 1);
 max_variance_for_moving_direction = opti.parameter(9, 1);
+drone_initial_variance = opti.parameter(9, 1);
+
 infeasibility_adjust = opti.parameter(1, 1);
+moving_direction_factor = opti.parameter(1, 1);
 
 % Dynamic Model and State Transition
 dynamics = [0, 1, 0;
@@ -345,11 +348,12 @@ t_opt_n_samples=linspace(0,1,sampler.num_samples);
 %%
 
 replan_times = linspace(0,1,num_seg);
+
 moving_direction_lookup_horizon = 0.0 / fitter.total_time; %TODO: make this a parameter
-uncertainty_list_moving_direction = []; %TODO: support multiple obstacles
-yaw_uncertainty_sum = 0.0;
+moving_direction_uncertainty_list = [];
+moving_direction_uncertainty_sum = 0.0;
 replan_time_index = 1;
-sigma_i = diag(fitter.sigma_0{i});
+sigma_i = diag(drone_initial_variance);
 for j=1:num_seg
     t_n= (1 / num_seg) * j;  %Note that fitter.bs_casadi{i}.knots=[0...1]
         
@@ -374,8 +378,8 @@ for j=1:num_seg
 
     % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
     uncertainty = sqrt(sigma_pos);
-    uncertainty_list_moving_direction = [uncertainty_list_moving_direction uncertainty];
-    % yaw_uncertainty_sum = yaw_uncertainty_sum + weighted_yaw;
+    moving_direction_uncertainty_list = [moving_direction_uncertainty_list uncertainty];
+    moving_direction_uncertainty_sum = moving_direction_uncertainty_sum + sum(uncertainty);
 
     % index
     replan_time_index = replan_time_index + 1;
@@ -582,7 +586,7 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
            c_yaw_smooth*yaw_smooth_cost+...
            c_final_yaw*final_yaw_cost+...
            c_total_time*total_time_cost+...
-           c_moving_direction_uncertainty*yaw_uncertainty_sum+...
+           c_moving_direction_uncertainty*moving_direction_uncertainty_sum+...
            c_uncertainty*uncertainty_sum;
            %    c_fov*fov_cost+...
 
@@ -592,7 +596,7 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
 
 const_p_dyn_limits={};
 const_y_dyn_limits={};
-[const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, uncertainty_list_moving_direction);
+[const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor);
 
 %%
 %% Determines violation of constraints used for training by python
@@ -681,7 +685,9 @@ alpha_value=15.0;
 sigma_0_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
 max_variance_value = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0];
 max_variance_for_moving_direction_value = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0];
+drone_initial_variance_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
 infeasibility_adjust_value = 0.001;
+moving_direction_factor_value = 1.0;
 
 ydot_max_value=1.0; 
 % total_time_value=10.5;
@@ -758,7 +764,9 @@ par_and_init_guess= [ {createStruct('thetax_FOV_deg', thetax_FOV_deg, thetax_FOV
               {createStruct('alpha', alpha, alpha_value)},...
               {createStruct('max_variance', max_variance, max_variance_value)},...
               {createStruct('max_variance_for_moving_direction', max_variance_for_moving_direction, max_variance_for_moving_direction_value)},...
+              {createStruct('drone_initial_variance', drone_initial_variance, drone_initial_variance_value)},...
               {createStruct('infeasibility_adjust', infeasibility_adjust, infeasibility_adjust_value)},...
+              {createStruct('moving_direction_factor', moving_direction_factor, moving_direction_factor_value)},...
               {createStruct('c_pos_smooth', c_pos_smooth, 0.0)},...
               {createStruct('c_yaw_smooth', c_yaw_smooth, 0.0)},...
               {createStruct('c_fov', c_fov, 1.0)},...
@@ -1342,9 +1350,9 @@ end
 %% ---------------------------------------------------------------------------------------------------------------
 %%
 
-function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, uncertainty_list_moving_direction)
+function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor)
 
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n, uncertainty_list_moving_direction)];      %Max vel constraints (position)
+     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n, moving_direction_uncertainty_list, moving_direction_factor)];      %Max vel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
      const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
      const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
