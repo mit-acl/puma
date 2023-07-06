@@ -324,7 +324,7 @@ for i=1:num_max_of_obst
             sigma_pos = sigma_pos * s;
 
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
-            uncertainty = sqrt(sigma_pos);
+            uncertainty = 2.0 * sqrt(sigma_pos); % Factor of 2.0 to account for sigma_pos being the "radius" of the ellipsoid
             uncertainty_sum = uncertainty_sum + sum(uncertainty);
             uncertainty_list = [uncertainty_list; uncertainty];
 
