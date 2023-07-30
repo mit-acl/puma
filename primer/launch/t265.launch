@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="camera" default="t265" />
+  <arg name="serial_no" default="" />
+  <arg name="enable_fisheye1" default="true" />
+  <arg name="enable_fisheye2" default="true" />
+  <arg name="enable_gyro" default="true" />
+  <arg name="enable_accel" default="true" />
+  <arg name="enable_pose" default="true" />
+  <arg name="publish_tf" default="true" />
+  <arg name="publish_odom_tf" default="true" />
+  <arg name="tf_prefix" default="$(arg camera)" />
+
+  <arg name="enable_relocalization" default="true" />  
+  <arg name="enable_mapping" default="true" />
+  <arg name="enable_pose_jumping" default="true" />
+  <arg name="enable_dynamic_calibration" default="true" />
+  <arg name="enable_map_preservation" default="false" />  
+
+  <!-- These are Realsense's default values, turn off to remove these relocalization helps -->
+  <!-- https://github.com/IntelRealSense/realsense-ros/issues/779 for info -->
+  <param name="t265/tracking_module/enable_relocalization" type="bool" value="$(arg enable_relocalization)" />
+  <param name="t265/tracking_module/enable_mapping" type="bool" value="$(arg enable_mapping)" />
+  <param name="t265/tracking_module/enable_pose_jumping" type="bool" value="$(arg enable_pose_jumping)" />
+  <param name="t265/tracking_module/enable_dynamic_calibration" type="bool" value="$(arg enable_dynamic_calibration)" />
+  <param name="t265/tracking_module/enable_map_preservation" type="bool" value="$(arg enable_map_preservation)" />
+
+  <include file="$(find realsense2_camera)/launch/rs_t265.launch" pass_all_args="true"/>
+</launch>
