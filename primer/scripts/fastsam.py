@@ -185,8 +185,8 @@ class FastSAM_ROS:
         pose = [] # x, y, z, qx, qy, qz, qw
         pose.append(pose_msg.pose.position.x)
         pose.append(pose_msg.pose.position.y)
-        #pose.append(pose_msg.pose.position.z)
-        pose.append(2.0) # just for testing 
+        pose.append(pose_msg.pose.position.z)
+        # pose.append(2.0) # just for testing 
         pose.append(pose_msg.pose.orientation.x)
         pose.append(pose_msg.pose.orientation.y)
         pose.append(pose_msg.pose.orientation.z)
