@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <!--
+        Parameters
+    -->
+    <arg name="quad" default="SQ01s"/>    
+    <arg name="camera" default="t265_fisheye1"/>
+    <!--
+        Nodes
+    -->
+
+    <node ns="$(arg quad)" name="fastsam" pkg="primer" type="fastsam.py" output="screen">
+        <param name="camera" value="$(arg camera)"/>
+    </node>
+
+</launch>
