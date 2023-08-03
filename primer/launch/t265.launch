@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+
+  <arg name="quad" default="SQ01s"/>
   <arg name="camera" default="t265" />
   <arg name="serial_no" default="" />
   <arg name="enable_fisheye1" default="true" />
@@ -25,5 +27,5 @@
   <param name="t265/tracking_module/enable_dynamic_calibration" type="bool" value="$(arg enable_dynamic_calibration)" />
   <param name="t265/tracking_module/enable_map_preservation" type="bool" value="$(arg enable_map_preservation)" />
 
-  <include file="$(find realsense2_camera)/launch/rs_t265.launch" pass_all_args="true"/>
+  <include ns="$(arg quad)" file="$(find realsense2_camera)/launch/rs_t265.launch" pass_all_args="true"/>
 </launch>
