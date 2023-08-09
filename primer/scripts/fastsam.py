@@ -122,7 +122,7 @@ class FastSAM_ROS:
         scale_factor = 1.0
         img_dim_out =(int(w*scale_factor), int(h*scale_factor))
 
-        # OpenCV fishey calibration cuts too much of the resulting image - https://stackoverflow.com/questions/34316306/opencv-fisheye-calibration-cuts-too-much-of-the-resulting-image
+        # OpenCV fisheye calibration cuts too much of the resulting image - https://stackoverflow.com/questions/34316306/opencv-fisheye-calibration-cuts-too-much-of-the-resulting-image
         # so instead of P, we use scaled K (nK)
         nK = self.K.copy()
         nK[0,0] = self.K[0,0] * 0.3
