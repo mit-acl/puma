@@ -25,7 +25,7 @@ def undistort_images_voxl(input_dir, output_dir, K, D):
         img_dim_out =(int(w*scale_factor), int(h*scale_factor))
 
         K_new = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(K, D, img_dim_out, np.eye(3), balance=balance)
-        print("K_new: ", K_new)
+        # print("K_new: ", K_new)
         
         map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K_new, img_dim_out, cv2.CV_32FC1)
         undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
@@ -55,7 +55,7 @@ def undistort_images_rs(input_dir, output_dir, K, D, R, P):
         nK[0,0] = K[0,0] * 0.3
         nK[1,1] = K[1,1] * 0.3
 
-        print("nK - need in compute_3d_position_of_centroid(): ", nK)
+        # print("nK - need in compute_3d_position_of_centroid(): ", nK)
 
         # map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, R, P, img_dim_out, cv2.CV_32FC1)
         map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, R, nK, img_dim_out, cv2.CV_32FC1)
@@ -111,7 +111,7 @@ def main():
     if not os.path.exists(os.path.join(output_dir, "t265_fisheye2")):
         os.makedirs(os.path.join(output_dir, "t265_fisheye2"))
 
-    # get camera matrix and distortion coefficients 
+    # get camera matrix and distortion coefficients
     # for realsense
     bag = rosbag.Bag(args.bag_file, "r")
     t265_fisheye1_camera_info_topic = "/t265/fisheye1/camera_info"
@@ -161,8 +161,8 @@ def main():
     # pad_images(os.path.join(input_dir, "t265_fisheye2"), os.path.join(input_dir, "t265_fisheye2_padded"))
 
     # undistort images
-    # undistort_images_voxl(os.path.join(input_dir, "voxl"), os.path.join(output_dir, "voxl"), K_voxl, D_voxl)
-    # undistort_images_rs(os.path.join(input_dir, "t265_fisheye1"), os.path.join(output_dir, "t265_fisheye1"), K_fe1, D_fe1, R_fe1, P_fe1)
+    undistort_images_voxl(os.path.join(input_dir, "voxl"), os.path.join(output_dir, "voxl"), K_voxl, D_voxl)
+    undistort_images_rs(os.path.join(input_dir, "t265_fisheye1"), os.path.join(output_dir, "t265_fisheye1"), K_fe1, D_fe1, R_fe1, P_fe1)
     undistort_images_rs(os.path.join(input_dir, "t265_fisheye2"), os.path.join(output_dir, "t265_fisheye2"), K_fe2, D_fe2, R_fe2, P_fe2)
 
     return
