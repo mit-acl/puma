@@ -25,7 +25,17 @@ class FastSAM_ROS:
     def __init__(self):
 
         # get ROS params
-        self.camera = rospy.get_param('~camera', "t265_fisheye1")
+        self.is_sim = rospy.get_param('~is_sim', True)
+
+        # set up sim/hw-specific params
+        if self.is_sim:
+            self.camera_name_topic = "camera/rgb"
+            self.camera = "sim_camera"
+            self.world_name_topic = "goal"
+        else:
+            self.camera_name_topic = "t265/fisheye1"
+            self.camera = rospy.get_param('~camera', "t265_fisheye1")
+            self.world_name_topic = "world"
 
         # get undistortion params
         self.get_undistortion_params()
@@ -50,8 +60,8 @@ class FastSAM_ROS:
 
         # set up ROS communications
         subs = []
-        subs.append(message_filters.Subscriber(rospy.get_namespace()+'/world', PoseStamped, queue_size=100))
-        subs.append(message_filters.Subscriber('t265/fisheye1/image_raw', Image, queue_size=1)) # we only need the most recent image
+        subs.append(message_filters.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, PoseStamped, queue_size=100))
+        subs.append(message_filters.Subscriber(f'{self.camera_name_topic}/image_raw', Image, queue_size=1)) # we only need the most recent image
         self.ats = message_filters.ApproximateTimeSynchronizer(subs, queue_size=100, slop=.05)
         self.ats.registerCallback(self.fastsam_cb)
         self.pub_objarray = rospy.Publisher('detections', motlee_msgs.ObjArray, queue_size=1)
@@ -61,12 +71,14 @@ class FastSAM_ROS:
         # get camera matrix and distortion coefficients 
         # for realsense
         print(colored("getting undistortion params", 'yellow'))
-        msg = rospy.wait_for_message("t265/fisheye1/camera_info", CameraInfo, timeout=None)
+        msg = rospy.wait_for_message(f"{self.camera_name_topic}/camera_info", CameraInfo, timeout=None)
         print(colored("got undistortion params", 'yellow'))
         self.K = np.array(msg.K).reshape(3,3)
         self.D = np.array(msg.D)
         self.R = np.array(msg.R).reshape(3,3)
         self.P = np.array(msg.P).reshape(3,4)
+
+
 
     # function for image processing
     def fastsam_cb(self, pose_msg, img):
@@ -78,14 +90,15 @@ class FastSAM_ROS:
         cv_img = bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
 
         # undistort cv2_img
-        undistorted_img = self.undistort_image(cv_img)
+        # undistorted_img = self.undistort_image(cv_img)
+        undistorted_img = cv_img
 
         ### debug
         # show undistorted_img
-        # print("show undistorted_img")
-        # cv2.imshow("undistorted_img", undistorted_img)
-        # print("after imshow")
-        # cv2.waitKey(1)
+        print("show undistorted_img")
+        cv2.imshow("undistorted_img", undistorted_img)
+        print("after imshow")
+        cv2.waitKey(1)
         #
         # get undistorted_img from file
         # image_bgr = cv2.imread("/media/kota/T7/frame/pngs-csvs/test4-partial/pngs/undistorted_images/t265_fisheye1/frame000500_undistorted.png")
