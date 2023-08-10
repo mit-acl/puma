@@ -22,3 +22,6 @@
 [submodule "panther_compression/imitation"]
 	path = panther_compression/imitation
 	url = https://github.com/kotakondo/imitation.git
+[submodule "submodules/realsense_ros_gazebo"]
+	path = submodules/realsense_ros_gazebo
+	url = https://github.com/nilseuropa/realsense_ros_gazebo.git
