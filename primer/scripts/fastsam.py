@@ -42,7 +42,7 @@ class FastSAM_ROS:
         
         # set up FastSAM
         rospack = rospkg.RosPack()
-        path_to_fastsam = rospack.get_path('primer') + '/scripts/FastSAM/Models/FastSAM-x.pt'
+        path_to_fastsam = rospack.get_path('primer') + '/scripts/models/FastSAM-x.pt'
         print("path_to_fastsam: ", path_to_fastsam)
         self.fastSamModel = FastSAM(path_to_fastsam)
         
