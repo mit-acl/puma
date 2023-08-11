@@ -6,7 +6,7 @@
   -->
 
 	<arg name="quad" default="SQ01s"/>
-  <arg name="perfect_controller" default="true"/>
+  <arg name="perfect_controller" default="false"/>
   <arg name="gazebo" default="true"/>
   <arg name="perfect_prediction" default="true"/>
   <arg name="gui_mission" default="false"/>
@@ -86,6 +86,7 @@
    PANTHER launch
   -->
 
+  <?ignore
   <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
@@ -110,5 +111,6 @@
     <remap from="~setpoint" to="setpoint" />
 
   </node>
+  ?>
 
 </launch>

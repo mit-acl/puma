@@ -43,7 +43,8 @@ class FastSAM_ROS:
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
             self.world_name_topic = "goal" # if you use perfect_tracker in primer, "world" won't be published.
         else:
-            self.camera_name_topic = "t265/fisheye1"
+            # self.camera_name_topic = "t265/fisheye1"
+            self.camera_name_topic = "camera/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
             self.world_name_topic = "world"
 
@@ -128,7 +129,8 @@ class FastSAM_ROS:
         if self.is_sim:
             undistorted_img = cv_img # no need to undistort in sim
         else:
-            undistorted_img = self.undistort_image(cv_img)
+            undistorted_img = cv_img
+            # undistorted_img = self.undistort_image(cv_img)
 
         ### debug
         # show undistorted_img

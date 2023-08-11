@@ -90,6 +90,9 @@ if len(data_sync_maps) != len(data_sync_world):
     print("length of data_sync_maps and data_sync_world are different.")
     exit()
 
+data_sync_maps = data_sync_maps[0:300]
+data_sync_world = data_sync_world[0:300]
+
 # plot the data
 fig, ax = plt.subplots()
 world = ax.scatter(data_sync_world[0].pose.position.x, data_sync_world[0].pose.position.y, label=f'vehicle')
@@ -119,6 +122,6 @@ def update(frame):
     line.set_data(x_line, y_line)
     return world, maps, line
 
-ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world), interval=300)
+ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world), interval=300, blit=True)
 ani.save(os.path.join(args.output_dir, 'animation.gif'), writer='imagemagick')
 plt.show()
