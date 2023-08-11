@@ -77,15 +77,24 @@ def getColorJet(v, vmin, vmax):
 ## -------------------------------------------------------------------------
 ##
 
+# create a objects (hardcoded for now)
+object_positions = [[1.30538948174781, 0.08792017608525951], [1.7556711854938247, 1.5301845738388788], [-2.970445795397385, -0.017968445918466327], \
+                    [3.470787181274709, 4.078329613986586], [2.168708267646973, -1.2237931460359912], [-3.9456521452453295, -1.5780622937245332], \
+                    [-2.4715796031824846, 4.221399753581286], [4.441561003442656, -1.692115998046444], [4.255669637763099, 2.300721891392908], \
+                    [-1.2788058555668842, 0.8623606354570972]]
+
 class DynCorridor:
 
     def getTrajectoryPosMeshBBox(self, i):
         delta_beginning=2.0
 
         delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
-        x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
-        y=random.uniform(self.y_min, self.y_max)
-        z=random.uniform(self.z_min, self.z_max)
+        # x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
+        # y=random.uniform(self.y_min, self.y_max)
+        # z=random.uniform(self.z_min, self.z_max)
+        x=object_positions[i][0]
+        y=object_positions[i][1]
+        z=0.0
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
         slower=random.uniform(self.slower_min, self.slower_max)

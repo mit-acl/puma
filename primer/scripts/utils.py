@@ -177,8 +177,11 @@ def get_transformation_from_body_to_camera(camera):
     elif camera == 't265_fisheye2':
         T_c_b[:3, :3] = get_rotation_matrix(0, 180, 90) #https://www.intelrealsense.com/wp-content/uploads/2019/09/Intel_RealSense_Tracking_Camera_Datasheet_Rev004_release.pdf
         camera_translation = np.array([-0.07, 0.03, -0.015])
+    elif camera == 'sim_camera':
+        T_c_b[:3, :3] = get_rotation_matrix(0, 180, 90)
+        camera_translation = np.array([0.0, 0.0, 0.0])
     else:
-        raise ValueError("Invalide camera name in get_transformation_from_body_to_camera()")
+        raise ValueError(f"Invalid camera name in get_transformation_from_body_to_camera(): {camera}")
     
     T_c_b[:3, 3] = -np.matmul(T_c_b[:3, :3], camera_translation)
     T_c_b[3, 3] = 1.0

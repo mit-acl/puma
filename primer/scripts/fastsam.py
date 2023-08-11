@@ -8,6 +8,7 @@ import argparse
 import cv2
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
+from snapstack_msgs.msg import Goal
 from cv_bridge import CvBridge
 import rospy
 import rospkg
@@ -18,20 +19,29 @@ from termcolor import colored
 import message_filters
 import skimage
 from FastSAM.fastsam import *
-
+from utils import get_quaternion_from_euler, plotErrorEllipse
+import matplotlib.pyplot as plt
 
 class FastSAM_ROS:
 
     def __init__(self):
+
+        # define params
+        self.SAVE_IMAGES = rospy.get_param('~save_images', False)
 
         # get ROS params
         self.is_sim = rospy.get_param('~is_sim', True)
 
         # set up sim/hw-specific params
         if self.is_sim:
-            self.camera_name_topic = "camera/rgb"
-            self.camera = "sim_camera"
-            self.world_name_topic = "goal"
+            # asus camera
+            # self.camera_name_topic = "camera/rgb"
+            # self.camera = "sim_camera"
+
+            # t265 camera
+            self.camera_name_topic = "camera/fisheye1"
+            self.camera = rospy.get_param('~camera', "t265_fisheye1")
+            self.world_name_topic = "goal" # if you use perfect_tracker in primer, "world" won't be published.
         else:
             self.camera_name_topic = "t265/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
@@ -58,18 +68,46 @@ class FastSAM_ROS:
         # note: covariance[8] = 0.0 because of 2D assumption
         self.mapper_covariance = np.array([0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0])
 
+        # static variables for image numbering
+        self.image_number = 0
+
         # set up ROS communications
-        subs = []
-        subs.append(message_filters.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, PoseStamped, queue_size=100))
-        subs.append(message_filters.Subscriber(f'{self.camera_name_topic}/image_raw', Image, queue_size=1)) # we only need the most recent image
-        self.ats = message_filters.ApproximateTimeSynchronizer(subs, queue_size=100, slop=.05)
-        self.ats.registerCallback(self.fastsam_cb)
+        if self.is_sim:
+            # if you use sim (perfect_tracker), "world" won't be published and we need to use "goal" that is published sporadically. So we store those values as world_pose to sync with the image.            rospy.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, Goal, self.store_world_pose)
+            rospy.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, Goal, self.store_world_pose)
+            self.world_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            rospy.Subscriber(f'{self.camera_name_topic}/image_raw', Image, self.store_image)
+            self.img = None
+            self.pub_world = rospy.Publisher('world', PoseStamped, queue_size=1)
+        else: # hw
+            subs = []
+            subs.append(message_filters.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, PoseStamped, queue_size=10))
+            subs.append(message_filters.Subscriber(f'{self.camera_name_topic}/image_raw', Image, queue_size=1)) # we only need the most recent image
+            self.ats = message_filters.ApproximateTimeSynchronizer(subs, queue_size=100, slop=.05)
+            self.ats.registerCallback(self.fastsam_cb)
+
         self.pub_objarray = rospy.Publisher('detections', motlee_msgs.ObjArray, queue_size=1)
+
+    # for simulation, we need to store the image since /goal is not published all the time
+    def store_image(self, img):
+        self.img = img
+        if self.world_pose != [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]:
+            self.fastsam_cb(self.world_pose, self.img)
+
+    # for simulation, we need to store the pose of the world since /goal is not published all the time
+    def store_world_pose(self, pose_goal_msg):
+        self.world_pose[0] = pose_goal_msg.p.x
+        self.world_pose[1] = pose_goal_msg.p.y
+        self.world_pose[2] = pose_goal_msg.p.z
+        quaternion = get_quaternion_from_euler(0.0, 0.0, pose_goal_msg.psi)
+        self.world_pose[3] = quaternion.x
+        self.world_pose[4] = quaternion.y
+        self.world_pose[5] = quaternion.z
+        self.world_pose[6] = quaternion.w
 
     # get undistortion params
     def get_undistortion_params(self):
-        # get camera matrix and distortion coefficients 
-        # for realsense
+        # get camera matrix and distortion coefficients
         print(colored("getting undistortion params", 'yellow'))
         msg = rospy.wait_for_message(f"{self.camera_name_topic}/camera_info", CameraInfo, timeout=None)
         print(colored("got undistortion params", 'yellow'))
@@ -78,11 +116,8 @@ class FastSAM_ROS:
         self.R = np.array(msg.R).reshape(3,3)
         self.P = np.array(msg.P).reshape(3,4)
 
-
-
     # function for image processing
     def fastsam_cb(self, pose_msg, img):
-
         # convert img to cv2_img
         bridge = CvBridge()
         # note: FastSAM expects RGB images (https://github.com/CASIA-IVA-Lab/FastSAM/blob/main/Inference.py)
@@ -90,15 +125,22 @@ class FastSAM_ROS:
         cv_img = bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
 
         # undistort cv2_img
-        # undistorted_img = self.undistort_image(cv_img)
-        undistorted_img = cv_img
+        if self.is_sim:
+            undistorted_img = cv_img # no need to undistort in sim
+        else:
+            undistorted_img = self.undistort_image(cv_img)
 
         ### debug
         # show undistorted_img
-        print("show undistorted_img")
-        cv2.imshow("undistorted_img", undistorted_img)
-        print("after imshow")
-        cv2.waitKey(1)
+        # print("show undistorted_img")
+        # cv2.imshow("undistorted_img", undistorted_img)
+        # print("after imshow")
+        # cv2.waitKey(1)
+        #
+        # save undistorted_img with the file name undistorted_{frame_number}.png
+        if self.SAVE_IMAGES:
+            print("save undistorted_img")
+            cv2.imwrite(f"/media/kota/T7/frame/tmp/undistorted_images/undistorted_{self.image_number}.png", undistorted_img)
         #
         # get undistorted_img from file
         # image_bgr = cv2.imread("/media/kota/T7/frame/pngs-csvs/test4-partial/pngs/undistorted_images/t265_fisheye1/frame000500_undistorted.png")
@@ -106,22 +148,21 @@ class FastSAM_ROS:
         # undistorted_img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         ###
 
-        # get grayscale image for visualization
+        # get grayscale image for visualization (segmented images)
         # Let's also make a 1-channel grayscale image
-        # image_gray = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2GRAY)
-        # image_gray = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2RGB)
-        # print("image_gray.shape: ", image_gray.shape)
-        # ...and also a 3-channel RGB image, which we will eventually use for showing FastSAM output on
-        # image_gray_rgb = np.stack((image_gray,)*3, axis=-1)
+        if self.SAVE_IMAGES:
+            image_gray = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2GRAY)
+            image_gray_rgb = np.stack((image_gray,)*3, axis=-1)
         # print("image_gray_rgb.shape: ", image_gray_rgb.shape)
+        # print("image_gray.shape: ", image_gray.shape)
 
         # run FastSAM on cv2_img
-        everything_results = self.fastSamModel(undistorted_img, device=self.DEVICE, retina_masks=True, imgsz=1024, conf=self.conf, iou=self.iou,)
+        everything_results = self.fastSamModel(undistorted_img, device=self.DEVICE, retina_masks=True, imgsz=256, conf=self.conf, iou=self.iou,)
         prompt_process = FastSAMPrompt(undistorted_img, everything_results, device=self.DEVICE)
         segmask = prompt_process.everything_prompt()
 
         # get centroid of segmask
-        blob_means = self.get_blob_means(segmask, undistorted_img)
+        blob_means = self.get_blob_means(segmask, image_gray_rgb) if self.SAVE_IMAGES else self.get_blob_means(segmask, undistorted_img) 
 
         # map the blob_means to the world frame
         positions = self.map_to_world(pose_msg, blob_means)
@@ -151,6 +192,7 @@ class FastSAM_ROS:
         
         # initialize blob means
         blob_means = []
+        blob_covs = []
 
         # If there were segmentations detected by FastSAM, transfer them from GPU to CPU and convert to Numpy arrays
         if (len(segmask) > 0):
@@ -181,30 +223,70 @@ class FastSAM_ROS:
 
                 # Store centroids and covariances in lists
                 blob_means.append(blob_mean)
+                blob_covs.append(blob_cov)
 
-                # Replace the 1s corresponding with masked areas with maskId (i.e. number of mask)
-                # segmasks_flat = np.where(mask_this_id < 1, segmasks_flat, maskId)
+                if self.SAVE_IMAGES:
+                    # Replace the 1s corresponding with masked areas with maskId (i.e. number of mask)
+                    segmasks_flat = np.where(mask_this_id < 1, segmasks_flat, maskId)
 
-                # Using skimage, overlay masked images with colors
-                # undistorted_img = skimage.color.label2rgb(segmasks_flat, undistorted_img)
-            
-            # cv2.imshow("undistorted_img", undistorted_img)
-            # cv2.waitKey(10)
-    
+                    # Using skimage, overlay masked images with colors
+                    undistorted_img = skimage.color.label2rgb(segmasks_flat, undistorted_img)
+
+            if self.SAVE_IMAGES:
+                # Create a matplotlib figure to plot image and ellipsoids on.
+                fig = plt.figure(frameon=False)
+                ax = plt.Axes(fig, [0., 0., 1., 1.])
+                ax.set_axis_off()
+                fig.add_axes(ax)
+
+                for m, c in zip(blob_means, blob_covs):
+                    plotErrorEllipse(ax, m[0], m[1], c, "r",stdMultiplier=2.0)
+
+                # save image
+                ax.imshow(undistorted_img)
+                ax.set_xlim(0, undistorted_img.shape[1])
+                ax.set_ylim(undistorted_img.shape[0], 0)
+                fig.savefig(f"/media/kota/T7/frame/tmp/segmented_images/segmented_{self.image_number}.png")
+                plt.close(fig)
+
+        self.image_number += 1
+
         return blob_means
+
+    # publish pose
+    def publish_pose(self, pose):
+        pub_pose_msg = PoseStamped()
+        pub_pose_msg.header.stamp = rospy.Time.now()
+        pub_pose_msg.header.frame_id = "world"
+        pub_pose_msg.pose.position.x = pose[0]
+        pub_pose_msg.pose.position.y = pose[1]
+        pub_pose_msg.pose.position.z = pose[2]
+        pub_pose_msg.pose.orientation.x = pose[3]
+        pub_pose_msg.pose.orientation.y = pose[4]
+        pub_pose_msg.pose.orientation.z = pose[5]
+        pub_pose_msg.pose.orientation.w = pose[6]
+        self.pub_world.publish(pub_pose_msg)
 
     # map the blob_means to the world frame
     def map_to_world(self, pose_msg, blob_means):
-        pose = [] # x, y, z, qx, qy, qz, qw
-        pose.append(pose_msg.pose.position.x)
-        pose.append(pose_msg.pose.position.y)
-        pose.append(pose_msg.pose.position.z)
-        # pose.append(2.0) # just for testing 
-        pose.append(pose_msg.pose.orientation.x)
-        pose.append(pose_msg.pose.orientation.y)
-        pose.append(pose_msg.pose.orientation.z)
-        pose.append(pose_msg.pose.orientation.w)
+
+        if not self.is_sim:
+            pose = [] # x, y, z, qx, qy, qz, qw
+            pose.append(pose_msg.pose.position.x)
+            pose.append(pose_msg.pose.position.y)
+            pose.append(pose_msg.pose.position.z)
+            # pose.append(2.0) # just for testing 
+            pose.append(pose_msg.pose.orientation.x)
+            pose.append(pose_msg.pose.orientation.y)
+            pose.append(pose_msg.pose.orientation.z)
+            pose.append(pose_msg.pose.orientation.w)
+        else: # if sim (in sim pose_msg is actually a list)
+            pose = pose_msg.copy()
+            # publish pose (because goal is only sporadically published, we need to republish it)
+            self.publish_pose(pose)
+
         print("pose: ", pose)
+
         return compute_3d_position_of_each_centroid(blob_means, pose, camera=self.camera, K=self.K)
 
     # publish the centroid

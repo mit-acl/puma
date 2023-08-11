@@ -23,7 +23,10 @@ MIN_TIME = 1691525005
 MAX_TIME = 1691525018
 
 # ground truth (Aug 2023)
-object_gt = [[1.30538948174781, 0.08792017608525951], [1.7556711854938247, 1.5301845738388788], [-2.970445795397385, -0.017968445918466327], [3.470787181274709, 4.078329613986586], [2.168708267646973, -1.2237931460359912], [-3.9456521452453295, -1.5780622937245332], [-2.4715796031824846, 4.221399753581286], [4.441561003442656, -1.692115998046444], [4.255669637763099, 2.300721891392908], [-1.2788058555668842, 0.8623606354570972], [-2.0180484955869553, 2.902511955121203], [-0.27154462548986463, 2.8820569403751874], [-1.8699706004964698, -2.008375434619125], [2.7665396650365186, 0.1135119037351044], [-0.7926963921536332, -0.6462376920580662], [0.3326033986672144, 2.029590565125389], [-4.188906698042496, 3.617683236245243], [-1.73699333120812, -2.7400201356279594], [4.0859296012985356, 0.4219624323470336]]
+object_gt = [[1.30538948174781, 0.08792017608525951], [1.7556711854938247, 1.5301845738388788], [-2.970445795397385, -0.017968445918466327], \
+             [3.470787181274709, 4.078329613986586], [2.168708267646973, -1.2237931460359912], [-3.9456521452453295, -1.5780622937245332], \
+                [-2.4715796031824846, 4.221399753581286], [4.441561003442656, -1.692115998046444], [4.255669637763099, 2.300721891392908], \
+                    [-1.2788058555668842, 0.8623606354570972]]
 
 # get the bag
 bag = rosbag.Bag(args.bag_file, "r")
@@ -43,9 +46,9 @@ t_world = []
 for topic, msg, t in bag.read_messages(topics=[tpn_detections, tpn_maps, tpn_world]):
 
     # first 1 min of data is not useful for run.bag (Aug 2023)
-    if t.to_sec() < MIN_TIME or t.to_sec() > MAX_TIME:
+    # if t.to_sec() < MIN_TIME or t.to_sec() > MAX_TIME:
         # print("skipping data: ", t.to_sec())
-        continue
+        # continue
 
     if topic == tpn_detections:
         data_detections.append(msg)
@@ -81,8 +84,8 @@ for msg in data_maps:
     data_sync_maps.append([tmp_x, tmp_y])
 
 # sanity check for length of data_sync_maps and data_sync_world
-# print("length of data_sync_maps: ", len(data_sync_maps))
-# print("length of data_sync_world: ", len(data_sync_world))
+print("length of data_sync_maps: ", len(data_sync_maps))
+print("length of data_sync_world: ", len(data_sync_world))
 if len(data_sync_maps) != len(data_sync_world):
     print("length of data_sync_maps and data_sync_world are different.")
     exit()
@@ -117,5 +120,5 @@ def update(frame):
     return world, maps, line
 
 ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world), interval=300)
-# ani.save(os.path.join(args.output_dir, 'animation.gif'), writer='imagemagick')
+ani.save(os.path.join(args.output_dir, 'animation.gif'), writer='imagemagick')
 plt.show()
