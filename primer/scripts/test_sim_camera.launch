@@ -139,14 +139,14 @@
       binning_x: 0, binning_y: 0,
       roi: {x_offset: 0, y_offset: 0, height: 480, width: 640, do_rectify: false}}' -r 2"
       output="screen"/>
-  </group>
-
-  <group ns="rviz1/camera1/image">
-  <rosparam param="disable_pub_plugins">
-    - 'image_transport/compressed'
-    - 'image_transport/compressedDepth'
-    - 'image_transport/theora'
-  </rosparam>
   </group> -->
+
+  <group ns="$(arg quad)/camera/rgb/image_raw">
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressed'
+      - 'image_transport/compressedDepth'
+      - 'image_transport/theora'
+    </rosparam>
+  </group>
 
 </launch>
