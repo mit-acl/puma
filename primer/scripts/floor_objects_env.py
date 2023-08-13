@@ -83,60 +83,25 @@ object_positions = [[1.30538948174781, 0.08792017608525951], [1.7556711854938247
                     [-2.4715796031824846, 4.221399753581286], [4.441561003442656, -1.692115998046444], [4.255669637763099, 2.300721891392908], \
                     [-1.2788058555668842, 0.8623606354570972]]
 
+##
+## -------------------------------------------------------------------------
+##
+
 class DynCorridor:
 
-    def getTrajectoryPosMeshBBox(self, i):
-        delta_beginning=2.0
+    def __init__(self, total_num_obs,gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj, objects_type):
 
-        delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
-        # x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
-        # y=random.uniform(self.y_min, self.y_max)
-        # z=random.uniform(self.z_min, self.z_max)
-        x=object_positions[i][0]
-        y=object_positions[i][1]
-        z=0.0
-        offset=random.uniform(-2*math.pi, 2*math.pi)
-
-        slower=random.uniform(self.slower_min, self.slower_max)
-        s=self.scale
-        if(self.getType(i)=="dynamic"):
-            mesh=random.choice(self.available_meshes_dynamic)
-            bbox=self.bbox_dynamic; 
-            if(self.type_of_obst_traj=="trefoil"):
-                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="eightCurve"):
-                [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="square"):
-                [x_string, y_string, z_string] = self.square(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="epitrochoid"):
-                [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="static"):
-                [x_string, y_string, z_string] = self.static(x,y,z)    
-            else:
-                print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
-                exit();         
-
-        else:
-            mesh=random.choice(self.available_meshes_static)
-            bbox=self.bbox_static
-            [x_string, y_string, z_string] = self.static(x,y,z)    
-        return [x_string, y_string, z_string, x, y, z, mesh, bbox]
-
-    def getType(self,i):
-        if(i<self.num_of_dyn_objects):
-            return "dynamic"
-        else:
-            return "static"
-
-    def __init__(self, total_num_obs,gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj):
-
+        # get random seed
         random.seed(datetime.now())
 
+        # get gazebo flag
         self.state=State()
 
+        # get namespace
         name = rospy.get_namespace()
         self.name = name[1:-1]
 
+        # define parameters
         self.total_num_obs=total_num_obs
         self.num_of_dyn_objects=int(0.0*total_num_obs)
         self.num_of_stat_objects=total_num_obs-self.num_of_dyn_objects; 
@@ -150,27 +115,31 @@ class DynCorridor:
         self.scale= [alpha_scale_obst_traj, alpha_scale_obst_traj, alpha_scale_obst_traj+2.0]
         self.slower_min=3.0   #1.2 or 2.3
         self.slower_max=3.0   #1.2 or 2.3
-
         PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
         with open(PANTHER_YAML_PATH) as f:
             PANTHER_YAML_PARAMS = yaml.safe_load(f)
-
         self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in primer.yaml
         self.add_noise_to_obst = PANTHER_YAML_PARAMS["add_noise_to_obst"]
-        self.bbox_static=[0.5, 0.5, 0.2]
         self.percentage_vert=0.0
         self.name_obs="obs_"
         self.max_vel_obstacles=-10.0
-
         self.type_of_obst_traj=type_of_obst_traj #eightCurve, static, square, epitrochoid
 
-        self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/model3.dae", "package://primer/meshes/ConcreteDamage01b/model2.dae"]
+        # get the mesh for objects
+        self.objects_type=objects_type
+        if self.objects_type == "pads":
+            self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/model3.dae"]
+            self.bbox_static=[0.5, 0.5, 0.05]
+        elif self.objects_type == "random":
+            objects_name = ["flashlight", "table", "microwave", "fireextinguisher", "notebook", "notebook", "fireextinguisher", "flashlight", "microwave", "table"]
+            self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in objects_name]
+            self.bbox_static=[0.2, 0.2, 0.2]
+        
+        self.static_mesh_counter = 0
         self.available_meshes_dynamic=["package://primer/meshes/ConcreteDamage01b/model4.dae"]
-
         self.marker_array=MarkerArray()
         self.all_dyn_traj=[]
         self.all_dyn_traj_zhejiang=[]
-
         self.total_num_obs=self.num_of_dyn_objects + self.num_of_stat_objects
 
         for i in range(self.total_num_obs): 
@@ -193,24 +162,82 @@ class DynCorridor:
             self.all_dyn_traj.append(dynamic_trajectory_msg)
 
         self.all_dyn_traj_zhejiang=copy.deepcopy(self.all_dyn_traj)
-
         self.pubTraj = rospy.Publisher('/trajs', DynTraj, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh = rospy.Publisher('/obstacles_mesh', MarkerArray, queue_size=1, latch=True)
-
         # self.pubShapes_dynamic_mesh_zhejiang = rospy.Publisher('/obstacles_mesh_zhejiang', MarkerArray, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh_colored = rospy.Publisher('/obstacles_mesh_colored', MarkerArray, queue_size=1, latch=True)
         self.pubTraj_zhejiang = rospy.Publisher('/SQ01s/trajs_zhejiang', DynTraj, queue_size=1, latch=True)
-
         #self.pubGazeboState = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size=100)
 
-        if(gazebo):
+        if gazebo:
             # Spawn all the objects in Gazebo
             for i in range(self.total_num_obs):
                 self.spawnGazeboObstacle(i)
 
         rospy.sleep(0.5)
 
+    def getTrajectoryPosMeshBBox(self, i):
+        
+        delta_beginning=2.0
+        delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
+        # x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
+        # y=random.uniform(self.y_min, self.y_max)
+        # z=random.uniform(self.z_min, self.z_max)
+        x=object_positions[i][0]
+        y=object_positions[i][1]
+        z=0.0
+        offset=random.uniform(-2*math.pi, 2*math.pi)
+        slower=random.uniform(self.slower_min, self.slower_max)
+        s=self.scale
+
+        if(self.getType(i)=="dynamic"):
+            mesh=random.choice(self.available_meshes_dynamic)
+            bbox=self.bbox_dynamic; 
+            if(self.type_of_obst_traj=="trefoil"):
+                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="eightCurve"):
+                [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="square"):
+                [x_string, y_string, z_string] = self.square(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="epitrochoid"):
+                [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="static"):
+                [x_string, y_string, z_string] = self.static(x,y,z)    
+            else:
+                print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
+                exit();         
+
+        else:
+            if self.objects_type == "pads":
+                mesh = self.available_meshes_static[0]
+            else:
+                mesh = self.available_meshes_static[self.static_mesh_counter]
+                self.static_mesh_counter=self.static_mesh_counter+1
+
+            # change the size of objects becase they are sometimes too big or too small
+            if mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["fireextinguisher"]]:
+                bbox = [self.bbox_static[i] + 0.5 for i in range(3)]
+            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["flashlight"]]:
+                bbox = [self.bbox_static[i] * 0.4 for i in range(3)]
+            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["table"]]:
+                bbox = [self.bbox_static[i] + 0.5 for i in range(3)]
+            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["microwave"]]:
+                bbox = [self.bbox_static[i] * 0.8 for i in range(3)]
+            else:
+                bbox = self.bbox_static
+
+            [x_string, y_string, z_string] = self.static(x,y,z)
+
+        return [x_string, y_string, z_string, x, y, z, mesh, bbox]
+
+    def getType(self,i):
+        if(i<self.num_of_dyn_objects):
+            return "dynamic"
+        else:
+            return "static"
+
     def generateMarker(self, mesh, bbox, i):
+        
         marker=Marker()
         marker.id=i
         marker.ns="mesh"
@@ -221,10 +248,12 @@ class DynCorridor:
         marker.pose.position.x=0.0 #Will be updated later
         marker.pose.position.y=0.0 #Will be updated later
         marker.pose.position.z=0.0 #Will be updated later
+
         marker.pose.orientation.x=0.0
         marker.pose.orientation.y=0.0
         marker.pose.orientation.z=0.0
         marker.pose.orientation.w=1.0
+        
         marker.lifetime = rospy.Duration.from_sec(0.0)
         marker.mesh_use_embedded_materials=True
         marker.mesh_resource=mesh
@@ -418,15 +447,16 @@ if __name__ == '__main__':
     parser.add_argument('--type_of_obst_traj', type=str, required=True)
     parser.add_argument('--alpha_scale_obst_traj', type=float, required=True)
     parser.add_argument('--beta_faster_obst_traj', type=float, required=True)
+    parser.add_argument('--objects_type', type=str, required=True)
     # Parse the argument
     print(sys.argv)
     print("*************************************")
-    args = parser.parse_args(sys.argv[1:11]) #See https://discourse.ros.org/t/getting-python-argparse-to-work-with-a-launch-file-or-python-node/10606
+    args = parser.parse_args(sys.argv[1:-2]) #See https://discourse.ros.org/t/getting-python-argparse-to-work-with-a-launch-file-or-python-node/10606
 
     ns = rospy.get_namespace()
     try:
         rospy.init_node('dynamic_obstacles')
-        c = DynCorridor(args.num_of_obs, args.gazebo, args.type_of_obst_traj, args.alpha_scale_obst_traj, args.beta_faster_obst_traj)
+        c = DynCorridor(args.num_of_obs, args.gazebo, args.type_of_obst_traj, args.alpha_scale_obst_traj, args.beta_faster_obst_traj, args.objects_type)
         rospy.Timer(rospy.Duration(0.01), c.pubTF)
         c.pubTF(None)
         rospy.spin()

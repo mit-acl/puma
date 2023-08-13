@@ -15,6 +15,7 @@
   <arg name="alpha_scale_obst_traj" default="2.0"/>   
   <arg name="beta_faster_obst_traj" default="0.666666666666666666666"/>   
   <arg name="num_of_obs" default="10" />  <!--  Only one obstacle is supported right now -->
+  <arg name="objects_type" default="pads" /> <!-- pads/random -->
 
   <!--
     FastSAM
@@ -43,6 +44,7 @@
     <arg name="y" value="$(arg y1)"/>
     <arg name="z" value="$(arg z1)"/>
     <arg name="yaw" default="$(arg yaw1)"/>
+    <arg name="rviz" default="false"/>
   </include>
 
   <!--
@@ -87,6 +89,7 @@
     <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find primer)/rqt_cfgs/demo_interface.perspective"/>
   </group>
 
-  <node name="floor_objects_env" pkg="primer" type="floor_objects_env.py" output="screen" args="--num_of_obs $(arg num_of_obs) --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj)"/> 
+  <node name="floor_objects_env" pkg="primer" type="floor_objects_env.py" output="screen" args="--num_of_obs $(arg num_of_obs) 
+  --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj) --objects_type $(arg objects_type)"/> 
 
 </launch>
