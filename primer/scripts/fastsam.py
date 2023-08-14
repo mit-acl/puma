@@ -67,7 +67,15 @@ class FastSAM_ROS:
         # define mapper covariances
         # note: covariance[0] and covariance[4] = 0.01 from Kota's experiments (see the Kota Update google slide Aug 2023)
         # note: covariance[8] = 0.0 because of 2D assumption
-        self.mapper_covariance = np.array([0.01, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0])
+        
+        # the object covariance is stretched along the range axis. Here we stretch the x-axis, but we'll rotate 
+        # the covariance so the x-axis points from ego position to the object position for each object.
+        # We keep 3D because this will naturally result in larger covariances in objects viewed at a similar elevation
+        # as the drone.
+        # Assume both non-range axes covariances are the same.
+        range_std_dev = .5 # 50 cm std dev along range axis
+        non_range_std_dev = .2 # 20 cm std dev along other axes (non-range)
+        self.mapper_covariance = np.diag([range_std_dev**2, non_range_std_dev**2, non_range_std_dev**2])
 
         # static variables for image numbering
         self.image_number = 0
@@ -170,7 +178,7 @@ class FastSAM_ROS:
         positions = self.map_to_world(pose_msg, blob_means)
 
         # publish the centroid
-        self.publish_objarray(positions)
+        self.publish_objarray(pose_msg, positions)
     
     # undistort image
     def undistort_image(self, cv_img):
@@ -292,23 +300,39 @@ class FastSAM_ROS:
         return compute_3d_position_of_each_centroid(blob_means, pose, camera=self.camera, K=self.K)
 
     # publish the centroid
-    def publish_objarray(self, positions):
+    def publish_objarray(self, pose_msg, positions):
+        ego_position = np.array([pose_msg.pose.position.x,
+                                 pose_msg.pose.position.y,
+                                 pose_msg.pose.position.z])
 
         # create ObjArray
         objarray = motlee_msgs.ObjArray()
 
-        for positoin in positions:
+        for position in positions:
 
             # create Obj
             obj = motlee_msgs.Obj()
             
             # set obj position
-            obj.position.x = positoin[0]
-            obj.position.y = positoin[1]
+            obj.position.x = position[0]
+            obj.position.y = position[1]
             obj.position.z = 0.0 # flat ground assumption
 
-            # set obj covariance
-            obj.covariance = self.mapper_covariance 
+            # build object covariance - 
+            # previously stretched x axis will point toward object from ego pose
+            obj_position = np.array([position[0], position[1], 0.])
+            cov_R_x = (obj_position - ego_position) / np.linalg.norm(obj_position - ego_position)
+            # y and z axis just need to be orthonormal (symmetric about x axis)
+            # first check if R_x and z are parallel to compute the second axis
+            if np.allclose(np.cross(cov_R_x, np.array([0., 0., 1.])), np.zeros(3)):
+                cov_R_y_nonunit = np.cross(cov_R_x, np.array([0., 1., 0.]))
+            else:
+                cov_R_y_nonunit = np.cross(cov_R_x, np.array([0., 0., 1.]))
+            cov_R_y = cov_R_y_nonunit / np.linalg.norm(cov_R_y_nonunit)
+            cov_R_z = np.cross(cov_R_x, cov_R_y)
+            cov_R = np.c_[cov_R_x, cov_R_y, cov_R_z]
+
+            obj.covariance = (cov_R @ self.mapper_covariance @ cov_R.T).reshape(-1)
 
             # append obj to objarray
             objarray.objects.append(obj)
