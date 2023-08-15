@@ -28,6 +28,11 @@ pos_is_fixed=false; %you need to run this file twice to produce the necessary ca
 %%
 
 use_panther_star=true;
+uncertainty_aware=false;
+
+if uncertainty_aware
+    assert(use_panther_star, "uncertainty_aware must be used with panther_star!");
+end
 
 %%
 %% variables or paramter in optimization 
@@ -66,7 +71,7 @@ num_seg=7; %The number of segments in the trajectory (the more segments the less
 
 %% ATTENTION!!!!! TODO: make this automatic
 %% if you change these two numbers, don't forget to run this main file twice, once with use_panther_star=true and once with use_panther_star=false
-num_max_of_obst = 3; % This is the maximum num of the obstacles that will be considered in the constraints
+num_max_of_obst = 1; % This is the maximum num of the obstacles that will be considered in the constraints
 num_obst_in_FOV = 1; % This is different from max_num_obst, which is the max number of obst that an agent includes for constraints
 %% END ATTENTION!!!!!
 
@@ -290,6 +295,8 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2.0;
 
 replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 
+obstacle_uncertainty_list = [];
+obstacle_uncertainty_times = [];
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
@@ -305,6 +312,11 @@ for i=1:num_max_of_obst
 
             % Propagate uncertainty
             sigma_p = F * sigma_i * F';
+
+            % Vectorize this step
+            % S = sigma_p + ones(9, 9) * 0.001;
+            % K = sigma_p * inv(S);
+            % sigma_u = (eye(9) - K) * sigma_p;
             S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg, fov_depth, max_variance, infeasibility_adjust));
             K = diag(sigma_p) .* 1 ./ S;
             sigma_u = (1 - K) .* diag(sigma_p);
@@ -322,7 +334,15 @@ for i=1:num_max_of_obst
             %We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
             uncertainty = 2.0 * sqrt(sigma_pos); % Factor of 2.0 to account for sigma_pos being the "radius" of the ellipsoid
             all_centers=[all_centers pos_center_obs];
-            all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
+
+            if uncertainty_aware
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
+            else
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}) ];
+            end
+
+            obstacle_uncertainty_list = [obstacle_uncertainty_list uncertainty];
+            obstacle_uncertainty_times = [obstacle_uncertainty_times t_obs];
 
             replan_time_index = replan_time_index + 1;
         end
@@ -341,6 +361,7 @@ replan_times = linspace(0,1,num_seg);
 
 moving_direction_lookup_horizon = 0.0 / fitter.total_time; %TODO: make this a parameter
 moving_direction_uncertainty_list = [];
+moving_direction_uncertainty_times = [];
 replan_time_index = 1;
 sigma_i = diag(drone_initial_variance);
 for j=1:num_seg
@@ -351,6 +372,11 @@ for j=1:num_seg
 
     % Propagate uncertainty
     sigma_p = F * sigma_i * F';
+
+    % Vectorize this step
+    % S = sigma_p + ones(9, 9) * 0.001;
+    % K = sigma_p * inv(S);
+    % sigma_u = (eye(9) - K) * sigma_p;
     S = diag(sigma_p) + diag(getR(sp, sy, replan_times(replan_time_index), alpha, b_T_c, looked_up_pos, thetax_half_FOV_deg, fov_depth, max_variance_for_moving_direction, infeasibility_adjust));
     K = diag(sigma_p) .* 1 ./ S;
     sigma_u = (1 - K) .* diag(sigma_p);
@@ -362,6 +388,7 @@ for j=1:num_seg
     % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
     uncertainty = sqrt(sigma_pos);
     moving_direction_uncertainty_list = [moving_direction_uncertainty_list uncertainty];
+    moving_direction_uncertainty_times = [moving_direction_uncertainty_times t_n];
 
     % index
     replan_time_index = replan_time_index + 1;
@@ -559,8 +586,15 @@ total_time_cost=alpha*(tf_n-t0_n);
 yaw_smooth_cost=sy.getControlCost()/(alpha^(sy.p-1));
 final_yaw_cost=(sy.getPosT(tf_n)- yf)^2;
 
+if uncertainty_aware
+    fov_cost_term = 0;
+else
+    fov_cost_term = c_fov*fov_cost;
+end
+
 total_cost=c_pos_smooth*pos_smooth_cost+...
            c_final_pos*final_pos_cost+...
+           fov_cost_term + ...
            c_yaw_smooth*yaw_smooth_cost+...
            c_final_yaw*final_yaw_cost+...
            c_total_time*total_time_cost;
@@ -571,7 +605,12 @@ total_cost=c_pos_smooth*pos_smooth_cost+...
 
 const_p_dyn_limits={};
 const_y_dyn_limits={};
-[const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor);
+
+if uncertainty_aware
+    [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraintsUA(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor);
+else
+    [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits, const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n);
+end
 
 %%
 %% Determines violation of constraints used for training by python
@@ -791,7 +830,11 @@ compute_cost(names_value{:})
 compute_cost=compute_cost.expand();
 
 if use_panther_star
-    compute_cost.save('./casadi_generated_files/compute_cost.casadi') %The file generated is quite big
+    if uncertainty_aware
+        compute_cost.save('./casadi_generated_files/compute_cost_ua.casadi') %The file generated is quite big
+    else
+        compute_cost.save('./casadi_generated_files/compute_cost.casadi') %The file generated is quite big
+    end
 else
     compute_cost.save('./casadi_generated_files/panther_compute_cost.casadi') %The file generated is quite big
 end
@@ -805,7 +848,11 @@ tmp=compute_dyn_limits_constraints_violation(names_value{:});
 compute_dyn_limits_constraints_violation=compute_dyn_limits_constraints_violation.expand();
 
 if use_panther_star
-    compute_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_dyn_limits_constraints_violation.casadi'); 
+    if uncertainty_aware
+        compute_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_dyn_limits_constraints_violation_ua.casadi'); 
+    else
+        compute_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_dyn_limits_constraints_violation.casadi'); 
+    end
 else
     compute_dyn_limits_constraints_violation.save('./casadi_generated_files/panther_compute_dyn_limits_constraints_violation.casadi'); 
 end
@@ -820,7 +867,11 @@ tmp=compute_trans_and_yaw_dyn_limits_constraints_violation(names_value{:});
 compute_trans_and_yaw_dyn_limits_constraints_violation=compute_trans_and_yaw_dyn_limits_constraints_violation.expand();
 
 if use_panther_star
-    compute_trans_and_yaw_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_trans_and_yaw_dyn_limits_constraints_violation.casadi'); 
+    if uncertainty_aware
+        compute_trans_and_yaw_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_trans_and_yaw_dyn_limits_constraints_violation_ua.casadi'); 
+    else
+        compute_trans_and_yaw_dyn_limits_constraints_violation.save('./casadi_generated_files/compute_trans_and_yaw_dyn_limits_constraints_violation.casadi'); 
+    end
 else
     compute_trans_and_yaw_dyn_limits_constraints_violation.save('./casadi_generated_files/panther_compute_trans_and_yaw_dyn_limits_constraints_violation.casadi'); 
 end
@@ -833,13 +884,21 @@ my_func = opti.to_function('my_func', par_and_init_guess_exprs, results_expresio
 
 if(pos_is_fixed==true)
     if use_panther_star
-        my_func.save('./casadi_generated_files/op_fixed_pos.casadi'); %Optimization Problam. The file generated is quite big
+        if uncertainty_aware
+            my_func.save('./casadi_generated_files/op_fixed_pos_ua.casadi'); %Optimization Problam. The file generated is quite big
+        else
+            my_func.save('./casadi_generated_files/op_fixed_pos.casadi'); %Optimization Problam. The file generated is quite big
+        end
     else
         my_func.save('./casadi_generated_files/panther_op_fixed_pos.casadi'); %Optimization Problam. The file generated is quite big
     end  
 else
     if use_panther_star
-        my_func.save('./casadi_generated_files/op.casadi'); %Optimization Problam. The file generated is quite big
+        if uncertainty_aware
+            my_func.save('./casadi_generated_files/op_ua.casadi'); %Optimization Problam. The file generated is quite big
+        else
+            my_func.save('./casadi_generated_files/op.casadi'); %Optimization Problam. The file generated is quite big
+        end
     else
         my_func.save('./casadi_generated_files/panther_op.casadi'); %Optimization Problam. The file generated is quite big
     end
@@ -853,7 +912,7 @@ tic();
 sol=my_func( names_value{:});
 toc();
 if(pos_is_fixed==false)
-    statistics=get_stats(my_func, use_panther_star); %See functions defined below
+    statistics=get_stats(my_func, use_panther_star, uncertainty_aware); %See functions defined below
 end
 
 results_solved=[];
@@ -911,7 +970,11 @@ g = Function('g', par_and_init_guess_exprs ,{all_is_in_FOV_for_different_yaw},..
 g=g.expand();
 
 if (use_panther_star)
-    g.save('./casadi_generated_files/visibility.casadi') %The file generated is quite big
+    if uncertainty_aware
+        g.save('./casadi_generated_files/visibility_ua.casadi') %The file generated is quite big
+    else
+        g.save('./casadi_generated_files/visibility.casadi') %The file generated is quite big
+    end
 else
     g.save('./casadi_generated_files/panther_visibility.casadi') %The file generated is quite big
 end
@@ -1037,7 +1100,11 @@ sy_tmp.plotPosVelAccelJerk();
 subplot(4,1,1); hold on;
 plot(t_opt_n_samples, all_yaw_value, 'o')
 if (use_panther_star)
-    f.save('./casadi_generated_files/fit_yaw.casadi') 
+    if uncertainty_aware
+        f.save('./casadi_generated_files/fit_yaw_ua.casadi') 
+    else
+        f.save('./casadi_generated_files/fit_yaw.casadi') 
+    end
 else
     f.save('./casadi_generated_files/panther_fit_yaw.casadi') 
 end
@@ -1269,8 +1336,8 @@ end
 %%
 
 %ONLY WORKS IF print_time=1
-function [t_proc_total, t_wall_total]= timeInfo(my_func, use_panther_star)
-    tmp=get_stats(my_func, use_panther_star);
+function [t_proc_total, t_wall_total]= timeInfo(my_func, use_panther_star, uncertainty_aware)
+    tmp=get_stats(my_func, use_panther_star, uncertainty_aware);
     
     %%See https://github.com/casadi/casadi/wiki/FAQ:-is-the-bottleneck-of-my-optimization-in-CasADi-function-evaluations-or-in-the-solver%3F
     
@@ -1310,13 +1377,21 @@ end
 %%
 %% ---------------------------------------------------------------------------------------------------------------
 %%
+function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n)
 
-function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraints(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor)
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n)];      %Max vel constraints (position)
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
+    const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
 
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraints(basis, v_max_n, moving_direction_uncertainty_list, moving_direction_factor)];      %Max vel constraints (position)
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
-     const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
-     const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
+end
+
+function [const_p_dyn_limits,const_y_dyn_limits]=addDynLimConstraintsUA(const_p_dyn_limits,const_y_dyn_limits, sp, sy, basis, v_max_n, a_max_n, j_max_n, ydot_max_n, moving_direction_uncertainty_list, moving_direction_factor)
+
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxVelConstraintsUA(basis, v_max_n, moving_direction_uncertainty_list, moving_direction_factor)];      %Max vel constraints (position)
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxAccelConstraints(basis, a_max_n)];    %Max accel constraints (position)
+    const_p_dyn_limits=[const_p_dyn_limits sp.getMaxJerkConstraints(basis, j_max_n)];     %Max jerk constraints (position)
+    const_y_dyn_limits=[const_y_dyn_limits sy.getMaxYawDotConstraints(basis, ydot_max_n)];   %Max vel constraints (yaw)
 
 end
 
@@ -1326,7 +1401,7 @@ end
 
 %Taken from https://gist.github.com/jgillis/9d12df1994b6fea08eddd0a3f0b0737f
 %See discussion at https://groups.google.com/g/casadi-users/c/1061E0eVAXM/m/dFHpw1CQBgAJ
-function [stats] = get_stats(f, use_panther_star)
+function [stats] = get_stats(f, use_panther_star, uncertainty_aware)
     dep = 0;
     % Loop over the algorithm
     for k=0:f.n_instructions()-1
@@ -1335,8 +1410,12 @@ function [stats] = get_stats(f, use_panther_star)
         fprintf("Found k= %d\n", k)
         d = f.instruction_MX(k).which_function();
         if d.name()=='solver'
-          if (use_panther_star)
-              my_file=fopen('./casadi_generated_files/index_instruction.txt','w'); %Overwrite content
+          if use_panther_star
+            if uncertainty_aware
+                my_file=fopen('./casadi_generated_files/index_instruction_ua.txt','w'); %Overwrite content
+            else
+                my_file=fopen('./casadi_generated_files/index_instruction.txt','w'); %Overwrite content
+            end
           else
               my_file=fopen('./casadi_generated_files/panther_index_instruction.txt','w'); 
           end

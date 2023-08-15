@@ -628,8 +628,28 @@ classdef MyClampedUniformSpline < handle
                 obj.CPoints{i}'
             end
         end
+
+        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled)
+            constraints={};
+            for j=1:obj.num_seg
+                cps=obj.getCPs_XX_Vel_ofInterval(basis, j);
+                for u=1:size(cps,2)
+                    if(j==1 && (u==1 || u==2) && obj.dim==3)
+                        continue   %Not impose constraint on the first vel ctrl points for position[to allow "infeasible" initial velocities due to planning in body frame and v constraints in each axis].
+                    end
+%                     constraints{end+1}=(cps{u}'*cps{u})<=(v_max_scaled^2);
+%                     total_squared=0;
+                    for xyz=1:size(cps{u},1)
+                        constraints{end+1}=cps{u}(xyz) <= v_max_scaled(xyz);
+                        constraints{end+1}=cps{u}(xyz) >= -v_max_scaled(xyz);
+%                         total_squared=total_squared+(cps{u}(xyz)^2);
+                    end
+%                     constraints{end+1}=total_squared<=(v_max_scaled^2);
+                end
+            end
+        end
         
-        function constraints=getMaxVelConstraints(obj, basis, v_max_scaled, moving_direction_uncertainty_list, moving_direction_factor)
+        function constraints=getMaxVelConstraintsUA(obj, basis, v_max_scaled, moving_direction_uncertainty_list, moving_direction_factor)
             constraints={};
             for j=1:obj.num_seg
                 cps=obj.getCPs_XX_Vel_ofInterval(basis, j);

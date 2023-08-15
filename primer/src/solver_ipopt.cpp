@@ -230,19 +230,38 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
 
   if (par_.use_panther_star)
   {
-    std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
-    myfile >> index_instruction_;
-    cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
-    cf_op_ = casadi::Function::load(folder + "op.casadi");
-    cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
-    cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
-    cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
-                                                                                   "violation.casadi");
-    cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
-                                                                                                 "yaw_"
-                                                                                                 "dyn_limits_"
-                                                                                                 "constraints_"
-                                                                                                 "violation.casadi");
+    if (par_.uncertainty_aware)
+    {
+      std::fstream myfile(folder + "index_instruction_ua.txt", std::ios_base::in);
+      myfile >> index_instruction_;
+      cf_compute_cost_ = casadi::Function::load(folder + "compute_cost_ua.casadi");
+      cf_op_ = casadi::Function::load(folder + "op_ua.casadi");
+      cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw_ua.casadi");
+      cf_visibility_ = casadi::Function::load(folder + "visibility_ua.casadi");
+      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
+                                                                                    "violation_ua.casadi");
+      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
+                                                                                                  "yaw_"
+                                                                                                  "dyn_limits_"
+                                                                                                  "constraints_"
+                                                                                                  "violation_ua.casadi");
+    }
+    else
+    {
+      std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
+      myfile >> index_instruction_;
+      cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
+      cf_op_ = casadi::Function::load(folder + "op.casadi");
+      cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
+      cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
+      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
+                                                                                    "violation.casadi");
+      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
+                                                                                                  "yaw_"
+                                                                                                  "dyn_limits_"
+                                                                                                  "constraints_"
+                                                                                                  "violation.casadi");
+    }
   }
   else
   {

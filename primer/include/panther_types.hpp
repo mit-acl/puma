@@ -973,6 +973,7 @@ struct parameters
   double          alpha_shrink;                       //void setVar_alpha_shrink(const std::string& value) { alpha_shrink = std::stod(value); };
   double          norminv_prob;                       //void setVar_norminv_prob(const std::string& value) { norminv_prob = std::stod(value); };
   int             disc_pts_per_interval_oct_search;   //void setVar_disc_pts_per_interval_oct_search(const std::string& value) { disc_pts_per_interval_oct_search = std::stoi(value); };
+  bool            uncertainty_aware;
   Eigen::Matrix<double, 9, 1> max_variance;           //void setVar_max_variance(const std::string& value) { max_variance = std::stod(value); };
   Eigen::Matrix<double, 9, 1> max_variance_for_moving_direction; //void setVar_max_variance_for_moving_direction(const std::string& value) { max_variance_for_moving_direction = std::stod(value); };
   Eigen::Matrix<double, 9, 1> drone_initial_variance; //void setVar_ego_initial_variance(const std::string& value) { ego_initial_variance = std::stod(value); };
