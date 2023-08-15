@@ -9,4 +9,5 @@ addpath(genpath('./../../submodules/minvo/src/utils'));
 addpath(genpath('./../../submodules/minvo/src/solutions'));
 addpath(genpath('./more_utils'));
 
+addpath('~/installations/casadi-matlabR2014a-v3.5.5/')
 end

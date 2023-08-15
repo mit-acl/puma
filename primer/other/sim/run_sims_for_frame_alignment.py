@@ -21,6 +21,34 @@ from snapstack_msgs.msg import State
 import subprocess
 import argparse
 
+def agent_dependent_topics(commands, agent_name, other_agent_name, use_rviz, time_fastsam_and_mot, kappa_mot, time_traj_gen, time_takeoff, time_move_to_start, time_start_traj):
+    """ Add topics that are agent dependent to commands """
+
+    ## sim_onboard
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={0.0} y:={0.0} z:=0.0 rviz:={use_rviz}")
+
+    ## fastsam
+    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=false")
+
+    ## mot
+    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait motlee_ros mapper.launch quad:={agent_name} kappa:={kappa_mot}")
+
+    ## frame alignment
+    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait primer frame_aligner.launch quad1:={agent_name} quad2:={other_agent_name}")
+
+    ## trajectory generator onboard
+    commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator quad:={agent_name} onboard.launch")
+
+    ## takeoff
+    commands.append(f"sleep "+str(time_takeoff)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
+
+    ## move to the starting position trajectory generator
+    commands.append(f"sleep "+str(time_move_to_start)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
+
+    ## start trajectory generator
+    commands.append(f"sleep "+str(time_start_traj)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
+
+    return commands
 
 def main():
 
@@ -42,7 +70,7 @@ def main():
     ##
 
     # for dicts
-    NUM_OF_AGENTS = [1]
+    NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [args.num_of_objects]
     # OBJECTS_TYPE = ["pads", "random"]
     OBJECTS_TYPE = ["random"]
@@ -50,11 +78,9 @@ def main():
     # others
     NUM_OF_SIMS = 1
     SIM_DURATION = 60  # seconds
-    AGNET_NAME = "SQ01s"
     USE_PERFECT_CONTROLLER = "true"
     USE_PERFECT_PREDICTION = "true"
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/world /{}/detections /{}/map/poses_only /tf /tf_static".format(*[AGNET_NAME]*3)
 
     ##
     ## MOT parameters
@@ -118,40 +144,24 @@ def main():
             ## roscore
             commands.append("roscore")
 
-            ## sim_basestation
+            ## sim_base_station
             commands.append(f"roslaunch --wait primer sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
             
-            ## fastsam
-            commands.append(f"sleep "+str(TIME_FASTSAM_AND_MOT)+" && roslaunch --wait primer fastsam.launch is_sim:=false")
+            ## for each agent we add topics for onboard fastsam/mot/trajectory_generator
+            topics_to_record = ""
+            for i in range(1, d["num_of_agents"]+1):
+                agent_name = f"SQ0{i}s" ## hardcoded
+                if agent_name == "SQ01s":
+                    other_agent_name = "SQ02s"
+                else:
+                    other_agent_name = "SQ01s"
+                commands = agent_dependent_topics(commands, agent_name, other_agent_name, USE_RVIZ, TIME_FASTSAM_AND_MOT, KAPPA_MOT, TIME_TRAJ_GEN, TIME_TAKEOFF, TIME_MOVE_TO_START, TIME_START_TRAJ)
+                topics_to_record = topics_to_record + "/{}/world /{}/detections /{}/map/poses_only ".format(*[agent_name]*3)
 
-            ## mot
-            commands.append(f"sleep "+str(TIME_FASTSAM_AND_MOT)+f" && roslaunch --wait motlee_ros mapper.launch kappa:={KAPPA_MOT}")
-
-            ## trajectory generator onboard
-            commands.append(f"sleep "+str(TIME_TRAJ_GEN)+f" &&roslaunch --wait trajectory_generator onboard.launch")
-
-            ## takeoff
-            commands.append(f"sleep "+str(TIME_TAKEOFF)+" && rostopic pub -1 /globalflightmode snapstack_msgs/QuadFlightMode '{header: auto, mode: 4}'")
-
-            ## move to the starting position trajectory generator
-            commands.append(f"sleep "+str(TIME_MOVE_TO_START)+" && rostopic pub -1 /globalflightmode snapstack_msgs/QuadFlightMode '{header: auto, mode: 4}'")
-
-            ## start trajectory generator
-            commands.append(f"sleep "+str(TIME_START_TRAJ)+" && rostopic pub -1 /globalflightmode snapstack_msgs/QuadFlightMode '{header: auto, mode: 4}'")
-            
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
-            commands.append(f"sleep "+str(TIME_START_TRAJ)+f" && cd {output_folder} && rosbag record {TOPICS_TO_RECORD} -o {sim_name} __name:={sim_name}")
-            
-            ## rosbag record for multiple agents
-            # agent_bag_recorders = []
-            # for i in range(l):
-            #     sim_name = f"sim_{str(s).zfill(3)}"
-            #     agent_name = f"SQ{str(i+1).zfill(2)}s"
-            #     recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(9)])
-            #     agent_bag_recorder = f"{agent_name}_{RECORD_NODE_NAME}"
-            #     agent_bag_recorders.append(agent_bag_recorder)
-            #     commands.append("sleep "+str(TIME_TAKEOFF)+" && cd "+folder_bags+" && rosbag record "+recorded_topics+" -o "+sim_name+"_"+agent_name+" __name:="+agent_bag_recorder)
+            topics_to_record = topics_to_record + "/tf"
+            commands.append(f"sleep "+str(TIME_START_TRAJ)+f" && cd {output_folder} && rosbag record {topics_to_record} -o {sim_name} __name:={sim_name}")
             
             ##
             ## tmux & sending commands

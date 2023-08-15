@@ -78,6 +78,12 @@ Visualization Manager:
           Value: true
         SQ01s/camera_link:
           Value: true
+        SQ02s:
+          Value: true
+        SQ02s/camera_depth_optical_frame:
+          Value: true
+        SQ02s/camera_link:
+          Value: true
         obs_4000:
           Value: true
         obs_4001:
@@ -110,6 +116,14 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
+          SQ01s:
+            SQ01s/camera_link:
+              SQ01s/camera_depth_optical_frame:
+                {}
+          SQ02s:
+            SQ02s/camera_link:
+              SQ02s/camera_depth_optical_frame:
+                {}
           obs_4000:
             {}
           obs_4001:
@@ -131,10 +145,7 @@ Visualization Manager:
           obs_4009:
             {}
           vicon:
-            SQ01s:
-              SQ01s/camera_link:
-                SQ01s/camera_depth_optical_frame:
-                  {}
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -296,7 +307,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/fov
       Name: SQ01sFOV
       Namespaces:
-        marker_fov: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -660,7 +671,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
-        markertacles: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -811,7 +822,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 23.19698715209961
+      Distance: 40.292327880859375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -819,17 +830,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.6643412113189697
-        Y: -0.20391708612442017
-        Z: 0.09870829433202744
+        X: 1.870144009590149
+        Y: 1.1788798570632935
+        Z: 1.4168720245361328
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7047972679138184
+      Pitch: 0.7897971868515015
       Target Frame: <Fixed Frame>
-      Yaw: 3.0031778812408447
+      Yaw: 4.683182239532471
     Saved: ~
 Window Geometry:
   DepthImage:
