@@ -115,42 +115,6 @@ def main():
         for veh_pair in veh_name_combinations:
              euler_frame_align, offsets_frame_align, t_frame_align = get_transformation(bag, veh_pair)
 
-        # get the actual transformatoin between the two vehicles
-        # note: not sure why but directly comparing SQ01s/corrupted_world to SQ02s/corrupted_world by lookupTransform doesn't work
-        # note: so just get each vehicle's transformation to the world and then subtract them
-        # note: maybe the order of "world" and frame_name in lookupTransform matters?
-        # agent 1
-        # euler_gt1, offsets_gt1, t_actual = get_ground_truth_transformation(bag, VEH_NAMES[0], t_frame_align)
-        # euler_corrupted1, offsets_corrupted1, _ = get_ground_truth_transformation(bag, VEH_NAMES[0]+"/corrupted_world", t_frame_align)
-        
-        # euler_actual_drift1 = []
-        # for i in range(len(euler_gt1)):
-        #     euler_actual_drift1.append(np.array(euler_corrupted1[i]) - np.array(euler_gt1[i]))
-        
-        # offsets_actual_drift1 = []
-        # for i in range(len(offsets_gt1)):
-        #     offsets_actual_drift1.append(np.array(offsets_corrupted1[i]) - np.array(offsets_gt1[i]))
-
-        # # agent 2
-        # euler_gt2, offsets_gt2, _ = get_ground_truth_transformation(bag, VEH_NAMES[1], t_frame_align)
-        # euler_corrupted2, offsets_corrupted2, _ = get_ground_truth_transformation(bag, VEH_NAMES[1]+"/corrupted_world", t_frame_align)
-
-        # euler_actual_drift2 = []
-        # for i in range(len(euler_gt2)):
-        #     euler_actual_drift2.append(np.array(euler_corrupted2[i]) - np.array(euler_gt2[i]))
-        
-        # offsets_actual_drift2 = []
-        # for i in range(len(offsets_gt2)):
-        #     offsets_actual_drift2.append(np.array(offsets_corrupted2[i]) - np.array(offsets_gt2[i]))
-
-        # # subtract the two
-        # euler_actual_drift = []
-        # for i in range(len(euler_actual_drift1)):
-        #     euler_actual_drift.append(np.array(euler_actual_drift1[i]) - np.array(euler_actual_drift2[i]))
-        # offsets_actual_drift = []
-        # for i in range(len(offsets_actual_drift1)):
-        #     offsets_actual_drift.append(np.array(offsets_actual_drift1[i]) - np.array(offsets_actual_drift2[i]))
-
         # get drift
         drift, t_plot = get_drift(bag, VEH_NAMES[0])
         # get euler_actual_drift and offsets_actual_drift
@@ -168,13 +132,6 @@ def main():
 
         # close the bag
         bag.close()
-
-        # sometimes the artificially introduced drift has a little spikes in it (im guessing due to comm delay) so just smooth out the data
-        # t_plot, euler_actual_drift_roll = smooth_data(t_actual, np.array(euler_actual_drift)[:, 0])
-        # t_plot, euler_actual_drift_pitch = smooth_data(t_actual, np.array(euler_actual_drift)[:, 1])
-        # t_plot, euler_actual_drift_yaw = smooth_data(t_actual, np.array(euler_actual_drift)[:, 2])
-        # t_plot, offsets_actual_drift_x = smooth_data(t_actual, np.array(offsets_actual_drift)[:, 0])
-        # t_plot, offsets_actual_drift_y = smooth_data(t_actual, np.array(offsets_actual_drift)[:, 1])
 
         # plot
         fig, axs = plt.subplots(2, 1, figsize=(10, 10))
