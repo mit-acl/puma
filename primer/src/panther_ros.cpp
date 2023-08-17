@@ -136,6 +136,8 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   // Uncertainty Prediction params
   //
 
+  safeGetParam(nh1_, "uncertainty_aware", par_.uncertainty_aware);
+
   safeGetParam(nh1_, "initial_position_variance_multiplier", par_.initial_position_variance_multiplier);
   safeGetParam(nh1_, "initial_velocity_variance_multiplier", par_.initial_velocity_variance_multiplier);
   safeGetParam(nh1_, "initial_acceleration_variance_multiplier", par_.initial_acceleration_variance_multiplier);
