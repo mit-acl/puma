@@ -73,8 +73,7 @@ def get_data_sync_maps_and_data_sync_world(veh_name):
 # data extraction from bag file
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-parser.add_argument("bag_folder", help="Input directory.")
-parser.add_argument("output_dir", help="Output directory.")
+parser.add_argument("--bag_folder", help="Input directory.")
 args = parser.parse_args()
 
 # cut off time for run.bag (Aug 2023)
@@ -102,6 +101,7 @@ for bag_text in bags:
     bag = rosbag.Bag(bag_text, "r")
 
     veh_names = ["SQ01s", "SQ02s"]
+    # veh_names = ["SQ01s"]
     data_sync_world = {}
     data_sync_maps = {}
     for veh_name in veh_names:
@@ -111,20 +111,28 @@ for bag_text in bags:
     bag.close()
 
     # make sure the data has the same length
-    shorter_length = min(len(data_sync_maps[veh_names[0]]), len(data_sync_maps[veh_names[1]]))
-    for veh_name in veh_names:
-        data_sync_maps[veh_name] = data_sync_maps[veh_name][:shorter_length]
-        data_sync_world[veh_name] = data_sync_world[veh_name][:shorter_length]
+    if len(veh_names) > 1:
+        shorter_length = min(len(data_sync_maps[veh_names[0]]), len(data_sync_maps[veh_names[1]]))
+        for veh_name in veh_names:
+            data_sync_maps[veh_name] = data_sync_maps[veh_name][:shorter_length]
+            data_sync_world[veh_name] = data_sync_world[veh_name][:shorter_length]
+
+            # get the last 5 data points
+            data_sync_maps[veh_name] = data_sync_maps[veh_name][-5:]
+            data_sync_world[veh_name] = data_sync_world[veh_name][-5:]
+
 
     # plot the data
     fig, ax = plt.subplots()
+
     # hardcoded for now
     world0 = ax.scatter(data_sync_world[veh_names[0]][0].pose.position.x, data_sync_world[veh_names[0]][0].pose.position.y, label=f'vehicle1', color='orange', marker='s')
     maps0 = ax.scatter(data_sync_maps[veh_names[0]][0][0], data_sync_maps[veh_names[0]][0][1], label=f'map1', color='orange', marker='s')
     line0, = ax.plot(data_sync_world[veh_names[0]][0].pose.position.x, data_sync_world[veh_names[0]][0].pose.position.y, label=f'path1', color='orange', alpha=0.3)
-    world1 = ax.scatter(data_sync_world[veh_names[1]][0].pose.position.x, data_sync_world[veh_names[1]][0].pose.position.y, label=f'vehicle2', color='red')
-    maps1 = ax.scatter(data_sync_maps[veh_names[1]][0][0], data_sync_maps[veh_names[1]][0][1], label=f'map2', color='red')
-    line1, = ax.plot(data_sync_world[veh_names[1]][0].pose.position.x, data_sync_world[veh_names[1]][0].pose.position.y, label=f'path2', color='red', alpha=0.3)
+    if len(veh_names) > 1:
+        world1 = ax.scatter(data_sync_world[veh_names[1]][0].pose.position.x, data_sync_world[veh_names[1]][0].pose.position.y, label=f'vehicle2', color='red')
+        maps1 = ax.scatter(data_sync_maps[veh_names[1]][0][0], data_sync_maps[veh_names[1]][0][1], label=f'map2', color='red')
+        line1, = ax.plot(data_sync_world[veh_names[1]][0].pose.position.x, data_sync_world[veh_names[1]][0].pose.position.y, label=f'path2', color='red', alpha=0.3)
     objects = ax.scatter([x[0] for x in object_gt], [x[1] for x in object_gt], c='g', marker='x', label=f'objects')
     ax.set(xlim=[-6, 6], ylim=[-6, 6], xlabel='x [m]', ylabel='y [m]')
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -145,10 +153,11 @@ for bag_text in bags:
         world0.set_offsets(data)
 
         # agent 1
-        x = data_sync_world[veh_names[1]][frame].pose.position.x
-        y = data_sync_world[veh_names[1]][frame].pose.position.y
-        data = np.stack([x, y]).T
-        world1.set_offsets(data)
+        if len(veh_names) > 1:
+            x = data_sync_world[veh_names[1]][frame].pose.position.x
+            y = data_sync_world[veh_names[1]][frame].pose.position.y
+            data = np.stack([x, y]).T
+            world1.set_offsets(data)
 
         # update the line plot:
         # agent 0
@@ -158,10 +167,11 @@ for bag_text in bags:
         maps0.set_offsets(data_map)
         
         # agent 1
-        x_map = data_sync_maps[veh_names[1]][frame][0]
-        y_map = data_sync_maps[veh_names[1]][frame][1]
-        data_map = np.stack([x_map, y_map]).T
-        maps1.set_offsets(data_map)
+        if len(veh_names) > 1:
+            x_map = data_sync_maps[veh_names[1]][frame][0]
+            y_map = data_sync_maps[veh_names[1]][frame][1]
+            data_map = np.stack([x_map, y_map]).T
+            maps1.set_offsets(data_map)
 
         # plot history of path
         # agent 0
@@ -170,13 +180,17 @@ for bag_text in bags:
         line0.set_data(x_line0, y_line0)
 
         # agent 1
-        x_line1.append(data_sync_world[veh_names[1]][frame].pose.position.x)
-        y_line1.append(data_sync_world[veh_names[1]][frame].pose.position.y)
-        line1.set_data(x_line1, y_line1)
+        if len(veh_names) > 1:
+            x_line1.append(data_sync_world[veh_names[1]][frame].pose.position.x)
+            y_line1.append(data_sync_world[veh_names[1]][frame].pose.position.y)
+            line1.set_data(x_line1, y_line1)
 
-        return world0, maps0, line0, world1, maps1, line1
+        if len(veh_names) > 1:
+            return world0, maps0, line0, world1, maps1, line1
+        else:
+            return world0, maps0, line0
 
     animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '.gif'
     ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world[veh_names[0]]), interval=300, blit=True)
-    ani.save(os.path.join(args.output_dir, animation_text), writer='imagemagick')
+    ani.save(os.path.join(args.bag_folder, animation_text), writer='imagemagick')
     # plt.show()
