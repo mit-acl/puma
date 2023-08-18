@@ -58,6 +58,20 @@ std::vector<Eigen::Vector3d> casadiMatrix2StdVectorEigen3d(const casadi::DM &qp_
   return qp;
 }
 
+std::vector<Eigen::Matrix<double, 9, 1>> casadiMatrix2StdVectorEigen9d(const casadi::DM &qp_casadi)
+{
+  std::vector<Eigen::Matrix<double, 9, 1>> qp;
+  for (int i = 0; i < qp_casadi.columns(); i++)
+  {
+    Eigen::Matrix<double, 9, 1> tmp;
+    tmp << double(qp_casadi(0, i)), double(qp_casadi(1, i)), double(qp_casadi(2, i)), double(qp_casadi(3, i)),
+        double(qp_casadi(4, i)), double(qp_casadi(5, i)), double(qp_casadi(6, i)), double(qp_casadi(7, i)),
+        double(qp_casadi(8, i));
+    qp.push_back(tmp);
+  }
+  return qp;
+}
+
 std::vector<double> casadiMatrix2StdVectorDouble(const casadi::DM &qy_casadi)
 {
   return static_cast<std::vector<double>>(qy_casadi);
@@ -1122,9 +1136,11 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       // Uncertrainty Results
 
       solution.obstacle_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["obstacle_uncertainty_list"]);
+      solution.obstacle_sigma_list = casadiMatrix2StdVectorEigen9d(result["obstacle_sigma_list"]);
       solution.obstacle_uncertainty_times = casadiMatrix2StdVectorDouble(result["obstacle_uncertainty_times"]);
 
       solution.moving_direction_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["moving_direction_uncertainty_list"]);
+      solution.moving_direction_sigma_list = casadiMatrix2StdVectorEigen9d(result["moving_direction_sigma_list"]);
       solution.moving_direction_uncertainty_times = casadiMatrix2StdVectorDouble(result["moving_direction_uncertainty_times"]);
       ///////////////////////////
 
