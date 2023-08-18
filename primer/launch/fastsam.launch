@@ -14,7 +14,7 @@
         Nodes
     -->
 
-    <node ns="$(arg quad)" name="fastsam" pkg="primer" type="fastsam_launcher.py" output="screen">
+    <node ns="$(arg quad)" name="fastsam" pkg="primer" type="fastsam.py" output="screen">
         <param name="camera" value="$(arg camera)"/>
         <param name="is_sim" value="$(arg is_sim)"/>
         <param name="save_images" value="$(arg save_undistorted_and_segmented_images)"/>

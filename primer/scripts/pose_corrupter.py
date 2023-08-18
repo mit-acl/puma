@@ -11,8 +11,9 @@ import rospy
 import numpy as np
 from utils import get_quaternion_from_euler, quaternion_to_euler_angle_vectorized1
 import tf
-from drifty_estimate import DriftyEstimate
 from scipy.spatial.transform import Rotation as Rot
+from motlee.utils.transform import transform
+from drifty_estimate import DriftyEstimate
 
 class POSE_CORRUPTER_ROS:
 
@@ -47,6 +48,8 @@ class POSE_CORRUPTER_ROS:
 
         self.is_initial_time_set = False
 
+        self.initial_time_buffer = 0.0 # seconds
+
         ##
         ## set up ROS communications
         ##
@@ -55,6 +58,17 @@ class POSE_CORRUPTER_ROS:
         self.pub_world = rospy.Publisher('corrupted_world', PoseStamped, queue_size=1)
         self.pub_drift = rospy.Publisher('drift', Drift, queue_size=1)
 
+    # no change publish
+    def pub_pose_msg_without_drift(self, pose_msg, pub_pose_msg):
+        pub_pose_msg.pose.position.x = pose_msg.pose.position.x
+        pub_pose_msg.pose.position.y = pose_msg.pose.position.y
+        pub_pose_msg.pose.position.z = pose_msg.pose.position.z
+        pub_pose_msg.pose.orientation.x = pose_msg.pose.orientation.x
+        pub_pose_msg.pose.orientation.y = pose_msg.pose.orientation.y
+        pub_pose_msg.pose.orientation.z = pose_msg.pose.orientation.z
+        pub_pose_msg.pose.orientation.w = pose_msg.pose.orientation.w
+        return pub_pose_msg
+    
     # publish pose
     def corrupt_and_publish_pose(self, pose_msg):
 
@@ -73,21 +87,47 @@ class POSE_CORRUPTER_ROS:
         pub_pose_msg = PoseStamped()
         pub_pose_msg.header.stamp = rospy.Time.now()
         pub_pose_msg.header.frame_id = "world"
-        
-        position=np.array([pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z]),
+
+        position=np.array([pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z])
         orientation=Rot.from_quat([pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w])
-        if self.is_linear_drift:
+
+        # if it's still before the inital time buffer, don't add drift
+        if (rospy.Time.now() - self.initial_time).to_sec() < self.initial_time_buffer:
+            pub_pose_msg = self.pub_pose_msg_without_drift(pose_msg, pub_pose_msg)
+        elif self.is_constant_drift: # add constant drift
+
+            # if you introduce pose drift, you need to change the position in terms of the drift
+            T = np.eye(4)
+            T[:3,3] = [self.constant_drift_x, self.constant_drift_y, self.constant_drift_z]
+            T[:3,:3] = Rot.from_euler('xyz', [self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw]).as_matrix()
+            rotated_position = transform(T, np.array([pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z]))
+
+            pub_pose_msg.pose.position.x = rotated_position[0] 
+            pub_pose_msg.pose.position.y = rotated_position[1]
+            pub_pose_msg.pose.position.z = rotated_position[2]
+
+            corrupted_quaternion, drift_euler = self.corrupt_quaternion_constant_drift(pose_msg)
+            pub_pose_msg.pose.orientation.x = corrupted_quaternion.x
+            pub_pose_msg.pose.orientation.y = corrupted_quaternion.y
+            pub_pose_msg.pose.orientation.z = corrupted_quaternion.z
+            pub_pose_msg.pose.orientation.w = corrupted_quaternion.w
+
+        elif self.is_linear_drift: # add linear drift
             dt = (pose_msg.header.stamp - self.last_pose_time).to_sec()
             self.drifty_estimate.add_drift(
                 position=np.array([self.linear_drift_rate_x, self.linear_drift_rate_y, self.linear_drift_rate_z])*dt,
                 rotation=Rot.from_euler('xyz', np.array([self.linear_drift_rate_roll, self.linear_drift_rate_pitch, self.linear_drift_rate_yaw])*dt)
             )
             self.last_pose_time = pose_msg.header.stamp
+        else: # no drift
+            pub_pose_msg = self.pub_pose_msg_without_drift(pose_msg, pub_pose_msg)
+
+        # update drifty_estimate
         pos_est, ori_est = self.drifty_estimate.update(position, orientation)
         pub_pose_msg.pose.position.x, pub_pose_msg.pose.position.y, pub_pose_msg.pose.position.z = pos_est
         pub_pose_msg.pose.orientation.x, pub_pose_msg.pose.orientation.y, pub_pose_msg.pose.orientation.z, pub_pose_msg.pose.orientation.w = ori_est.as_quat()        
         
-        # # publish pose as corrupted_world
+        # publish pose as corrupted_world
         self.pub_world.publish(pub_pose_msg)
 
         # publish to tf
@@ -122,13 +162,13 @@ class POSE_CORRUPTER_ROS:
     # corrupt quaternion for linear drift
     def corrupt_quaternion_linear_drift(self, pose_msg):
         euler = quaternion_to_euler_angle_vectorized1(pose_msg.pose.orientation.w, pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z)
-        roll = euler[0] + self.linear_drift_rate_roll * (rospy.Time.now() - self.initial_time).to_sec()
-        pitch = euler[1] + self.linear_drift_rate_pitch * (rospy.Time.now() - self.initial_time).to_sec()
-        yaw = euler[2] + self.linear_drift_rate_yaw * (rospy.Time.now() - self.initial_time).to_sec()
+        roll = euler[0] + self.linear_drift_rate_roll * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer)
+        pitch = euler[1] + self.linear_drift_rate_pitch * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer)
+        yaw = euler[2] + self.linear_drift_rate_yaw * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer)
         quaternion = get_quaternion_from_euler(roll, pitch, yaw)
-        drift_euler = [self.linear_drift_rate_roll * (rospy.Time.now() - self.initial_time).to_sec(), \
-                            self.linear_drift_rate_pitch * (rospy.Time.now() - self.initial_time).to_sec(), \
-                            self.linear_drift_rate_yaw * (rospy.Time.now() - self.initial_time).to_sec()]
+        drift_euler = [self.linear_drift_rate_roll * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer), \
+                            self.linear_drift_rate_pitch * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer), \
+                            self.linear_drift_rate_yaw * ((rospy.Time.now() - self.initial_time).to_sec() - self.initial_time_buffer)]
         return quaternion, drift_euler
 if __name__ == '__main__':
     rospy.init_node('pose_corrupter')

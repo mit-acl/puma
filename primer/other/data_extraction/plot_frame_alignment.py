@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Author: Kota Kondo
-# example use: python plot_animation.py /media/kota/T7/frame/real_time_fastsam_exp/run.bag NX04 /media/kota/T7/frame/real_time_fastsam_exp
 
 import os
 import argparse

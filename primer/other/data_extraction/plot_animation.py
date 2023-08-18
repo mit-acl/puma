@@ -193,4 +193,4 @@ for bag_text in bags:
     animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '.gif'
     ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world[veh_names[0]]), interval=300, blit=True)
     ani.save(os.path.join(args.bag_folder, animation_text), writer='imagemagick')
-    # plt.show()
+    plt.show()
