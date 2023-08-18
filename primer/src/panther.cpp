@@ -968,7 +968,7 @@ std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> Panther::projectUnc
 // ------------------------------------------------------------------------------------------------------
 //
 
-bool Panther::replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_solution_expert,
+bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_uncertainty_out, si::solOrGuess& best_solution_expert,
                      std::vector<si::solOrGuess>& best_solutions_expert, si::solOrGuess& best_solution_student,
                      std::vector<si::solOrGuess>& best_solutions_student, std::vector<si::solOrGuess>& guesses,
                      std::vector<si::solOrGuess>& splines_fitted, std::vector<Hyperplane3D>& planes, mt::log& log,
@@ -1381,6 +1381,12 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_soluti
   log_ptr_->cost = best_solution.cost;
   log_ptr_->obst_avoidance_violation = best_solution.obst_avoidance_violation;
   log_ptr_->dyn_lim_violation = best_solution.dyn_lim_violation;
+
+  // Send Uncertainty Edges
+  mtx_trajs_.lock();
+  ConvexHullsOfCurves hulls = convexHullsOfCurvesWithUncertainty(t_start, t_start + par_.fitter_total_time, best_solution.obstacle_uncertainty_times, best_solution.obstacle_uncertainty_list);
+  mtx_trajs_.unlock();
+  edges_obstacles_uncertainty_out = cu::vectorGCALPol2edges(hulls);
 
   logAndTimeReplan("Success", true, log);
 
@@ -2164,6 +2170,19 @@ ConvexHullsOfCurves Panther::convexHullsOfCurves(double t_start, double t_end)
   return result;
 }
 
+ConvexHullsOfCurves Panther::convexHullsOfCurvesWithUncertainty(double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty)
+{
+  // TODO: Support multiple obstacles
+  ConvexHullsOfCurves result;
+
+  for (auto traj : trajs_)
+  {
+    result.push_back(convexHullsOfCurveWithUncertainty(traj, projected_time, projected_uncertainty, t_start, t_end));
+  }
+
+  return result;
+}
+
 //
 // ------------------------------------------------------------------------------------------------------
 //
@@ -2239,6 +2258,22 @@ ConvexHullsOfCurve Panther::convexHullsOfCurve(mt::dynTrajCompiled& traj, double
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> tmp = projectUncertainty(initial_variance_search, deltaT, t_start, t_end);
   std::vector<double> projected_time = tmp.first;
   std::vector<Eigen::Vector3d> projected_uncertainty = tmp.second;
+
+  for (int i = 0; i <= par_.num_seg; i++)
+  {
+    convexHulls.push_back(convexHullOfInterval(traj, t_start + i * deltaT, t_start + (i + 1) * deltaT, projected_time, projected_uncertainty));
+  }
+
+  return convexHulls;
+}
+
+ConvexHullsOfCurve Panther::convexHullsOfCurveWithUncertainty(mt::dynTrajCompiled& traj, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty, double t_start, double t_end)
+{
+  ConvexHullsOfCurve convexHulls;
+  double deltaT = (t_end - t_start) / (1.0 * par_.num_seg);  // num_seg is the number of intervals
+
+  // Transform the projected times
+  std::transform(projected_time.begin(), projected_time.end(), projected_time.begin(), std::bind2nd(std::plus<double>(), t_start) );
 
   for (int i = 0; i <= par_.num_seg; i++)
   {

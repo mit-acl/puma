@@ -398,6 +398,8 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_best_solution_student_ = nh1_.advertise<visualization_msgs::MarkerArray>("best_solution_student", 1);
   pub_best_solutions_student_ = nh1_.advertise<visualization_msgs::MarkerArray>("best_solutions_student", 1);
 
+  pub_obstacle_uncertainty_ = nh1_.advertise<visualization_msgs::Marker>("obstacle_uncertainty", 1);
+
   pub_guesses_ = nh1_.advertise<visualization_msgs::MarkerArray>("guesses", 1);
   pub_splines_fitted_ = nh1_.advertise<visualization_msgs::MarkerArray>("splines_fitted", 1);
 
@@ -550,6 +552,17 @@ void PantherRos::pubObstacles(mt::Edges edges_obstacles)
   if (edges_obstacles.size() > 0)
   {
     pub_obstacles_.publish(edges2Marker(edges_obstacles, color(RED_NORMAL)));
+  }
+
+  return;
+}
+
+void PantherRos::pubObstaclesWithUncertainty(mt::Edges edges_obstacles_uncertainty)
+{
+  clearObstacleUncertaintyEdges();
+  if (edges_obstacles_uncertainty.size() > 0)
+  {
+    pub_obstacle_uncertainty_.publish(edges2Marker(edges_obstacles_uncertainty, color(BLUE_NORMAL)));
   }
 
   return;
@@ -802,6 +815,7 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
   if (ros::ok() && published_initial_position_ == true)
   {
     mt::Edges edges_obstacles;
+    mt::Edges edges_obstacles_uncertainty;
     mt::trajectory X_safe;
 
     si::solOrGuess best_solution_expert;
@@ -832,7 +846,7 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
     bool replanned = false;
 
     replanned =
-        panther_ptr_->replan(edges_obstacles, best_solution_expert, best_solutions_expert, best_solution_student,
+        panther_ptr_->replan(edges_obstacles, edges_obstacles_uncertainty, best_solution_expert, best_solutions_expert, best_solution_student,
                              best_solutions_student, guesses, splines_fitted, planes, log, k_index_end);
 
     if (par_.pause_time_when_replanning)
@@ -934,6 +948,7 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
       // std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
       pubObstacles(edges_obstacles);
+      pubObstaclesWithUncertainty(edges_obstacles_uncertainty);
       pubTraj(X_safe);
       publishPlanes(planes);
 
@@ -1352,6 +1367,16 @@ void PantherRos::clearObstacleEdges()
   m.action = visualization_msgs::Marker::DELETEALL;
   m.id = 0;
   pub_obstacles_.publish(m);
+}
+
+void PantherRos::clearObstacleUncertaintyEdges()
+{
+  // clear only the edges of the obstacles that are published 5 seconds ago
+  visualization_msgs::Marker m;
+  m.type = visualization_msgs::Marker::LINE_LIST;
+  m.action = visualization_msgs::Marker::DELETEALL;
+  m.id = 0;
+  pub_obstacle_uncertainty_.publish(m);
 }
 
 void PantherRos::pubState(const mt::state& data, const ros::Publisher pub)
