@@ -301,9 +301,12 @@ class FastSAM_ROS:
 
     # publish the centroid
     def publish_objarray(self, pose_msg, positions):
-        ego_position = np.array([pose_msg.pose.position.x,
-                                 pose_msg.pose.position.y,
-                                 pose_msg.pose.position.z])
+        if not self.is_sim:
+            ego_position = np.array([pose_msg.pose.position.x,
+                                    pose_msg.pose.position.y,
+                                    pose_msg.pose.position.z])
+        else:
+            ego_position = np.array(pose_msg[:3])
 
         # create ObjArray
         objarray = motlee_msgs.ObjArray()
