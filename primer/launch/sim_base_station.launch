@@ -20,9 +20,9 @@
     Agent 1 specific parameters
   -->
   
-  <arg name="x1" default="-1.0" />
+  <arg name="x1" default="0.0" />
   <arg name="y1" default="0.0" />
-  <arg name="z1" default="10.0" />
+  <arg name="z1" default="1.0" />
   <arg name="yaw1" default="0.0" />
 
   <!-- Agent 1 -->

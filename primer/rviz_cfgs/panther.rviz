@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1
+        - /TF1/Status1
         - /TF1/Frames1
         - /Image3
         - /DepthCloudSQ01s1/Auto Size1
@@ -75,35 +76,39 @@ Visualization Manager:
         SQ01s:
           Value: true
         SQ01s/camera_depth_optical_frame:
-          Value: true
+          Value: false
         SQ01s/camera_link:
+          Value: false
+        SQ01s/corrupted_world:
           Value: true
         SQ02s:
           Value: true
         SQ02s/camera_depth_optical_frame:
-          Value: true
+          Value: false
         SQ02s/camera_link:
+          Value: false
+        SQ02s/corrupted_world:
           Value: true
         obs_4000:
-          Value: true
+          Value: false
         obs_4001:
-          Value: true
+          Value: false
         obs_4002:
-          Value: true
+          Value: false
         obs_4003:
-          Value: true
+          Value: false
         obs_4004:
-          Value: true
+          Value: false
         obs_4005:
-          Value: true
+          Value: false
         obs_4006:
-          Value: true
+          Value: false
         obs_4007:
-          Value: true
+          Value: false
         obs_4008:
-          Value: true
+          Value: false
         obs_4009:
-          Value: true
+          Value: false
         vicon:
           Value: true
         world:
@@ -120,10 +125,14 @@ Visualization Manager:
             SQ01s/camera_link:
               SQ01s/camera_depth_optical_frame:
                 {}
+          SQ01s/corrupted_world:
+            {}
           SQ02s:
             SQ02s/camera_link:
               SQ02s/camera_depth_optical_frame:
                 {}
+          SQ02s/corrupted_world:
+            {}
           obs_4000:
             {}
           obs_4001:

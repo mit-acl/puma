@@ -73,8 +73,8 @@ class FastSAM_ROS:
         # We keep 3D because this will naturally result in larger covariances in objects viewed at a similar elevation
         # as the drone.
         # Assume both non-range axes covariances are the same.
-        range_std_dev = 1.0 # 100 cm std dev along range axis
-        non_range_std_dev = .5 # 50 cm std dev along other axes (non-range)
+        range_std_dev = 1.5 # 100 cm std dev along range axis
+        non_range_std_dev = 1.5 # 50 cm std dev along other axes (non-range)
         self.mapper_covariance = np.diag([range_std_dev**2, non_range_std_dev**2, non_range_std_dev**2])
 
         # static variables for image numbering
