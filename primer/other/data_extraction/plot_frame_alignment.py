@@ -83,7 +83,7 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("--bag_folder", help="Input directory.")
+    parser.add_argument("-b", "--bag_folder", help="Input directory.")
     args = parser.parse_args()
     VEH_NAMES = ["SQ01s", "SQ02s"]
 
@@ -129,10 +129,57 @@ def main():
             offsets_actual_drift_x.append(drift[i].drift_pos[0])
             offsets_actual_drift_y.append(drift[i].drift_pos[1])
 
+        # get state (or world)
+        tpn_state1 = f'/{VEH_NAMES[0]}/state'
+        tpn_state2 = f'/{VEH_NAMES[1]}/state'
+        state1 = []
+        t_state1 = []
+        state2 = []
+        t_state2 = []
+        for topic, msg, t in bag.read_messages(topics=[tpn_state1, tpn_state2]):
+            if topic == tpn_state1:
+                state1.append([msg.pos.x, msg.pos.y])
+                t_state1.append(t.to_sec())
+            if topic == tpn_state2:
+                state2.append([msg.pos.x, msg.pos.y])
+                t_state2.append(t.to_sec())
+
+        # get corrupted world
+        tpn_cw1 = f'/{VEH_NAMES[0]}/corrupted_world'
+        tpn_cw2 = f'/{VEH_NAMES[1]}/corrupted_world'
+        cw1 = []
+        t_cw1 = []
+        cw2 = []
+        t_cw2 = []
+        for topic, msg, t in bag.read_messages(topics=[tpn_cw1, tpn_cw2]):
+            if topic == tpn_cw1:
+                cw1.append([msg.pose.position.x, msg.pose.position.y])
+                t_cw1.append(t.to_sec())
+            if topic == tpn_cw2:
+                cw2.append([msg.pose.position.x, msg.pose.position.y])
+                t_cw2.append(t.to_sec())
+        
         # close the bag
         bag.close()
 
-        # plot
+        # plot the state and corrupted world (which is state + drift)
+        fig, axs = plt.subplots(1, 1, figsize=(10, 10))
+        axs.plot(np.array(state1)[:, 0], np.array(state1)[:, 1], label='state1')
+        # axs.plot(np.array(state2)[:, 0], np.array(state2)[:, 1], label='state2')
+        axs.plot(np.array(cw1)[:, 0], np.array(cw1)[:, 1], label='corrupted world1')
+        # axs.plot(np.array(cw2)[:, 0], np.array(cw2)[:, 1], label='corrupted world2')
+        axs.set_xlabel('x [m]')
+        axs.set_ylabel('y [m]')
+        axs.legend()
+        axs.set_aspect('equal', 'box')
+        axs.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+        return
+        
+
+        # plot frame alignment
         fig, axs = plt.subplots(2, 1, figsize=(10, 10))
         axs[0].plot(t_frame_align, np.array(euler_frame_align)[:, 0], label='pred roll drift')
         axs[0].plot(t_frame_align, np.array(euler_frame_align)[:, 1], label='pred pitch drift')

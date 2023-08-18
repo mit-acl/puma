@@ -163,13 +163,13 @@ def main():
     DRIFT_TYPE = ["linear"] #["none", "constant", "linear"]
     CONSTANT_TRANSLATIONAL_DRIFT_OFFSET = [[1.0, 1.0]] # [m]
     CONSTANT_ROTATIONAL_DRIFT_OFFSET = [30.0] # [deg]
-    LINEAR_TRANSLATIONAL_DRIFT_RATE = [[0.1, 0.1]] # [m/s]
-    LINEAR_ROTATIONAL_DRIFT_RATE = [1.0] # [deg/s]
+    LINEAR_TRANSLATIONAL_DRIFT_RATE = [[10, 10]] # [m/s]
+    LINEAR_ROTATIONAL_DRIFT_RATE = [20.0] # [deg/s]
     TRAJ_TYPE = ["circle"] #["circle", "venn_diagram"]
     
     # others
     NUM_OF_SIMS = 1
-    SIM_DURATION = 120  # seconds
+    SIM_DURATION = 60  # seconds
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
     CIRCLE_CENTER = [[0.0, 0.0], [0.0, 0.0]] # [m]
     VEN_DIAG_CENTER = [[1.0, 0.0], [-1.0, 0.0]] # [m]
@@ -277,7 +277,7 @@ def main():
                                                     d["linear_translational_drift_rate"], d["linear_rotational_drift_rate"])
                 
                 # add topics to record
-                topics_to_record = topics_to_record + "/{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift ".format(*[agent_name]*6)
+                topics_to_record = topics_to_record + "/{}/world /{}/state /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift ".format(*[agent_name]*7)
 
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"

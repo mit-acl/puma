@@ -8,7 +8,7 @@
 	<arg name="quad" default="SQ01s"/>
   <arg name="veh" default="SQ"/>
   <arg name="num" default="01"/>
-  <arg name="perfect_controller" default="false"/>
+  <arg name="perfect_controller" default="true"/>
   <arg name="gazebo" default="true"/>
   <arg name="perfect_prediction" default="true"/>
   <arg name="gui_mission" default="false"/>
@@ -34,7 +34,7 @@
     Agent
   -->
 
-  <node ns="$(arg quad)" name="commands" pkg="primer" type="commands.py" output="screen"/>
+  <!-- <node ns="$(arg quad)" name="commands" pkg="primer" type="commands.py" output="screen"/> -->
 
   <group unless="$(arg perfect_prediction)">
     <include file="$(find primer)/launch/tracker_predictor.launch">
