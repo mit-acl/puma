@@ -96,9 +96,9 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim")
-    parser.add_argument("--use_rviz", help="Whether to use rviz.", default=True)
-    parser.add_argument("--num_of_objects", help="Number of objects.", default=10, type=int)
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim")
+    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=True)
+    parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
 
     OUTPUT_DIR = args.output_dir
