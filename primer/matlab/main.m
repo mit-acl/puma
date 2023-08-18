@@ -28,7 +28,7 @@ pos_is_fixed=false; %you need to run this file twice to produce the necessary ca
 %%
 
 use_panther_star=true;
-uncertainty_aware=false;
+uncertainty_aware=true;
 
 if uncertainty_aware
     assert(use_panther_star, "uncertainty_aware must be used with panther_star!");
@@ -813,8 +813,8 @@ else
     opti.subject_to([const_p, const_y]);
 end
 
-results_expresion={pCPs,yCPs, all_nd, total_cost, yaw_smooth_cost, pos_smooth_cost, alpha, fov_cost, final_yaw_cost, final_pos_cost}; %Note that this containts both parameters, variables, and combination of both. If they are parameters, the corresponding value will be returned
-results_names={'pCPs','yCPs','all_nd','total_cost', 'yaw_smooth_cost', 'pos_smooth_cost','alpha','fov_cost','final_yaw_cost','final_pos_cost'};
+results_expresion={pCPs,yCPs, all_nd, total_cost, yaw_smooth_cost, pos_smooth_cost, alpha, fov_cost, final_yaw_cost, final_pos_cost, obstacle_uncertainty_list, obstacle_uncertainty_times, moving_direction_uncertainty_list, moving_direction_uncertainty_times}; %Note that this containts both parameters, variables, and combination of both. If they are parameters, the corresponding value will be returned
+results_names={'pCPs','yCPs','all_nd','total_cost', 'yaw_smooth_cost', 'pos_smooth_cost','alpha','fov_cost','final_yaw_cost','final_pos_cost', 'obstacle_uncertainty_list', 'obstacle_uncertainty_times', 'moving_direction_uncertainty_list', 'moving_direction_uncertainty_times'};
 
 %%
 %% compute cost

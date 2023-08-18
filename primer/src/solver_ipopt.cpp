@@ -1119,6 +1119,29 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       }
 
       ///////////////////////////
+      // Uncertrainty Results
+
+      solution.obstacle_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["obstacle_uncertainty_list"]);
+      solution.obstacle_uncertainty_times = casadiMatrix2StdVectorDouble(result["obstacle_uncertainty_times"]);
+
+      solution.moving_direction_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["moving_direction_uncertainty_list"]);
+      solution.moving_direction_uncertainty_times = casadiMatrix2StdVectorDouble(result["moving_direction_uncertainty_times"]);
+      ///////////////////////////
+
+      // Print the uncertainty vectors and times
+      std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_list)
+      {
+        std::cout << tmp.transpose() << std::endl;
+      }
+
+      std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_times)
+      {
+        std::cout << tmp << std::endl;
+      }
+
+      ///////////////////////////
       // solution.fillTraj(par_.dc);
 
       // CPs2Traj(solution.qp, solution.qy, knots_p_solution, knots_y_solution, solution.traj, par_.deg_pos,

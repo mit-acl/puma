@@ -33,7 +33,7 @@ class Panther
 public:
   Panther(mt::parameters par);
   ~Panther();
-  bool replan(mt::Edges& edges_obstacles_out, si::solOrGuess& best_solution_expert,
+  bool replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_uncertainty_out, si::solOrGuess& best_solution_expert,
               std::vector<si::solOrGuess>& best_solutions_expert, si::solOrGuess& best_solution_student,
               std::vector<si::solOrGuess>& best_solutions_student, std::vector<si::solOrGuess>& guesses,
               std::vector<si::solOrGuess>& splines_fitted, std::vector<Hyperplane3D>& planes, mt::log& log,
@@ -87,8 +87,10 @@ private:
   mt::committedTrajectory plan_;
 
   ConvexHullsOfCurves convexHullsOfCurves(double t_start, double t_end);
+  ConvexHullsOfCurves convexHullsOfCurvesWithUncertainty(double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
   ConvexHullsOfCurves convexHullsOfCurvesForObstacleEdge(double t_start, double t_end, const Eigen::Affine3d& c_T_b, const Eigen::Affine3d& w_T_b);
   ConvexHullsOfCurve convexHullsOfCurve(mt::dynTrajCompiled& traj, double t_start, double t_end);
+  ConvexHullsOfCurve convexHullsOfCurveWithUncertainty(mt::dynTrajCompiled& traj, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty, double t_start, double t_end);
   CGAL_Polyhedron_3 convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
 
   std::vector<mt::obstacleForOpt> getObstaclesForOpt(double t_start, double t_end,

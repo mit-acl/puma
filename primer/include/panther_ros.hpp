@@ -76,6 +76,7 @@ private:
   void clearMarkerActualTraj();
   void clearMarkerColoredTraj();
   void clearObstacleEdges();
+  void clearObstacleUncertaintyEdges();
 
   void pubActualTraj();
   visualization_msgs::MarkerArray clearArrows();
@@ -91,6 +92,7 @@ private:
   void publishFOV();
 
   void pubObstacles(mt::Edges edges_obstacles);
+  void pubObstaclesWithUncertainty(mt::Edges edges_obstacles_uncertainty);
 
   void constructFOVMarker();
 
@@ -126,6 +128,8 @@ private:
 
   ros::Publisher pub_best_solutions_student_;
   ros::Publisher pub_best_solution_student_;
+
+  ros::Publisher pub_obstacle_uncertainty_;
 
   ros::Publisher pub_guesses_;
   ros::Publisher pub_splines_fitted_;

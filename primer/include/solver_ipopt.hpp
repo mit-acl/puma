@@ -48,6 +48,12 @@ struct solOrGuess
   std::vector<Eigen::Vector3d> qp;  // control points for position
   std::vector<double> qy;           // control points for yaw
 
+  std::vector<Eigen::Vector3d> obstacle_uncertainty_list;
+  std::vector<double> obstacle_uncertainty_times;
+
+  std::vector<Eigen::Vector3d> moving_direction_uncertainty_list;
+  std::vector<double> moving_direction_uncertainty_times;
+
   // mt::PieceWisePol pwp;
   Eigen::RowVectorXd knots_p;  // contains time information
   Eigen::RowVectorXd knots_y;  // contains time information
