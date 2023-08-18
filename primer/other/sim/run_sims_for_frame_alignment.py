@@ -144,8 +144,9 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking")
-    parser.add_argument("--use_rviz", help="Whether to use rviz.", default=True)
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking")
+    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=True)
+    parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
 
     OUTPUT_DIR = args.output_dir
@@ -156,15 +157,15 @@ def main():
     ##
 
     # for dicts
-    NUM_OF_AGENTS = [2]
+    NUM_OF_AGENTS = [1]
     NUM_OF_OBJECTS = [10]
-    OBJECTS_TYPE = ["pads", "random"]
-    DRIFT_TYPE = ["none", "constant", "linear"]
+    OBJECTS_TYPE = ["pads"] #["pads", "random"]
+    DRIFT_TYPE = ["linear"] #["none", "constant", "linear"]
     CONSTANT_TRANSLATIONAL_DRIFT_OFFSET = [[1.0, 1.0]] # [m]
     CONSTANT_ROTATIONAL_DRIFT_OFFSET = [30.0] # [deg]
     LINEAR_TRANSLATIONAL_DRIFT_RATE = [[0.1, 0.1]] # [m/s]
     LINEAR_ROTATIONAL_DRIFT_RATE = [1.0] # [deg/s]
-    TRAJ_TYPE = ["circle", "venn_diagram"]
+    TRAJ_TYPE = ["circle"] #["circle", "venn_diagram"]
     
     # others
     NUM_OF_SIMS = 1
@@ -244,7 +245,6 @@ def main():
             
             ## roscore
             commands.append("roscore")
-
             
             ## publish params for trajectory_generator
             AGENTS_NAMES = [] # create a list of agent names
