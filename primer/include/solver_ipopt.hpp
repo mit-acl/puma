@@ -35,6 +35,7 @@
 typedef PANTHER_timers::Timer MyTimer;
 
 std::vector<Eigen::Vector3d> casadiMatrix2StdVectorEigen3d(const casadi::DM &qp_casadi);
+std::vector<Eigen::Matrix<double, 9, 1>> casadiMatrix2StdVectorEigen9d(const casadi::DM &qp_casadi);
 std::vector<double> casadiMatrix2StdVectorDouble(const casadi::DM &qy_casadi);
 casadi::DM stdVectorEigen3d2CasadiMatrix(const std::vector<Eigen::Vector3d> &qp);
 casadi::DM stdVectorDouble2CasadiRowVector(const std::vector<Eigen::Vector3d> &qp);
@@ -49,9 +50,11 @@ struct solOrGuess
   std::vector<double> qy;           // control points for yaw
 
   std::vector<Eigen::Vector3d> obstacle_uncertainty_list;
+  std::vector<Eigen::Matrix<double, 9, 1>> obstacle_sigma_list;
   std::vector<double> obstacle_uncertainty_times;
 
   std::vector<Eigen::Vector3d> moving_direction_uncertainty_list;
+  std::vector<Eigen::Matrix<double, 9, 1>> moving_direction_sigma_list;
   std::vector<double> moving_direction_uncertainty_times;
 
   // mt::PieceWisePol pwp;
