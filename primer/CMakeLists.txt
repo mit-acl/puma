@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 2.8.12)
 # cmake_minimum_required(VERSION 3.16) #To be able to use target_precompile_headers
 project(primer)
 
-# add_definitions(-std=c++17)
+add_definitions(-std=c++17)
 # set(CMAKE_CXX_STANDARD 17)
-add_definitions(-std=c++14)
+# add_definitions(-std=c++14)
 #add_definitions(-std=c99)
 
 find_package( Eigen3 REQUIRED )
