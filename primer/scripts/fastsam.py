@@ -21,6 +21,7 @@ import skimage
 from FastSAM.fastsam import *
 from utils import get_quaternion_from_euler, plotErrorEllipse
 import matplotlib.pyplot as plt
+from std_srvs.srv import Empty
 
 class FastSAM_ROS:
 
@@ -37,16 +38,14 @@ class FastSAM_ROS:
             # asus camera
             # self.camera_name_topic = "camera/rgb"
             # self.camera = "sim_camera"
-
             # t265 camera
             self.camera_name_topic = "camera/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
-            self.world_name_topic = "goal" # if you use perfect_tracker in primer, "world" won't be published.
+            self.world_name_topic = "corrupted_world" # if you use perfect_tracker in primer, "world" won't be published.
         else:
-            # self.camera_name_topic = "t265/fisheye1"
-            self.camera_name_topic = "camera/fisheye1"
+            self.camera_name_topic = "t265/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
-            self.world_name_topic = "corrupted_world"
+            self.world_name_topic = "world"
 
         # get undistortion params
         self.get_undistortion_params()
@@ -81,21 +80,22 @@ class FastSAM_ROS:
         self.image_number = 0
 
         # set up ROS communications
-        if self.is_sim:
-            # if you use sim (perfect_tracker), "world" won't be published and we need to use "goal" that is jjrkkrpublished sporadically. So we store those values as world_pose to sync with the image.            rospy.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, Goal, self.store_world_pose)
-            rospy.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, Goal, self.store_world_pose)
-            self.world_pose = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            rospy.Subscriber(f'{self.camera_name_topic}/image_raw', Image, self.store_image)
-            self.img = None
-            self.pub_world = rospy.Publisher('world', PoseStamped, queue_size=1)
-        else: # hw
-            subs = []
-            subs.append(message_filters.Subscriber(rospy.get_namespace()+'/'+self.world_name_topic, PoseStamped, queue_size=10))
-            subs.append(message_filters.Subscriber(f'{self.camera_name_topic}/image_raw', Image, queue_size=1)) # we only need the most recent image
-            self.ats = message_filters.ApproximateTimeSynchronizer(subs, queue_size=100, slop=.05)
-            self.ats.registerCallback(self.fastsam_cb)
-
+        subs = []
+        subs.append(message_filters.Subscriber(rospy.get_namespace()+self.world_name_topic, PoseStamped, queue_size=10))
+        subs.append(message_filters.Subscriber(f'{self.camera_name_topic}/image_raw', Image, queue_size=1)) # we only need the most recent image
+        self.ats = message_filters.ApproximateTimeSynchronizer(subs, queue_size=100, slop=.05)
+        self.ats.registerCallback(self.fastsam_cb)
         self.pub_objarray = rospy.Publisher('detections', motlee_msgs.ObjArray, queue_size=1)
+
+        # listen to start_drift service
+        self.start_drift = False
+        rospy.Service('fast_sam/start_drift', Empty, self.start_drift_cb)
+
+    # set start_drift to true
+    def start_drift_cb(self, req):
+        print("start drift")
+        self.start_drift = True
+        return []
 
     # for simulation, we need to store the image since /goal is not published all the time
     def store_image(self, img):
@@ -128,6 +128,11 @@ class FastSAM_ROS:
 
     # function for image processing
     def fastsam_cb(self, pose_msg, img):
+
+        # if start_drift is false, don't do anything
+        if not self.start_drift:
+            return
+
         # convert img to cv2_img
         bridge = CvBridge()
         # note: FastSAM expects RGB images (https://github.com/CASIA-IVA-Lab/FastSAM/blob/main/Inference.py)
@@ -135,11 +140,7 @@ class FastSAM_ROS:
         cv_img = bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
 
         # undistort cv2_img
-        if self.is_sim:
-            undistorted_img = cv_img # no need to undistort in sim
-        else:
-            undistorted_img = cv_img
-            # undistorted_img = self.undistort_image(cv_img)
+        undistorted_img = cv_img # no need to undistort in sim
 
         ### debug
         # show undistorted_img
@@ -281,7 +282,7 @@ class FastSAM_ROS:
     # map the blob_means to the world frame
     def map_to_world(self, pose_msg, blob_means):
 
-        if not self.is_sim:
+        if self.is_sim:
             pose = [] # x, y, z, qx, qy, qz, qw
             pose.append(pose_msg.pose.position.x)
             pose.append(pose_msg.pose.position.y)
