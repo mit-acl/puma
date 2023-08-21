@@ -47,7 +47,7 @@
   -->
   
   <group if="$(arg gazebo)">
-    <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_realsense.launch">
+    <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
         <arg name="name" value="$(arg quad)"/>
         <arg name="tf_prefix" default="$(optenv ROS_NAMESPACE)"/>
         <arg name="x" value="$(arg x)"/>
@@ -72,13 +72,13 @@
     Perfect Controller for Agent (TODO: needs to give veh and num arguments for each agent)
   -->
 
-  <group unless="$(arg perfect_controller)"> 
+  <!-- <group unless="$(arg perfect_controller)"> 
     <include file="$(find snap_sim)/launch/sim.launch">
       <arg name="veh" value="$(arg veh)"/>
       <arg name="num" value="$(arg num)"/>
       <arg name="rviz" value="$(arg rviz)"/>
     </include> 
-  </group>
+  </group> -->
 
   <!--
     Static Transformer for Agent
@@ -92,7 +92,6 @@
    PANTHER launch
   -->
 
-  <?ignore
   <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
@@ -117,6 +116,5 @@
     <remap from="~setpoint" to="setpoint" />
 
   </node>
-  ?>
 
 </launch>
