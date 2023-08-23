@@ -47,7 +47,7 @@
   -->
   
   <group if="$(arg gazebo)">
-    <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
+    <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_realsense.launch">
         <arg name="name" value="$(arg quad)"/>
         <arg name="tf_prefix" default="$(optenv ROS_NAMESPACE)"/>
         <arg name="x" value="$(arg x)"/>
@@ -92,6 +92,8 @@
    PANTHER launch
   -->
 
+
+  <?ignore
   <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
@@ -116,5 +118,6 @@
     <remap from="~setpoint" to="setpoint" />
 
   </node>
+  ?>
 
 </launch>
