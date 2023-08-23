@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1
-        - /TF1/Status1
         - /TF1/Frames1
         - /Image3
         - /DepthCloudSQ01s1/Auto Size1
@@ -109,8 +108,48 @@ Visualization Manager:
           Value: false
         obs_4009:
           Value: false
+        obs_4010:
+          Value: false
+        obs_4011:
+          Value: false
+        obs_4012:
+          Value: false
+        obs_4013:
+          Value: false
+        obs_4014:
+          Value: false
+        obs_4015:
+          Value: false
+        obs_4016:
+          Value: false
+        obs_4017:
+          Value: false
+        obs_4018:
+          Value: false
+        obs_4019:
+          Value: false
+        obs_4020:
+          Value: false
+        obs_4021:
+          Value: false
+        obs_4022:
+          Value: false
+        obs_4023:
+          Value: false
+        obs_4024:
+          Value: false
+        obs_4025:
+          Value: false
+        obs_4026:
+          Value: false
+        obs_4027:
+          Value: false
+        obs_4028:
+          Value: false
+        obs_4029:
+          Value: false
         vicon:
-          Value: true
+          Value: false
         world:
           Value: false
       Marker Alpha: 1
@@ -121,16 +160,8 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
-          SQ01s:
-            SQ01s/camera_link:
-              SQ01s/camera_depth_optical_frame:
-                {}
           SQ01s/corrupted_world:
             {}
-          SQ02s:
-            SQ02s/camera_link:
-              SQ02s/camera_depth_optical_frame:
-                {}
           SQ02s/corrupted_world:
             {}
           obs_4000:
@@ -153,8 +184,55 @@ Visualization Manager:
             {}
           obs_4009:
             {}
-          vicon:
+          obs_4010:
             {}
+          obs_4011:
+            {}
+          obs_4012:
+            {}
+          obs_4013:
+            {}
+          obs_4014:
+            {}
+          obs_4015:
+            {}
+          obs_4016:
+            {}
+          obs_4017:
+            {}
+          obs_4018:
+            {}
+          obs_4019:
+            {}
+          obs_4020:
+            {}
+          obs_4021:
+            {}
+          obs_4022:
+            {}
+          obs_4023:
+            {}
+          obs_4024:
+            {}
+          obs_4025:
+            {}
+          obs_4026:
+            {}
+          obs_4027:
+            {}
+          obs_4028:
+            {}
+          obs_4029:
+            {}
+          vicon:
+            SQ01s:
+              SQ01s/camera_link:
+                SQ01s/camera_depth_optical_frame:
+                  {}
+            SQ02s:
+              SQ02s/camera_link:
+                SQ02s/camera_depth_optical_frame:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -772,7 +850,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/drone_marker
       Name: MeshSQ01s
       Namespaces:
-        {}
+        mesh_SQ01s: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -780,7 +858,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/drone_marker
       Name: MeshSQ02s
       Namespaces:
-        {}
+        mesh_SQ02s: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -847,9 +925,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7897971868515015
+      Pitch: 1.344797134399414
       Target Frame: <Fixed Frame>
-      Yaw: 4.683182239532471
+      Yaw: 4.713181972503662
     Saved: ~
 Window Geometry:
   DepthImage:

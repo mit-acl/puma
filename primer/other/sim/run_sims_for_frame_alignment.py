@@ -32,91 +32,68 @@ def write_readme_file(f, output_folder, d):
     f.write("num_of_objects: {}\n".format(d["num_of_objects"]))
     f.write("objects_type:   {}\n".format(d["objects_type"]))
     f.write("drift_type:     {}\n".format(d["drift_type"]))
-    f.write("constant_translational_drift_offset: {}\n".format(d["constant_translational_drift_offset"]))
-    f.write("constant_rotational_drift_offset:    {}\n".format(d["constant_rotational_drift_offset"]))
-    f.write("linear_translational_drift_rate:     {}\n".format(d["linear_translational_drift_rate"]))
-    f.write("linear_rotational_drift_rate:        {}\n".format(d["linear_rotational_drift_rate"]))
+    f.write("traj_type:      {}\n".format(d["traj_type"]))
+    f.write("constant_translational_drift_offset: {}\n".format(d["drifts"][:2]))
+    f.write("constant_rotational_drift_offset:    {}\n".format(d["drifts"][2]))
+    f.write("linear_translational_drift_rate:     {}\n".format(d["drifts"][3:5]))
+    f.write("linear_rotational_drift_rate:        {}\n".format(d["drifts"][5]))
     f.write("*******************************************************\n")
 
-def get_drift(is_constant_drift, is_linear_drift, constant_translational_drift_offset, \
-               constant_rotational_drift_offset, linear_translational_drift_rate, linear_rotational_drift_rate):
+def get_drift(drifts, agent_name):
     
-    # constant drift params
-    constant_drift_x=0.0
-    constant_drift_y=0.0
-    constant_drift_z=0.0
-    constant_drift_roll=0.0
-    constant_drift_pitch=0.0
-    constant_drift_yaw=0.0
+    if agent_name == "SQ01s": # hardcoded
+
+        # constant drift params
+        constant_drift_x=drifts[0]
+        constant_drift_y=drifts[1]
+        constant_drift_z=0.0
+        constant_drift_roll=0.0
+        constant_drift_pitch=0.0
+        constant_drift_yaw=drifts[2]
+        
+        # linear drift params
+        linear_drift_rate_x=drifts[3]
+        linear_drift_rate_y=drifts[4]
+        linear_drift_rate_z=0.0
+        linear_drift_rate_roll=0.0
+        linear_drift_rate_pitch=0.0
+        linear_drift_rate_yaw=drifts[5]
     
-    # linear drift params
-    linear_drift_rate_x=0.0
-    linear_drift_rate_y=0.0
-    linear_drift_rate_z=0.0
-    linear_drift_rate_roll=0.0
-    linear_drift_rate_pitch=0.0
-    linear_drift_rate_yaw=0.0
-    
-    if is_constant_drift:
-        constant_drift_x=constant_translational_drift_offset[0]
-        constant_drift_y=constant_translational_drift_offset[1]
-        constant_drift_yaw=np.deg2rad(constant_rotational_drift_offset)
+        return constant_drift_x, constant_drift_y, constant_drift_z, constant_drift_roll, constant_drift_pitch, constant_drift_yaw, \
+            linear_drift_rate_x, linear_drift_rate_y, linear_drift_rate_z, linear_drift_rate_roll, linear_drift_rate_pitch, linear_drift_rate_yaw
 
-    if is_linear_drift:
-        linear_drift_rate_x=linear_translational_drift_rate[0]
-        linear_drift_rate_y=linear_translational_drift_rate[1]
-        linear_drift_rate_yaw=np.deg2rad(linear_rotational_drift_rate)
-    
-    return constant_drift_x, constant_drift_y, constant_drift_z, constant_drift_roll, constant_drift_pitch, constant_drift_yaw, linear_drift_rate_x, linear_drift_rate_y, linear_drift_rate_z, linear_drift_rate_roll, linear_drift_rate_pitch, linear_drift_rate_yaw
+    elif agent_name == "SQ02s": # hardcoded
 
-def set_drift_type(drift_type, agent_name):
-    # set drift type
-    # if agent_name is SQ02s, then there is not drift
-    if agent_name=="SQ02s": # hardcoded
-        is_constant_drift=False
-        is_linear_drift=False
-    else: # SQ01s
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-        is_constant_drift=False
-        is_linear_drift=False
-
-        if drift_type=="constant":
-            is_constant_drift=True
-        elif drift_type=="linear":
-            is_linear_drift=True
-        elif drift_type=="none":
-            pass
-        else:
-            print("drift_type must be either none, constant or linear")
-            sys.exit()
-
-    return is_constant_drift, is_linear_drift
-
-def agent_dependent_topics(commands, agent_name, other_agent_names, time_fastsam_and_mot, kappa_mot, time_traj_gen, \
-                            time_takeoff, time_move_to_start, time_start_traj, is_constant_drift, is_linear_drift, \
-                            constant_translational_drift_offset, constant_rotational_drift_offset, \
-                            linear_translational_drift_rate, linear_rotational_drift_rate):
+def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, time_traj_gen, \
+                            time_takeoff, time_move_to_start, time_start_traj, drifts):
     
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
     commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={0.0} y:={0.0} z:=0.0 rviz:=false")
 
-    ## fastsam
-    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=false")
+    ## fastsam (triggered by rosservice call /{agent_name}/pose_corrupter/start_drift)
+    commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=true")
 
     ## mot
-    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait motlee_ros mapper.launch quad:={agent_name} kappa:={kappa_mot}")
+    commands.append(f"roslaunch --wait motlee_ros mapper.launch quad:={agent_name} kappa:={kappa_mot}")
 
     ## frame alignment
-    commands.append(f"sleep "+str(time_fastsam_and_mot)+f" && roslaunch --wait motlee_ros frame_aligner.launch quad1:={agent_name} quad2:={other_agent_names}")
+    commands.append(f"roslaunch --wait motlee_ros frame_aligner.launch quad1:={agent_name} quad2:={other_agent_names}")
 
     ## pose corrupter
     constant_drift_x, constant_drift_y, constant_drift_z, constant_drift_roll, constant_drift_pitch, constant_drift_yaw, \
-    linear_drift_rate_x, linear_drift_rate_y, linear_drift_rate_z, linear_drift_rate_roll, linear_drift_rate_pitch, \
-    linear_drift_rate_yaw = get_drift(is_constant_drift, is_linear_drift, constant_translational_drift_offset, constant_rotational_drift_offset, \
-                                        linear_translational_drift_rate, linear_rotational_drift_rate)
+    linear_drift_rate_x, linear_drift_rate_y, linear_drift_rate_z, linear_drift_rate_roll, linear_drift_rate_pitch, linear_drift_rate_yaw = get_drift(drifts, agent_name)
     
+    if agent_name == "SQ01s": # hardcoded
+        is_constant_drift = drifts[6]
+        is_linear_drift = drifts[7]
+    elif agent_name == "SQ02s":
+        is_constant_drift = False
+        is_linear_drift = False
+
     commands.append(f"roslaunch --wait primer pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
         constant_drift_y:={constant_drift_y} constant_drift_z:={constant_drift_z} constant_drift_roll:={constant_drift_roll} constant_drift_pitch:={constant_drift_pitch} \
         constant_drift_yaw:={constant_drift_yaw} is_linear_drift:={is_linear_drift} linear_drift_rate_x:={linear_drift_rate_x} linear_drift_rate_y:={linear_drift_rate_y} \
@@ -134,6 +111,9 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, time_fastsam
 
     ## start trajectory generator
     commands.append(f"sleep "+str(time_start_traj)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
+    ## and at the same time start introducing drift (rosservice)
+    commands.append(f"sleep "+str(time_start_traj)+f" && rosservice call /{agent_name}/pose_corrupter/start_drift")
+    commands.append(f"sleep "+str(time_start_traj)+f" && rosservice call /{agent_name}/fast_sam/start_drift")
 
     return commands
 
@@ -145,7 +125,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
     parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking")
-    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=True)
+    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=False, type=bool)
     parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
 
@@ -157,19 +137,38 @@ def main():
     ##
 
     # for dicts
-    NUM_OF_AGENTS = [1]
-    NUM_OF_OBJECTS = [10]
-    OBJECTS_TYPE = ["pads"] #["pads", "random"]
-    DRIFT_TYPE = ["linear"] #["none", "constant", "linear"]
-    CONSTANT_TRANSLATIONAL_DRIFT_OFFSET = [[1.0, 1.0]] # [m]
-    CONSTANT_ROTATIONAL_DRIFT_OFFSET = [30.0] # [deg]
-    LINEAR_TRANSLATIONAL_DRIFT_RATE = [[10, 10]] # [m/s]
-    LINEAR_ROTATIONAL_DRIFT_RATE = [20.0] # [deg/s]
-    TRAJ_TYPE = ["circle"] #["circle", "venn_diagram"]
+    NUM_OF_AGENTS = [2]
+    NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
+    OBJECTS_TYPE = ["pads", "random"] 
+    TRAJ_TYPE = ["circle", "venn_diagram"]
+    
+    # TODO: there's redandancy in the following two lists, but it's easier to implement this way
+    cdx = 1.0 # constant drift x
+    cdy = 1.0 # constant drift y
+    cdyaw = 10.0 # constant drift yaw
+    ldx = 0.001 # linear drift x
+    ldy = 0.001 # linear drift y
+    ldyaw = 0.001 # linear drift yaw
+
+    # drift parameters [m, m, deg, m/s, m/s, deg/s, "is_constant_drift", "is_linear_drift"]
+    # no drift
+    # trans constant drift
+    # rot constant drift
+    # trans and rot constant drift
+    # trans linear drift
+    # rot linear drift
+    # trans and rot linear drift
+    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
+                [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
+                [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
+                [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
+                [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
     
     # others
     NUM_OF_SIMS = 1
-    SIM_DURATION = 60  # seconds
+    SIM_DURATION = 100  # seconds
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
     CIRCLE_CENTER = [[0.0, 0.0], [0.0, 0.0]] # [m]
     VEN_DIAG_CENTER = [[1.0, 0.0], [-1.0, 0.0]] # [m]
@@ -178,17 +177,16 @@ def main():
     ## MOT parameters
     ##
     
-    KAPPA_MOT = 400
+    KAPPA_MOT = 600
 
     ##
     ## Trajectory generator parameters
     ##
 
-    TIME_TRAJ_GEN = 3.0 # if you don't wait until snap_sim is ready, it will generate an error "Could not read parameters."
+    TIME_TRAJ_GEN = 3.0
     TIME_TAKEOFF = 10.0
     TIME_MOVE_TO_START = 25.0
     TIME_START_TRAJ = 35.0
-    TIME_FASTSAM_AND_MOT = TIME_START_TRAJ - 7.0 # takes a bit while to start fastsam and mot
 
     ##
     ## make sure ROS (and related stuff) is not running
@@ -201,12 +199,8 @@ def main():
     ##
 
     # create a dictionary (cause we don't want a nested for loop)
-    DICTS = [ {"num_of_agents": num_of_agents, "num_of_objects": num_of_objects, "objects_type": objects_type, "drift_type": drift_type, \
-                "constant_translational_drift_offset": constant_translational_drift_offset, "constant_rotational_drift_offset": constant_rotational_drift_offset, \
-                "linear_translational_drift_rate": linear_translational_drift_rate, "linear_rotational_drift_rate": linear_rotational_drift_rate, "traj_type": traj_type} \
-                for num_of_agents in NUM_OF_AGENTS for num_of_objects in NUM_OF_OBJECTS for objects_type in OBJECTS_TYPE for drift_type in DRIFT_TYPE \
-                for constant_translational_drift_offset in CONSTANT_TRANSLATIONAL_DRIFT_OFFSET for constant_rotational_drift_offset in CONSTANT_ROTATIONAL_DRIFT_OFFSET \
-                for linear_translational_drift_rate in LINEAR_TRANSLATIONAL_DRIFT_RATE for linear_rotational_drift_rate in LINEAR_ROTATIONAL_DRIFT_RATE for traj_type in TRAJ_TYPE]
+    DICTS = [ {"num_of_agents": num_of_agents, "num_of_objects": num_of_objects, "objects_type": objects_type, "traj_type": traj_type, "drifts": drifts} \
+                for num_of_agents in NUM_OF_AGENTS for num_of_objects in NUM_OF_OBJECTS for objects_type in OBJECTS_TYPE for traj_type in TRAJ_TYPE for drifts in DRIFTS]
 
     ## comment out params we change
     os.system("sed -i '/center_x/s/^/#/g' $(rospack find trajectory_generator)/config/default.yaml")
@@ -214,6 +208,19 @@ def main():
 
     # loop over the dictionary
     for dic_index, d in enumerate(DICTS):
+
+        print("####### Case {} #######".format(dic_index))
+
+        ## add drift type
+
+        if not d["drifts"][6] and not d["drifts"][7]:
+            d["drift_type"] = "no_drift"
+        elif d["drifts"][6] and not d["drifts"][7]:
+            d["drift_type"] = "constant"
+        elif not d["drifts"][6] and d["drifts"][7]:
+            d["drift_type"] = "linear"
+        elif d["drifts"][6] and d["drifts"][7]:
+            raise Exception("Drift type not implemented yet")
 
         ##
         ## set up folders
@@ -266,16 +273,11 @@ def main():
                 # return every other agent name
                 other_agent_names = [x for x in AGENTS_NAMES if x != agent_name]
 
-                # set drift type
-                is_constant_drift, is_linear_drift = set_drift_type(d["drift_type"], agent_name)
-
                 # add topics
                 commands = agent_dependent_topics(commands, agent_name, other_agent_names, \
-                                                  TIME_FASTSAM_AND_MOT, KAPPA_MOT, TIME_TRAJ_GEN, TIME_TAKEOFF, \
-                                                    TIME_MOVE_TO_START, TIME_START_TRAJ, is_constant_drift, is_linear_drift, \
-                                                    d["constant_translational_drift_offset"], d["constant_rotational_drift_offset"], \
-                                                    d["linear_translational_drift_rate"], d["linear_rotational_drift_rate"])
-                
+                                                    KAPPA_MOT, TIME_TRAJ_GEN, TIME_TAKEOFF, \
+                                                    TIME_MOVE_TO_START, TIME_START_TRAJ, \
+                                                    d["drifts"])    
                 # add topics to record
                 topics_to_record = topics_to_record + "/{}/world /{}/state /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift ".format(*[agent_name]*7)
 
@@ -315,8 +317,49 @@ def main():
             time.sleep(0.5)
             print("Killing the rest")
             os.system(KILL_ALL)
+
+    ## process data
+    print("Processing data")
+
+
+    ##
+    ## tmux & sending commands
+    ##
+
+    proc_commands = []
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/frame/sim/benchmarking")
+
+    session_name="processing"
+    os.system("tmux kill-session -t" + session_name)
+    os.system("tmux new -s "+str(session_name)+" -x 300 -y 300")
+
+    for i in range(len(proc_commands)):
+        os.system('tmux split-window ; tmux select-layout tiled')
     
-    ## uncomeent params we change
+    for i in range(len(proc_commands)):
+        os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
+
+    print("proc_commands sent")
+
+    ##
+    ## wait until the sim is done
+    ##
+
+    time.sleep(SIM_DURATION + TIME_START_TRAJ)
+
+    ##
+    ## kill the sim
+    ##
+
+    os.system("rosnode kill "+sim_name)
+    time.sleep(0.5)
+    print("Killing the rest")
+    os.system(KILL_ALL)
+
+    
+    ## uncomment params we change
     os.system("sed -i '/center_x/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
     os.system("sed -i '/center_y/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
 

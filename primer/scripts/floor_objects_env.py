@@ -77,12 +77,6 @@ def getColorJet(v, vmin, vmax):
 ## -------------------------------------------------------------------------
 ##
 
-# create a objects (hardcoded for now)
-object_positions = [[1.30538948174781, 0.08792017608525951], [1.7556711854938247, 1.5301845738388788], [-2.970445795397385, -0.017968445918466327], \
-                    [3.470787181274709, 4.078329613986586], [2.168708267646973, -1.2237931460359912], [-3.9456521452453295, -1.5780622937245332], \
-                    [-2.4715796031824846, 4.221399753581286], [4.441561003442656, -1.692115998046444], [4.255669637763099, 2.300721891392908], \
-                    [-1.2788058555668842, 0.8623606354570972]]
-
 ##
 ## -------------------------------------------------------------------------
 ##
@@ -91,8 +85,13 @@ class DynCorridor:
 
     def __init__(self, total_num_obs,gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj, objects_type):
 
-        # get random seed
-        random.seed(datetime.now())
+        # get random seed (need to sync with plot_animation.py)
+        np.random.seed(10)
+
+        # create the random object positions
+        xy_min = [-5, -5]
+        xy_max = [5, 5]
+        self.object_positions = np.random.uniform(low=xy_min, high=xy_max, size=(total_num_obs,2))
 
         # get gazebo flag
         self.state=State()
@@ -129,9 +128,10 @@ class DynCorridor:
         self.objects_type=objects_type
         if self.objects_type == "pads":
             self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/model3.dae"]
-            self.bbox_static=[0.5, 0.5, 0.05]
+            self.bbox_static=[0.3, 0.3, 0.05]
         elif self.objects_type == "random":
-            objects_name = ["flashlight", "table", "microwave", "fireextinguisher", "notebook", "notebook", "fireextinguisher", "flashlight", "microwave", "table"]
+            objects_list = ["flashlight", "table", "microwave", "fireextinguisher", "notebook", "notebook", "fireextinguisher", "flashlight", "microwave", "table"]
+            objects_name = [objects_list[i] for i in np.random.randint(0, len(objects_list), self.num_of_stat_objects)]
             self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in objects_name]
             self.bbox_static=[0.2, 0.2, 0.2]
         
@@ -183,8 +183,8 @@ class DynCorridor:
         # x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
         # y=random.uniform(self.y_min, self.y_max)
         # z=random.uniform(self.z_min, self.z_max)
-        x=object_positions[i][0]
-        y=object_positions[i][1]
+        x=self.object_positions[i][0]
+        y=self.object_positions[i][1]
         z=0.0
         offset=random.uniform(-2*math.pi, 2*math.pi)
         slower=random.uniform(self.slower_min, self.slower_max)

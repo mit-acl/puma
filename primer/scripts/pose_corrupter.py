@@ -134,14 +134,14 @@ class POSE_CORRUPTER_ROS:
             # if you introduce pose drift, you need to change the position in terms of the drift
             T = np.eye(4)
             T[:3,3] = [self.constant_drift_x, self.constant_drift_y, self.constant_drift_z]
-            T[:3,:3] = Rot.from_euler('xyz', [self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw]).as_matrix()
+            T[:3,:3] = Rot.from_euler('xyz', [self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw], degrees=True).as_matrix()
             rotated_position = transform(T, position - self.initial_position)
             pub_pose_msg.pose.position.x = rotated_position[0] + self.initial_position[0]
             pub_pose_msg.pose.position.y = rotated_position[1] + self.initial_position[1]
             pub_pose_msg.pose.position.z = rotated_position[2] + self.initial_position[2]
             
             # corrupt the quaternion
-            corrupted_quaternion = self.corrupt_quaternion_constant_drift(orientation)
+            corrupted_quaternion = self.corrupt_quaternion_constant_drift(T, orientation)
             pub_pose_msg.pose.orientation.x = corrupted_quaternion.x
             pub_pose_msg.pose.orientation.y = corrupted_quaternion.y
             pub_pose_msg.pose.orientation.z = corrupted_quaternion.z
@@ -180,7 +180,14 @@ class POSE_CORRUPTER_ROS:
                             "world")
         
         # publish drift
-        if self.is_initialied:
+        if not self.is_linear_drift:
+            drift_msg = Drift()
+            drift_msg.header.stamp = rospy.Time.now()
+            drift_msg.header.frame_id = "world"
+            drift_msg.drift_pos = np.array([pub_pose_msg.pose.position.x - position[0], pub_pose_msg.pose.position.y - position[1], pub_pose_msg.pose.position.z - position[2]])
+            drift_msg.drift_euler = np.array([self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw])
+            self.pub_drift.publish(drift_msg)
+        else:
             T_drift = self.drifty_estimate.T_drift
             drift_msg = Drift()
             drift_msg.header.stamp = rospy.Time.now()
@@ -190,13 +197,10 @@ class POSE_CORRUPTER_ROS:
             self.pub_drift.publish(drift_msg)
     
     # corrupt quaternion for constant drift
-    def corrupt_quaternion_constant_drift(self, orientation):
-        euler = quaternion_to_euler_angle_vectorized1(orientation[3], orientation[0], orientation[1], orientation[2])
-        roll = euler[0] + self.constant_drift_roll
-        pitch = euler[1] + self.constant_drift_pitch
-        yaw = euler[2] + self.constant_drift_yaw
-        quaternion = get_quaternion_from_euler(roll, pitch, yaw)
-        return quaternion
+    def corrupt_quaternion_constant_drift(self, T, orientation):
+        corrupted_R = T[:3,:3] @ Rot.from_quat(orientation).as_matrix()
+        quaternion = Rot.from_matrix(corrupted_R).as_quat()
+        return np.quaternion(quaternion[3], quaternion[0], quaternion[1], quaternion[2])
 
 if __name__ == '__main__':
     rospy.init_node('pose_corrupter')
