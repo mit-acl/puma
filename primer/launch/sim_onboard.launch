@@ -92,8 +92,6 @@
    PANTHER launch
   -->
 
-
-  <?ignore
   <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
@@ -118,6 +116,5 @@
     <remap from="~setpoint" to="setpoint" />
 
   </node>
-  ?>
 
 </launch>

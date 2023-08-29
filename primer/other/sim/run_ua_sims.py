@@ -29,16 +29,16 @@ def get_start_end_state():
     start_y_min = -1.0
     start_y_max = 1.0
     start_z_min = 0.5
-    start_z_max = 3
+    start_z_max = 1.5
     start_yaw_min = -math.pi
     start_yaw_max = math.pi
 
-    end_x_min = 6.0
+    end_x_min = 8.0
     end_x_max = 9.0
-    end_y_min = -1.0
-    end_y_max = 1.0
+    end_y_min = -4
+    end_y_max = 4
     end_z_min = 0.5
-    end_z_max = 3
+    end_z_max = 1.5
 
     x_start_list = []
     y_start_list = []
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     DATA_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "bags")
     RECORD_NODE_NAME = "bag_recorder"
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log"
+    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
     USE_RVIZ = sys.argv[2] if len(sys.argv) >2 else "true"
     # AGENTS_TYPES = ["parm", "parm_star", "primer"]
     AGENTS_TYPES = ["primer"]
@@ -163,7 +163,7 @@ if __name__ == '__main__':
             #     agent_bag_recorders.append(agent_bag_recorder)
             #     commands.append("sleep "+str(time_sleep)+" && cd "+folder_bags+" && rosbag record "+recorded_topics+" -o "+sim_name+"_"+agent_name+" __name:="+agent_bag_recorder)
 
-            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(9)])
+            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(17)])
 
             sim_name = f"sim_{str(s).zfill(3)}"
             sim_bag_recorder = sim_name
