@@ -137,18 +137,18 @@ def main():
     ##
 
     # for dicts
-    NUM_OF_AGENTS = [2]
+    NUM_OF_AGENTS = [1]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
-    OBJECTS_TYPE = ["pads", "random"] 
-    TRAJ_TYPE = ["circle", "venn_diagram"]
+    OBJECTS_TYPE = ["pads"]
+    TRAJ_TYPE = ["venn_diagram"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
     cdx = 1.0 # constant drift x
     cdy = 1.0 # constant drift y
     cdyaw = 10.0 # constant drift yaw
-    ldx = 0.001 # linear drift x
-    ldy = 0.001 # linear drift y
-    ldyaw = 0.001 # linear drift yaw
+    ldx = 0.05 # linear drift x
+    ldy = 0.05 # linear drift y
+    ldyaw = 0.05 # linear drift yaw
 
     # drift parameters [m, m, deg, m/s, m/s, deg/s, "is_constant_drift", "is_linear_drift"]
     # no drift
@@ -158,11 +158,15 @@ def main():
     # trans linear drift
     # rot linear drift
     # trans and rot linear drift
-    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
-                [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
-                [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
+    # DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
+    #             [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
+    #             [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
+    #             [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
+    #             [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
+    #             [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
+    #             [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
+
+    DRIFTS = [[0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
                 [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
                 [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
     
@@ -186,7 +190,7 @@ def main():
     TIME_TRAJ_GEN = 3.0
     TIME_TAKEOFF = 10.0
     TIME_MOVE_TO_START = 25.0
-    TIME_START_TRAJ = 35.0
+    TIME_START_TRAJ = 40.0
 
     ##
     ## make sure ROS (and related stuff) is not running
@@ -208,6 +212,9 @@ def main():
 
     # loop over the dictionary
     for dic_index, d in enumerate(DICTS):
+
+        if dic_index != 0:
+            continue
 
         print("####### Case {} #######".format(dic_index))
 
@@ -284,7 +291,7 @@ def main():
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
             topics_to_record = topics_to_record + "/tf"
-            commands.append(f"sleep "+str(TIME_START_TRAJ)+f" && cd {output_folder} && rosbag record {topics_to_record} -o {sim_name} __name:={sim_name}")
+            commands.append(f"sleep "+str(TIME_START_TRAJ-10)+f" && cd {output_folder} && rosbag record {topics_to_record} -o {sim_name} __name:={sim_name}")
             
             ##
             ## tmux & sending commands
@@ -333,7 +340,7 @@ def main():
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)
-    os.system("tmux new -s "+str(session_name)+" -x 300 -y 300")
+    os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
 
     for i in range(len(proc_commands)):
         os.system('tmux split-window ; tmux select-layout tiled')
@@ -347,7 +354,7 @@ def main():
     ## wait until the sim is done
     ##
 
-    time.sleep(SIM_DURATION + TIME_START_TRAJ)
+    time.sleep(500.0)
 
     ##
     ## kill the sim
