@@ -87,11 +87,13 @@ class POSE_CORRUPTER_ROS:
         if pose_msg._type == "snapstack_msgs/State":
             position = np.array([pose_msg.pos.x, pose_msg.pos.y, pose_msg.pos.z])
             orientation = np.array([pose_msg.quat.x, pose_msg.quat.y, pose_msg.quat.z, pose_msg.quat.w])
-            orientation_as_rot = Rot.from_quat([pose_msg.quat.x, pose_msg.quat.y, pose_msg.quat.z, pose_msg.quat.w])
+            orientation_tmp = Rot.from_quat([pose_msg.quat.x, pose_msg.quat.y, pose_msg.quat.z, pose_msg.quat.w]).as_euler('xyz', degrees=True)
+            orientation_as_rot = Rot.from_euler('xyz', [0.0, 0.0, orientation_tmp[2]], degrees=True)
         elif pose_msg._type == "geometry_msgs/PoseStamped":
             position = np.array([pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z])
             orientation = np.array([pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w])
-            orientation_as_rot = Rot.from_quat([pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w])
+            orientation_tmp = Rot.from_quat([pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z, pose_msg.pose.orientation.w])
+            orientation_as_rot = Rot.from_euler('xyz', [0.0, 0.0, orientation_tmp[2]], degrees=True)
         else:
             raise ValueError("pose_msg type is not recognized")
         return position, orientation, orientation_as_rot
@@ -106,17 +108,17 @@ class POSE_CORRUPTER_ROS:
         position, orientation, orientation_as_rot = self.get_position_and_orientation(pose_msg)
 
         # the the initial time for linear drift
-        if self.start_drift and not self.is_initialied:
-            self.is_initialied = True
-            self.initial_time = rospy.Time.now()
+        if not self.is_initialied:
             self.drifty_estimate = DriftyEstimate(
-                position_drift=np.array([self.constant_drift_x, self.constant_drift_y, self.constant_drift_z]),
-                rotation_drift=Rot.from_euler('xyz', [self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw]),
-                position=position,
-                orientation=orientation_as_rot
-            )
+                position_drift=np.array([self.constant_drift_x, self.constant_drift_y]),
+                rotation_drift=Rot.from_euler('xyz', [self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw], degrees=True),
+                position=position[:2],
+                orientation=orientation_as_rot,
+                dim=2)
+            self.initial_time = rospy.Time.now()
             self.last_pose_time = pose_msg.header.stamp
             self.initial_position = position
+            self.is_initialied = True
 
         # create pose_msg to publish
         pub_pose_msg = PoseStamped()
@@ -154,14 +156,17 @@ class POSE_CORRUPTER_ROS:
 
             # add linear drift to drifty_estimate
             self.drifty_estimate.add_drift(
-                position=np.array([self.linear_drift_rate_x, self.linear_drift_rate_y, self.linear_drift_rate_z])*dt,
-                rotation=Rot.from_euler('xyz', np.array([self.linear_drift_rate_roll, self.linear_drift_rate_pitch, self.linear_drift_rate_yaw])*dt)
+                position=np.array([self.linear_drift_rate_x, self.linear_drift_rate_y])*dt,
+                rotation=Rot.from_euler('xyz', np.array([0.0, 0.0, self.linear_drift_rate_yaw])*dt, degrees=True)
             )
             self.last_pose_time = pose_msg.header.stamp
 
             # update drifty_estimate
-            pos_est, ori_est = self.drifty_estimate.update(position, orientation_as_rot)
-            pub_pose_msg.pose.position.x, pub_pose_msg.pose.position.y, pub_pose_msg.pose.position.z = pos_est
+            pos_est, ori_est = self.drifty_estimate.update(position[:2], orientation_as_rot)
+            ori_est = Rot.from_euler('xyz', [*Rot.from_quat(orientation).as_euler('xyz')[:2], ori_est.as_euler('xyz')[2]])
+
+            pub_pose_msg.pose.position.x, pub_pose_msg.pose.position.y = pos_est
+            pub_pose_msg.pose.position.z = position[2]
             pub_pose_msg.pose.orientation.x, pub_pose_msg.pose.orientation.y, pub_pose_msg.pose.orientation.z, pub_pose_msg.pose.orientation.w = ori_est.as_quat()        
         
         else: 
@@ -170,6 +175,8 @@ class POSE_CORRUPTER_ROS:
 
         # publish pose as corrupted_world
         self.pub_world.publish(pub_pose_msg)
+
+        # print("z: ", pub_pose_msg.pose.position.z)
 
         # publish to tf
         br = tf.TransformBroadcaster()
@@ -180,20 +187,23 @@ class POSE_CORRUPTER_ROS:
                             "world")
         
         # publish drift
+        drift_msg = Drift()
+        drift_msg.header.stamp = rospy.Time.now()
+        drift_msg.header.frame_id = "world"
         if not self.is_linear_drift:
-            drift_msg = Drift()
-            drift_msg.header.stamp = rospy.Time.now()
-            drift_msg.header.frame_id = "world"
             drift_msg.drift_pos = np.array([pub_pose_msg.pose.position.x - position[0], pub_pose_msg.pose.position.y - position[1], pub_pose_msg.pose.position.z - position[2]])
             drift_msg.drift_euler = np.array([self.constant_drift_roll, self.constant_drift_pitch, self.constant_drift_yaw])
             self.pub_drift.publish(drift_msg)
         else:
-            T_drift = self.drifty_estimate.T_drift
-            drift_msg = Drift()
-            drift_msg.header.stamp = rospy.Time.now()
-            drift_msg.header.frame_id = "world"
-            drift_msg.drift_pos = T_drift[:3,3]
-            drift_msg.drift_euler = Rot.from_matrix(T_drift[:3,:3]).as_euler('xyz')
+            # T_drift = np.linalg.inv(self.drifty_estimate.T_drift)
+            # drift_msg.drift_pos = T_drift[:2,2]
+
+            # get yaw from T_drift
+            # T_tmp = np.eye(3)
+            # T_tmp[:2,:2] = T_drift[:2,:2]
+            # _, _, yaw = Rot.from_matrix(T_tmp).as_euler('xyz')
+            # drift_msg.drift_euler = Rot.from_euler('xyz', [*Rot.from_quat(orientation).as_euler('xyz')[:2], yaw]).as_euler('xyz', degrees=True)
+            drift_msg.drift_pos, drift_msg.drift_euler = self.drifty_estimate.drift
             self.pub_drift.publish(drift_msg)
     
     # corrupt quaternion for constant drift
