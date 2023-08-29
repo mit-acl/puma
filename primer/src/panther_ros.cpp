@@ -399,6 +399,12 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_best_solutions_student_ = nh1_.advertise<visualization_msgs::MarkerArray>("best_solutions_student", 1);
 
   pub_obstacle_uncertainty_ = nh1_.advertise<visualization_msgs::Marker>("obstacle_uncertainty", 1);
+  pub_obstacle_uncertainty_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_uncertainty_values", 1);
+  pub_obstacle_sigma_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_sigma_values", 1);
+  pub_obstacle_uncertainty_times_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_uncertainty_times", 1);
+  pub_moving_direction_uncertainty_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_uncertainty_values", 1);
+  pub_moving_direction_sigma_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_sigma_values", 1);
+  pub_moving_direction_uncertainty_times_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_uncertainty_times", 1);
 
   pub_guesses_ = nh1_.advertise<visualization_msgs::MarkerArray>("guesses", 1);
   pub_splines_fitted_ = nh1_.advertise<visualization_msgs::MarkerArray>("splines_fitted", 1);
@@ -566,6 +572,83 @@ void PantherRos::pubObstaclesWithUncertainty(mt::Edges edges_obstacles_uncertain
   }
 
   return;
+}
+
+void PantherRos::pubUncertainty(const std::vector<Eigen::Vector3d>& obstacle_uncertainty_list,
+                                const std::vector<Eigen::Matrix<double, 9, 1>>& obstacle_sigma_list,
+                                const std::vector<double>& obstacle_uncertainty_times,
+                                const std::vector<Eigen::Vector3d>& moving_direction_uncertainty_list,
+                                const std::vector<Eigen::Matrix<double, 9, 1>>& moving_direction_sigma_list,
+                                const std::vector<double>& moving_direction_uncertainty_times)
+{
+  if (obstacle_uncertainty_times.size() > 0)
+  {
+    pub_obstacle_uncertainty_values_.publish(vecEigen3dToFloat64MultiArray(obstacle_uncertainty_list));
+    pub_obstacle_sigma_values_.publish(vecEigen9dToFloat64MultiArray(obstacle_sigma_list));
+    pub_obstacle_uncertainty_times_.publish(vecDoubleToFloat64MultiArray(obstacle_uncertainty_times));
+
+    pub_moving_direction_uncertainty_values_.publish(vecEigen3dToFloat64MultiArray(moving_direction_uncertainty_list));
+    pub_moving_direction_sigma_values_.publish(vecEigen9dToFloat64MultiArray(moving_direction_sigma_list));
+    pub_moving_direction_uncertainty_times_.publish(vecDoubleToFloat64MultiArray(moving_direction_uncertainty_times));
+  }
+}
+
+std_msgs::Float64MultiArray PantherRos::vecEigen3dToFloat64MultiArray(const std::vector<Eigen::Vector3d>& vec_eigen)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_eigen.size();
+  msg.layout.dim[0].stride = vec_eigen[0].size() * vec_eigen.size();
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[1].size = vec_eigen[0].size();
+  msg.layout.dim[1].stride = vec_eigen[0].size();
+
+  for (auto vec : vec_eigen)
+  {
+    for (int i = 0; i < vec.size(); i++)
+    {
+      msg.data.push_back(vec[i]);
+    }
+  }
+  return msg;
+}
+
+std_msgs::Float64MultiArray PantherRos::vecEigen9dToFloat64MultiArray(const std::vector<Eigen::Matrix<double, 9, 1>>& vec_eigen)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_eigen.size();
+  msg.layout.dim[0].stride = vec_eigen[0].size() * vec_eigen.size();
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[1].size = vec_eigen[0].size();
+  msg.layout.dim[1].stride = vec_eigen[0].size();
+
+  for (auto vec : vec_eigen)
+  {
+    for (int i = 0; i < vec.size(); i++)
+    {
+      msg.data.push_back(vec[i]);
+    }
+  }
+  return msg;
+}
+
+
+std_msgs::Float64MultiArray PantherRos::vecDoubleToFloat64MultiArray(const std::vector<double>& vec_double)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_double.size();
+  msg.layout.dim[0].stride = vec_double.size();
+
+  for (auto vec : vec_double)
+  {
+    msg.data.push_back(vec);
+  }
+  return msg;
 }
 
 //
@@ -949,6 +1032,12 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
       // std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
       pubObstacles(edges_obstacles);
       pubObstaclesWithUncertainty(edges_obstacles_uncertainty);
+
+      // Publish Uncertainty
+      pubUncertainty(best_solution_expert.obstacle_uncertainty_list, best_solution_expert.obstacle_sigma_list,
+                     best_solution_expert.obstacle_uncertainty_times, best_solution_expert.moving_direction_uncertainty_list,
+                     best_solution_expert.moving_direction_sigma_list, best_solution_expert.moving_direction_uncertainty_times);
+
       pubTraj(X_safe);
       publishPlanes(planes);
 
