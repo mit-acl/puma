@@ -343,7 +343,7 @@ for i=1:num_max_of_obst
             end
 
             obstacle_uncertainty_list = [obstacle_uncertainty_list uncertainty];
-            obstacle_sigma_list = [obstacle_sigma_list sigma_i];
+            obstacle_sigma_list = [obstacle_sigma_list sigma_u];
             obstacle_uncertainty_times = [obstacle_uncertainty_times t_obs];
 
             replan_time_index = replan_time_index + 1;
@@ -391,7 +391,7 @@ for j=1:num_seg
     % We assume the covariances are zero so our uncertainty ellipsoid is axis aligned
     uncertainty = sqrt(sigma_pos);
     moving_direction_uncertainty_list = [moving_direction_uncertainty_list uncertainty];
-    moving_direction_sigma_list = [moving_direction_sigma_list sigma_i];
+    moving_direction_sigma_list = [moving_direction_sigma_list sigma_u];
     moving_direction_uncertainty_times = [moving_direction_uncertainty_times t_n];
 
     % index
