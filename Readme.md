@@ -1,22 +1,5 @@
 # PRIMER: Perception-Aware Robust Learning-based Multiagent Trajectory Planner #
 
-[![Deep-PANTHER: Learning-Based Perception-Aware Trajectory Planner in Dynamic Environments](./panther/imgs/deep_panther.gif)](https://www.youtube.com/watch?v=53GBjP1jFW8 "Deep-PANTHER: Learning-Based Perception-Aware Trajectory Planner in Dynamic Environments")  
-
-Deep-PANTHER deployed on different environments. The policy in all the videos above is the same one, and was trained using an obstacle that followed a trefoil-knot trajectory. The green pyramid represents the field of view of the camera. 
-
-## Citation
-
-When using Deep-PANTHER, please cite [Deep-PANTHER: Learning-Based Perception-Aware Trajectory Planner in Dynamic Environments](https://arxiv.org/abs/2209.01268) ([pdf](https://arxiv.org/pdf/2209.01268.pdf) and [video](https://www.youtube.com/watch?v=53GBjP1jFW8)):
-
-```bibtex
-@article{tordesillas2022deep,
-  title={Deep-PANTHER: Learning-Based Perception-Aware Trajectory Planner in Dynamic Environments},
-  author={Tordesillas, Jesus and How, Jonathan P},
-  journal={arXiv preprint arXiv:2209.01268},
-  year={2022}
-}
-```
-
 ## General Setup
 
 Deep-PANTHER has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/panther/issues) if you have any problems.
