@@ -103,9 +103,9 @@ class GoalReachedCheck:
     # def SQ16stateCB(self, data):
     #     self.state_pos[15,0:3] = np.array([data.pos.x, data.pos.y, data.pos.z])
 
-
     def SQ01term_goalCB(self, data):
         self.term_goal_pos[0,0:3] = np.array([data.pose.position.x, data.pose.position.y, data.pose.position.z])
+        print("term goal received")
         self.initialized = True
     def SQ02term_goalCB(self, data):
         self.term_goal_pos[1,0:3] = np.array([data.pose.position.x, data.pose.position.y, data.pose.position.z])

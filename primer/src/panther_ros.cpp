@@ -422,6 +422,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_obstacles_ = nh1_.advertise<visualization_msgs::Marker>("obstacles", 1);
   pub_log_ = nh1_.advertise<panther_msgs::Log>("log", 1);
   pub_is_ready_ = nh1_.advertise<panther_msgs::IsReady>("is_ready", 1);
+  pub_pause_sim_ = nh1_.advertise<std_msgs::Bool>("pause_sim", 1);
 
   // Subscribers
   sub_term_goal_ = nh1_.subscribe("term_goal", 1, &PantherRos::terminalGoalCB, this);
@@ -918,6 +919,10 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
     if (par_.pause_time_when_replanning)
     {
+      // not sure why, but when you record rosbag using tmux, it won't stop recording when it's paused so add this topic to indicate the pause
+      std_msgs::Bool msg;
+      msg.data = true;
+      pub_pause_sim_.publish(msg);
       pauseTime();
     }
 
@@ -934,6 +939,9 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
     if (par_.pause_time_when_replanning)
     {
+      std_msgs::Bool msg;
+      msg.data = false;
+      pub_pause_sim_.publish(msg);
       unpauseTime();
     }
 

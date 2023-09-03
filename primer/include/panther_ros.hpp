@@ -14,6 +14,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Bool.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
@@ -167,6 +168,7 @@ private:
   ros::Publisher pub_obstacles_;
   ros::Publisher pub_log_;
   ros::Publisher pub_is_ready_;
+  ros::Publisher pub_pause_sim_;
 
   ros::Subscriber sub_term_goal_;
   ros::Subscriber sub_whoplans_;

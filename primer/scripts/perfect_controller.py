@@ -111,7 +111,7 @@ class FakeSim:
                          (self.state.quat.x, self.state.quat.y, self.state.quat.z, self.state.quat.w),
                          rospy.Time.now(),
                          self.name,
-                         "vicon")
+                         "world")
 
     def getDroneMarker(self):
         marker=Marker()

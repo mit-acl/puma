@@ -20,9 +20,9 @@ import rospy
 from snapstack_msgs.msg import State
 import subprocess
 import numpy as np
+import argparse
 
 def get_start_end_state():
-    num_goals = 1
 
     start_x_min = -1.0
     start_x_max = 1.0
@@ -49,15 +49,15 @@ def get_start_end_state():
     y_goal_list = []
     z_goal_list = []
 
-    for i in range(num_goals):
-        x_start_list.append(np.random.uniform(start_x_min, start_x_max))
-        y_start_list.append(np.random.uniform(start_y_min, start_y_max))
-        z_start_list.append(np.random.uniform(start_z_min, start_z_max))
-        yaw_start_list.append(np.random.uniform(start_yaw_min, start_yaw_max))
+    for i in range(1):
+        x_start_list.append(0)
+        y_start_list.append(0)
+        z_start_list.append(1)
+        yaw_start_list.append(0)
 
-        x_goal_list.append(np.random.uniform(end_x_min, end_x_max))
-        y_goal_list.append(np.random.uniform(end_y_min, end_y_max))
-        z_goal_list.append(np.random.uniform(end_z_min, end_z_max))
+        x_goal_list.append(10)
+        y_goal_list.append(0)
+        z_goal_list.append(1)
 
     return x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list
 
@@ -70,24 +70,29 @@ def check_goal_reached():
         print("False")
         return False  
 
-if __name__ == '__main__':
+def main():
 
     ##
     ## Parameters
     ##
 
-    NUM_OF_SIMS = 1
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
+    parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/single-sims/")
+    parser.add_argument("-v", "--use_rviz", help="Use rviz.", default="true")
+    args = parser.parse_args()
+
+    NUM_OF_SIMS = 50
     NUM_OBS = 1
     USE_PERFECT_CONTROLLER = "true"
     USE_PERFECT_PREDICTION = "true"
     SIM_DURATION = 120 # in seconds
-    DATA_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "bags")
+    OUTPUT_DIR = args.output_dir
     RECORD_NODE_NAME = "bag_recorder"
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
+    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
     USE_RVIZ = sys.argv[2] if len(sys.argv) >2 else "true"
-    # AGENTS_TYPES = ["parm", "parm_star", "primer"]
-    AGENTS_TYPES = ["primer"]
+    AGENTS_TYPES = ["primer"] # ["parm_star", "primer"]
     TRAJ_NUM_PER_REPLAN_LIST = [10]
     DEFAULT_NUM_MAX_OF_OBST = 1 #TODO: hard-coded
     PRIMER_NUM_MAX_OF_OBST = 1
@@ -109,11 +114,12 @@ if __name__ == '__main__':
     ##
 
     for agent_type in AGENTS_TYPES:
+
         ##
         ## set up folders
         ##
 
-        folder_bags = DATA_DIR + f"/{agent_type}/"
+        folder_bags = OUTPUT_DIR + f"/{agent_type}/"
         print(folder_bags)
         if not os.path.exists(folder_bags):
             os.makedirs(folder_bags)
@@ -128,7 +134,7 @@ if __name__ == '__main__':
 
             commands = []
             time_sleep = 0.2
-            time_sleep_goal = 1.0
+            time_sleep_goal = 3.0
 
             ##
             ## simulation set up
@@ -138,11 +144,11 @@ if __name__ == '__main__':
             commands.append("roscore")
 
             ## sim_basestation
-            commands.append(f"roslaunch --wait primer sim_base_station.launch num_of_obs:={1} rviz:={USE_RVIZ} gui_mission:=false")
+            commands.append(f"roslaunch --wait primer sim_base_station.launch num_of_obs:={NUM_OBS} rviz:={USE_RVIZ} gui_mission:=false")
             
             ## set up parameters depending on agent types
             agent_name = "SQ01s"
-            if agent_type == "parm":
+            if agent_type == "parm_star":
                 commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware false")
             elif agent_type == "primer":
                 commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware true")
@@ -163,11 +169,13 @@ if __name__ == '__main__':
             #     agent_bag_recorders.append(agent_bag_recorder)
             #     commands.append("sleep "+str(time_sleep)+" && cd "+folder_bags+" && rosbag record "+recorded_topics+" -o "+sim_name+"_"+agent_name+" __name:="+agent_bag_recorder)
 
-            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(17)])
+            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(18)])
 
             sim_name = f"sim_{str(s).zfill(3)}"
             sim_bag_recorder = sim_name
             commands.append('sleep '+str(time_sleep)+' && cd '+folder_bags+' && rosbag record '+recorded_topics+' -o '+sim_name+' __name:='+sim_bag_recorder)
+            # commands.append('sleep '+str(time_sleep)+' && cd '+folder_bags+' && ./record_bag.sh')
+            # commands.append(f'sleep {time_sleep} && cd {folder_bags} && rosbag record -a -x "/SQ01s/camera/(.*)" -o {sim_name}')
             
             ## goal checker
             commands.append(f"sleep {time_sleep} && roslaunch --wait primer goal_reached_checker_ua.launch num_of_agents:={1}")
@@ -226,3 +234,6 @@ if __name__ == '__main__':
     ##
 
     os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find primer)/param/primer.yaml")    
+
+if __name__ == '__main__':
+    main()

@@ -89,10 +89,10 @@ class DynCorridor:
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
         # if you want to fix the position of the obstacles, uncomment the following lines
-        # x = 3
-        # y = 0
-        # z = 1
-        # offset = 0
+        x = 5
+        y = 0
+        z = 1
+        offset = 0
 
         slower=random.uniform(self.slower_min, self.slower_max)
         s=self.scale
