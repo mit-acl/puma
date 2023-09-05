@@ -287,7 +287,7 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     ax.grid()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.png'))
+    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.pdf'))
 
 def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_offsets_estimate, t_estimate, font, folder, subfolder, bag_text):
 
@@ -410,7 +410,7 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     ax.grid(True)
     plt.tight_layout()
     # plt.show()
-    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3d_traj.png'))
+    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3d_traj.pdf'))
 
 class Arrow3D(FancyArrowPatch):
 
@@ -477,7 +477,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
     parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper")
-    parser.add_argument("-p", "--plot_type", help="Plot type.", default="3d")
+    parser.add_argument("-p", "--plot_type", help="Plot type.", default="both")
     args = parser.parse_args()
 
     VEH_NAMES = ["SQ01s", "SQ02s"]
