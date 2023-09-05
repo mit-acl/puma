@@ -47,6 +47,10 @@ class FastSAM_ROS:
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
             self.world_name_topic = "world"
 
+        # listen to start_drift service
+        self.start_drift = False
+        rospy.Service('fast_sam/start_drift', Empty, self.start_drift_cb)
+
         # get undistortion params
         self.get_undistortion_params()
         
@@ -87,9 +91,9 @@ class FastSAM_ROS:
         self.ats.registerCallback(self.fastsam_cb)
         self.pub_objarray = rospy.Publisher('detections', motlee_msgs.ObjArray, queue_size=1)
 
-        # listen to start_drift service
-        self.start_drift = False
-        rospy.Service('fast_sam/start_drift', Empty, self.start_drift_cb)
+        # seems like we cannot set frequency in registerCallback so we just compare the time of the last callback and the current time to set the frequency
+        self.last_callback_time = rospy.Time.now()
+        self.fastsam_cb_frequency = rospy.get_param('~fastsam_cb_frequency', 30.0) # Hz
 
     # set start_drift to true
     def start_drift_cb(self, req):
@@ -128,6 +132,11 @@ class FastSAM_ROS:
 
     # function for image processing
     def fastsam_cb(self, pose_msg, img):
+
+        # manually set frequency of this callback
+        if (rospy.Time.now() - self.last_callback_time).to_sec() < 1.0/self.fastsam_cb_frequency:
+            return
+        self.last_callback_time = rospy.Time.now()
 
         # if start_drift is false, don't do anything
         if not self.start_drift:

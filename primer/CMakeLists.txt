@@ -35,6 +35,7 @@ find_package(catkin REQUIRED COMPONENTS
 	snapstack_msgs
 	panther_msgs
 	sensor_msgs
+	motlee_msgs
 	decomp_util
 	decomp_ros_utils
 	rviz_visual_tools

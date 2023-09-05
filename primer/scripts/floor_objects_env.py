@@ -285,7 +285,7 @@ class DynCorridor:
             self.all_dyn_traj[i].pos.y=y #Current position
             self.all_dyn_traj[i].pos.z=z #Current position
 
-            self.pubTraj.publish(self.all_dyn_traj[i])
+            # self.pubTraj.publish(self.all_dyn_traj[i])
             br.sendTransform((x, y, z), (0,0,0,1), t_ros, self.name_obs+str(self.all_dyn_traj[i].id), "world")
 
             self.marker_array.markers[i].pose.position.x=x

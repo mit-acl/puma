@@ -78,16 +78,12 @@ Visualization Manager:
           Value: false
         SQ01s/camera_link:
           Value: false
-        SQ01s/corrupted_world:
-          Value: true
         SQ02s:
           Value: true
         SQ02s/camera_depth_optical_frame:
           Value: false
         SQ02s/camera_link:
           Value: false
-        SQ02s/corrupted_world:
-          Value: true
         obs_4000:
           Value: false
         obs_4001:
@@ -160,10 +156,14 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
-          SQ01s/corrupted_world:
-            {}
-          SQ02s/corrupted_world:
-            {}
+          SQ01s:
+            SQ01s/camera_link:
+              SQ01s/camera_depth_optical_frame:
+                {}
+          SQ02s:
+            SQ02s/camera_link:
+              SQ02s/camera_depth_optical_frame:
+                {}
           obs_4000:
             {}
           obs_4001:
@@ -225,14 +225,7 @@ Visualization Manager:
           obs_4029:
             {}
           vicon:
-            SQ01s:
-              SQ01s/camera_link:
-                SQ01s/camera_depth_optical_frame:
-                  {}
-            SQ02s:
-              SQ02s/camera_link:
-                SQ02s/camera_depth_optical_frame:
-                  {}
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -394,7 +387,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/fov
       Name: SQ01sFOV
       Namespaces:
-        {}
+        marker_fov: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -754,21 +747,21 @@ Visualization Manager:
       frame: obs_4004
       line_width: 0.03999999910593033
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ02s/primer/obstacles
       Name: ObsEdgeSQ02s
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /SQ01s/primer/actual_traj
@@ -850,7 +843,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/drone_marker
       Name: MeshSQ01s
       Namespaces:
-        mesh_SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -858,7 +851,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/drone_marker
       Name: MeshSQ02s
       Namespaces:
-        mesh_SQ02s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -925,9 +918,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.344797134399414
+      Pitch: 0.5947971343994141
       Target Frame: <Fixed Frame>
-      Yaw: 4.713181972503662
+      Yaw: 4.698181629180908
     Saved: ~
 Window Geometry:
   DepthImage:

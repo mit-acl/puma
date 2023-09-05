@@ -16,6 +16,7 @@
 #include "timer.hpp"
 
 #include "mparser.hpp"
+#include <motlee_msgs/SE3Transform.h>
 // #include <any>
 // #include <utility>
 
@@ -870,6 +871,7 @@ struct parameters
 {
   //
   // clang-format off
+  bool            is_frame_alignment;
   bool            use_yaw_guess_for_opt;
   double          initial_position_variance_for_agents;
   double          initial_velocity_variance_for_agents;

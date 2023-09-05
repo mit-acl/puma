@@ -321,6 +321,12 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "static_planning", par_.static_planning);
   safeGetParam(nh1_, "perfect_prediction", par_.perfect_prediction);
 
+  //
+  // frame alignment
+  //
+
+  safeGetParam(nh1_, "is_frame_alignment", par_.is_frame_alignment);
+
   // safeGetParam(nh1_, "distance_to_force_final_pos", par_.distance_to_force_final_pos);
   // safeGetParam(nh1_, "factor_alloc_when_forcing_final_pos", par_.factor_alloc_when_forcing_final_pos);
   // par_.force_final_pos = false;
@@ -428,6 +434,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   sub_term_goal_ = nh1_.subscribe("term_goal", 1, &PantherRos::terminalGoalCB, this);
   sub_whoplans_ = nh1_.subscribe("who_plans", 1, &PantherRos::whoPlansCB, this);
   sub_state_ = nh1_.subscribe("state", 1, &PantherRos::stateCB, this);
+  // sub_frame_align_ = nh1_.subscribe("frame_align", 1, &PantherRos::frameAlignCB, this);
 
   ////Services
   pauseGazebo_ = nh1_.serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
@@ -437,6 +444,25 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   std::string myns = ros::this_node::getNamespace();
   std::string veh = myns.substr(1, 2);
 
+  // add frame alignment transformation matrix for each agent
+  if (par_.is_frame_alignment)
+  {
+    ROS_INFO("Using frame alignment");
+    for (std::string id : par_.agents_ids)  // id is a string
+    {
+      std::string agent;
+      veh == "NX" ? agent = "/" + veh + id : agent = "/" + veh + id + "s";
+      std::cout << "agent name initialized" << agent << std::endl;
+      if (myns != agent)
+      {  // if my namespace is the same as the agent, then it's you
+        mtx_frame_align_.lock();
+        dict_frame_align_[agent] = Eigen::Matrix4d::Identity();
+        mtx_frame_align_.unlock();
+      }
+    }
+  }
+
+  // add subscriber for each agent
   if (par_.use_mesh_network)
   {
     ROS_INFO("Using Multiagent Scheme");
@@ -447,7 +473,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
       std::cout << "agent name initialized" << agent << std::endl;
       if (myns != agent)
       {  // if my namespace is the same as the agent, then it's you
-        sub_traj_list_.push_back(nh1_.subscribe(agent + "/panther/trajs", 3, &PantherRos::trajCB,
+        sub_traj_list_.push_back(nh1_.subscribe(agent + "/primer/trajs", 3, &PantherRos::trajCB,
                                                 this));  // The number is the queue size
       }
     }
@@ -679,8 +705,67 @@ void PantherRos::obstacleTrajCB(const panther_msgs::DynTraj& msg)
 // ------------------------------------------------------------------------------------------------------
 //
 
+void PantherRos::frameAlignCB(const motlee_msgs::SE3Transform& msg)
+{
+
+  //
+  // store this received transform in frame_align_
+  //
+
+  mtx_frame_align_.lock();
+  dict_frame_align_[msg.frame_src] << msg.transform[0], msg.transform[1], msg.transform[2], msg.transform[3],
+                        msg.transform[4], msg.transform[5], msg.transform[6], msg.transform[7], 
+                        msg.transform[8], msg.transform[9], msg.transform[10], msg.transform[11],
+                        msg.transform[12], msg.transform[13], msg.transform[14], msg.transform[15];
+  mtx_frame_align_.unlock();
+
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::getFrameAlignmentT(Eigen::Matrix4d& T, const double qw, const double qx, const double qy, const double qz, const double px, const double py, const double pz) 
+{
+  T.setIdentity();
+  T.block<3,3>(0,0) = Eigen::Quaterniond(qw, qx, qy, qz).toRotationMatrix();
+  T.block<3,1>(0,3) << px, py, pz;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::applyFrameAlignment(Eigen::Matrix4d& T, const std::string& frame_src)
+{
+  Eigen::Matrix4d T_new;
+  // std::cout << "mtx_frame_align_.lock() in applyFrameAlignment" << std::endl;
+  mtx_frame_align_.lock();
+  // std::cout << "dict_frame_align_[" << frame_src << "]: " << dict_frame_align_[frame_src] << std::endl;
+  T_new = dict_frame_align_[frame_src] * T;
+  mtx_frame_align_.unlock();
+  // std::cout << "mtx_frame_align_.unlock() in applyFrameAlignment" << std::endl;
+  T = T_new;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::getPosFromT(std::vector<double>& pos, const Eigen::Matrix4d& T)
+{
+  pos.push_back(T(0,3));
+  pos.push_back(T(1,3));
+  pos.push_back(T(2,3));
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
 {
+
   //
   // Check if the trajecotry is from myself
   //
@@ -690,106 +775,263 @@ void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
     return;
   }
 
-  //
-  // Check if we can should use this trajectory
-  //
+  // If frame alignment is enabled, then transform the trajectory to the correct frame
+  if (par_.is_frame_alignment && msg.is_agent){
 
-  Eigen::Vector3d w_pos(msg.pos.x, msg.pos.y, msg.pos.z);  // position in world frame
-  double dist = (state_.pos - w_pos).norm();
-  bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
+    std::cout << "frame alignment is enabled" << std::endl;
 
-  //
-  // Check if this trajectory is in FOV
-  //
+    std::cout << "agent id: " << msg.id << std::endl;
 
-  
-  Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame
-                                                                // (i.e., depth optical frame)
-  bool inFOV =                                                  // check if it's inside the field of view.
-      c_pos.z() < par_.fov_depth &&                             //////////////////////
-      fabs(atan2(c_pos.x(), c_pos.z())) <
-          ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
-      fabs(atan2(c_pos.y(), c_pos.z())) <
-          ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+    //
+    // If the trajectory is from another agent, apply frame alignment
+    //
 
-  if (par_.impose_FOV_in_trajCB && inFOV == false)
-  {
-    return;
-  }
+    // get agent name
+    std::string myns = ros::this_node::getNamespace();
+    std::string veh = myns.substr(1, 2);
 
-  // if (can_use_its_info == false)
-  // {
-  //   return;
-  // } //TODO: Commented (4-Feb-2021)
+    std::string agent;
+    veh == "NX" ? agent = "/" + veh + "0" + std::to_string(msg.id) : agent = "/" + veh + "0" + std::to_string(msg.id) + "s"; //TODO: hardcoded 0 and not compatible with more than 10 agents    
+    
+    // get agent's transformation matrix T_agent
+    Eigen::Matrix4d T_agent;
+    getFrameAlignmentT(T_agent, 1.0, 0.0, 0.0, 0.0, msg.pos.x, msg.pos.y, msg.pos.z);
 
-  mt::dynTraj tmp;
-  tmp.use_pwp_field = msg.use_pwp_field;
+    // apply frame alignment
+    applyFrameAlignment(T_agent, agent);
+    
+    // get corrected position
+    std::vector<double> pos;
+    getPosFromT(pos, T_agent);
 
-  //
-  // add noise to the obstacle trajectory
-  //
+    //
+    // check if we can use this trajectory
+    //
 
-  double noise_factor;
-  if (inFOV){
-    noise_factor = 0.01 * par_.obstacle_bbox[0]; // 1% of bbox
-  }
-  else 
-  {
-    noise_factor = 0.1 * par_.obstacle_bbox[0]; // 10% of bbox
-  }
+    Eigen::Vector3d w_pos(pos[0], pos[1], pos[2]);  // position in world frame
+    double dist = (state_.pos - w_pos).norm();
+    bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
 
-  // generate uniform noise
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> dis(-noise_factor, noise_factor);
+    //
+    // Check if this trajectory is in FOV
+    //
 
-  if (msg.use_pwp_field)
-  {
-    tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
-    tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
-  }
-  else
-  {
-    if (par_.add_noise_to_obst){
-      
-      tmp.s_mean.push_back(msg.s_mean[0] + "+" + std::to_string(dis(gen)));
-      tmp.s_mean.push_back(msg.s_mean[1] + "+" + std::to_string(dis(gen)));
-      tmp.s_mean.push_back(msg.s_mean[2] + "+" + std::to_string(dis(gen)));
+    Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame (i.e., depth optical frame)
+    bool inFOV =                                                  // check if it's inside the field of view.
+        c_pos.z() < par_.fov_depth &&                             //////////////////////
+        fabs(atan2(c_pos.x(), c_pos.z())) <
+            ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
+        fabs(atan2(c_pos.y(), c_pos.z())) <
+            ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+    
+    if (par_.impose_FOV_in_trajCB && inFOV == false)
+    {
+      return;
+    }
 
-    } 
-    else 
+    mt::dynTraj tmp;
+    tmp.use_pwp_field = msg.use_pwp_field;
+
+    if (msg.use_pwp_field) // agents
+    {
+
+      //
+      // frame alignment
+      //
+
+      tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
+      tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
+
+      // all_coeff_x, all_coeff_y, and all_coeff_z are vector of coefficients of the polynomials
+      // Ex. all_coeff_x = [[a b c d ...]' of Int0 , [a b c d ...]' of Int1,...]
+
+      std::vector<Eigen::VectorXd> rotated_all_coeff_x;
+      std::vector<Eigen::VectorXd> rotated_all_coeff_y;
+      std::vector<Eigen::VectorXd> rotated_all_coeff_z;
+
+      // debug
+      // print all_coeff_x, all_coeff_y, and all_coeff_z
+      tmp.pwp_mean.print();
+
+      // for loop over all the intervals
+      for (int i = 0; i < tmp.pwp_mean.getNumOfIntervals(); i++)
+      {
+
+        rotated_all_coeff_x.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        rotated_all_coeff_y.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        rotated_all_coeff_z.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+
+        // for loop over all the coefficients
+        
+        mtx_frame_align_.lock();
+        
+        for (int j = 0; j < tmp.pwp_mean.getDeg() + 1; j++) // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        {
+
+          Eigen::Vector4d coeff_vector = Eigen::Vector4d(tmp.pwp_mean.all_coeff_x[i][j], tmp.pwp_mean.all_coeff_y[i][j], tmp.pwp_mean.all_coeff_z[i][j], 1); 
+          Eigen::Vector4d rotated_coeff_vector = dict_frame_align_[agent] * coeff_vector;
+
+          rotated_all_coeff_x[i][j] = rotated_coeff_vector[0];
+          rotated_all_coeff_y[i][j] = rotated_coeff_vector[1];
+          rotated_all_coeff_z[i][j] = rotated_coeff_vector[2];
+
+        } // end for loop over all the coefficients
+
+        mtx_frame_align_.unlock();
+
+      } // end for loop over all the intervals
+
+      tmp.pwp_mean.all_coeff_x = rotated_all_coeff_x;
+      tmp.pwp_mean.all_coeff_y = rotated_all_coeff_y;
+      tmp.pwp_mean.all_coeff_z = rotated_all_coeff_z;
+
+      // debug
+      // print all_coeff_x, all_coeff_y, and all_coeff_z
+      std::cout << "rotated pwp_mean: " << std::endl;
+      tmp.pwp_mean.print();
+
+    }
+    else // if not use_pwp_field (obstacles)
     {
       tmp.s_mean.push_back(msg.s_mean[0]);
       tmp.s_mean.push_back(msg.s_mean[1]);
       tmp.s_mean.push_back(msg.s_mean[2]);
+      tmp.s_var.push_back(msg.s_var[0]);
+      tmp.s_var.push_back(msg.s_var[1]);
+      tmp.s_var.push_back(msg.s_var[2]);
     }
 
-    tmp.s_var.push_back(msg.s_var[0]);
-    tmp.s_var.push_back(msg.s_var[1]);
-    tmp.s_var.push_back(msg.s_var[2]);
+    //
+    // publish the trajectory
+    //
+
+    tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
+    tmp.id = msg.id;
+    tmp.is_agent = msg.is_agent;
+    tmp.is_committed = msg.is_committed;
+    tmp.time_received = ros::Time::now().toSec();
+    panther_ptr_->updateTrajObstacles(tmp);
+
+    std::cout << "end of frame alignment" << std::endl;
+
+    //
+    // Obstacle Sharing
+    //
+
+    if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+    {
+      panther_msgs::DynTraj tmp_obs_msg;
+      tmp_obs_msg = msg;
+      tmp_obs_msg.id = 5000 + id_;
+      pub_traj_.publish(tmp_obs_msg);
+    }
+
   }
-
-  tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
-
-  tmp.id = msg.id;
-  tmp.is_agent = msg.is_agent;
-  tmp.is_committed = msg.is_committed;
-  tmp.time_received = ros::Time::now().toSec();
-
-  panther_ptr_->updateTrajObstacles(tmp);
-
-  //
-  // Obstacle Sharing
-  //
-
-  if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+  else // if not frame_alignment enabled or it it's obstacle
   {
-    panther_msgs::DynTraj tmp_obs_msg;
-    tmp_obs_msg = msg;
-    tmp_obs_msg.id = 5000 + id_;
-    pub_traj_.publish(tmp_obs_msg);
-  }
-}
+
+    //
+    // Check if we can should use this trajectory
+    //
+
+    Eigen::Vector3d w_pos(msg.pos.x, msg.pos.y, msg.pos.z);  // position in world frame
+    double dist = (state_.pos - w_pos).norm();
+    bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
+
+    //
+    // Check if this trajectory is in FOV
+    //
+
+    
+    Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame
+                                                                  // (i.e., depth optical frame)
+    bool inFOV =                                                  // check if it's inside the field of view.
+        c_pos.z() < par_.fov_depth &&                             //////////////////////
+        fabs(atan2(c_pos.x(), c_pos.z())) <
+            ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
+        fabs(atan2(c_pos.y(), c_pos.z())) <
+            ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+
+    if (par_.impose_FOV_in_trajCB && inFOV == false)
+    {
+      return;
+    }
+
+    // if (can_use_its_info == false)
+    // {
+    //   return;
+    // } //TODO: Commented (4-Feb-2021)
+
+    mt::dynTraj tmp;
+    tmp.use_pwp_field = msg.use_pwp_field;
+
+    //
+    // add noise to the obstacle trajectory
+    //
+
+    double noise_factor;
+    if (inFOV){
+      noise_factor = 0.01 * par_.obstacle_bbox[0]; // 1% of bbox
+    }
+    else 
+    {
+      noise_factor = 0.1 * par_.obstacle_bbox[0]; // 10% of bbox
+    }
+
+    // generate uniform noise
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dis(-noise_factor, noise_factor);
+
+    if (msg.use_pwp_field)
+    {
+      tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
+      tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
+    }
+    else
+    {
+      if (par_.add_noise_to_obst){
+        
+        tmp.s_mean.push_back(msg.s_mean[0] + "+" + std::to_string(dis(gen)));
+        tmp.s_mean.push_back(msg.s_mean[1] + "+" + std::to_string(dis(gen)));
+        tmp.s_mean.push_back(msg.s_mean[2] + "+" + std::to_string(dis(gen)));
+
+      } 
+      else 
+      {
+        tmp.s_mean.push_back(msg.s_mean[0]);
+        tmp.s_mean.push_back(msg.s_mean[1]);
+        tmp.s_mean.push_back(msg.s_mean[2]);
+      }
+
+      tmp.s_var.push_back(msg.s_var[0]);
+      tmp.s_var.push_back(msg.s_var[1]);
+      tmp.s_var.push_back(msg.s_var[2]);
+    }
+
+    tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
+
+    tmp.id = msg.id;
+    tmp.is_agent = msg.is_agent;
+    tmp.is_committed = msg.is_committed;
+    tmp.time_received = ros::Time::now().toSec();
+
+    panther_ptr_->updateTrajObstacles(tmp);
+
+    //
+    // Obstacle Sharing
+    //
+
+    if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+    {
+      panther_msgs::DynTraj tmp_obs_msg;
+      tmp_obs_msg = msg;
+      tmp_obs_msg.id = 5000 + id_;
+      pub_traj_.publish(tmp_obs_msg);
+    }
+
+  } // end of else (if not frame_alignment enabled)
+} // end of trajCB
 
 //
 // ------------------------------------------------------------------------------------------------------
@@ -898,6 +1140,7 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
   if (ros::ok() && published_initial_position_ == true)
   {
+
     mt::Edges edges_obstacles;
     mt::Edges edges_obstacles_uncertainty;
     mt::trajectory X_safe;
@@ -1223,6 +1466,9 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
     is_ready_msg.header.stamp = ros::Time::now();
     is_ready_msg.is_ready = true;
     pub_is_ready_.publish(is_ready_msg);
+
+    std::cout << "published is_ready_msg" << std::endl;
+
   }
 }
 
@@ -1486,6 +1732,9 @@ void PantherRos::pubState(const mt::state& data, const ros::Publisher pub)
 
 void PantherRos::terminalGoalCB(const geometry_msgs::PoseStamped& msg)
 {
+
+  std::cout << "terminalGoalCB" << std::endl;
+
   mt::state G_term;
   double z;
   if (fabs(msg.pose.position.z) < 1e-5)  // This happens when you click in RVIZ (msg.z is 0.0)
