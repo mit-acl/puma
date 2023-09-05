@@ -106,9 +106,9 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("input_rosbag_dir", help="Input ROS bag directory.")
-    parser.add_argument("output_dir", help="Output directory.")
-    parser.add_argument("veh_name", help="Name of vehicle.")
+    parser.add_argument("-i", "--input_rosbag_dir", help="Input ROS bag directory.")
+    parser.add_argument("-o", "--output_dir", help="Output directory.", default="/media/kota/T71/frame/pngs-csvs/")
+    parser.add_argument("-v", "--veh_name", help="Name of vehicle.", default="NX04")
     args = parser.parse_args()
 
     # get the bags
