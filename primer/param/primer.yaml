@@ -56,6 +56,12 @@ use_student: false
 obstacle_visualization_duration: 4.0 #seconds #how long you wanna propagate and visualize obstacles
 
 #############################################
+# Frame Alignment setting
+#############################################
+
+is_frame_alignment: false
+
+#############################################
 # Uncertainty Propagation setting
 #############################################
 uncertainty_aware: true
