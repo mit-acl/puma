@@ -437,48 +437,54 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
 
   for (const auto &obstacle_i : obstacles_for_opt_)
   {
-    if (!obstacle_i.is_agent){
-      VertexesObstacle vertexes_obstacle_i;
 
-      for (int j = 0; j < par_.num_seg; j++)
+    // right now we are treating obstacle and agent the same way
+    // maybe in the future we want to treat them differently
+
+    VertexesObstacle vertexes_obstacle_i;
+
+    for (int j = 0; j < par_.num_seg; j++)
+    {
+      std::vector<double> times =
+          linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
+      VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
+
+      for (int k = 0; k < times.size(); k++)
       {
-        std::vector<double> times =
-            linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
-        VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
+        mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
 
-        for (int k = 0; k < times.size(); k++)
-        {
-          mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
+        Eigen::Vector3d delta;
+        if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
+          delta = obstacle_i.bbox_inflated / 2.0;
+        }
+        else{ // if it is an obstacle, then we need to use the uncertainty
           mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
-          Eigen::Vector3d delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
-
-          // std::cout << "times[" << k << "]= " << times[k] << std::endl;
-          // std::cout << "state.pos= " << state.pos.transpose() << std::endl;
-          // std::cout << "unc.pos= " << unc.pos.transpose() << std::endl;
-          // std::cout << "delta= " << delta.transpose() << std::endl;
-
-          // clang-format off
-          vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-          vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-          vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-          vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
-          vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-          vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-          vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-          vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
-          // clang-format on
-
+          delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
         }
 
-        vertexes_obstacle_i.push_back(vertexes_interval_j);
+        // std::cout << "times[" << k << "]= " << times[k] << std::endl;
+        // std::cout << "state.pos= " << state.pos.transpose() << std::endl;
+        // std::cout << "unc.pos= " << unc.pos.transpose() << std::endl;
+        // std::cout << "delta= " << delta.transpose() << std::endl;
+
+        // clang-format off
+        vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+        // clang-format on
+
       }
 
-      hulls_.push_back(vertexes_obstacle_i);
-
-    } else { // agent
-      std::cout << "in case of agents, we need to inflate the hulls differently?" << std::endl;
-      abort();
+      vertexes_obstacle_i.push_back(vertexes_interval_j);
     }
+
+    hulls_.push_back(vertexes_obstacle_i);
+
   }
 
   num_of_obst_ = hulls_.size();
@@ -1145,17 +1151,17 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       ///////////////////////////
 
       // Print the uncertainty vectors and times
-      std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
-      for (auto &tmp : solution.obstacle_uncertainty_list)
-      {
-        std::cout << tmp.transpose() << std::endl;
-      }
+      // std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
+      // for (auto &tmp : solution.obstacle_uncertainty_list)
+      // {
+      //   std::cout << tmp.transpose() << std::endl;
+      // }
 
-      std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
-      for (auto &tmp : solution.obstacle_uncertainty_times)
-      {
-        std::cout << tmp << std::endl;
-      }
+      // std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
+      // for (auto &tmp : solution.obstacle_uncertainty_times)
+      // {
+      //   std::cout << tmp << std::endl;
+      // }
 
       ///////////////////////////
       // solution.fillTraj(par_.dc);
