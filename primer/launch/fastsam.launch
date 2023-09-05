@@ -9,6 +9,7 @@
     <arg name="camera" default="t265_fisheye1"/>
     <arg name="is_sim" default="true"/>
     <arg name="save_undistorted_and_segmented_images" default="false"/>
+    <arg name="fastsam_cb_frequency" default="30"/>
 
     <!--
         Nodes
@@ -18,6 +19,7 @@
         <param name="camera" value="$(arg camera)"/>
         <param name="is_sim" value="$(arg is_sim)"/>
         <param name="save_images" value="$(arg save_undistorted_and_segmented_images)"/>
+        <param name="fastsam_cb_frequency" value="$(arg fastsam_cb_frequency)"/>
     </node>
 
 </launch>
