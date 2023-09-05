@@ -269,10 +269,10 @@ def main():
                 commands = agent_dependent_topics(commands, agent_name, other_agent_names, \
                                                     KAPPA_MOT, TIME_START_DRIFT, d["drifts"], x_start, y_start, yaw_start, FASTSAM_CB_FREQUENCY)
                 # add topics to record
-                TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state 
-                /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal 
-                /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values 
-                /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values 
+                TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state \
+                /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal \
+                /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values \
+                /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values \
                 /{}/primer/moving_direction_uncertainty_times""".format(*[agent_name]*23)
 
 
@@ -341,39 +341,23 @@ def main():
     ## tmux & sending commands
     ##
 
-    proc_commands = []
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/frame/sim/benchmarking")
+    # proc_commands = []
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/frame/sim/benchmarking")
 
-    session_name="processing"
-    os.system("tmux kill-session -t" + session_name)
-    os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
+    # session_name="processing"
+    # os.system("tmux kill-session -t" + session_name)
+    # os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
 
-    for i in range(len(proc_commands)):
-        os.system('tmux split-window ; tmux select-layout tiled')
+    # for i in range(len(proc_commands)):
+    #     os.system('tmux split-window ; tmux select-layout tiled')
     
-    for i in range(len(proc_commands)):
-        os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
+    # for i in range(len(proc_commands)):
+    #     os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
 
-    print("proc_commands sent")
+    # print("proc_commands sent")
 
-    ##
-    ## wait until the sim is done
-    ##
-
-    time.sleep(500.0)
-
-    ##
-    ## kill the sim
-    ##
-
-    os.system("rosnode kill "+sim_name)
-    time.sleep(0.5)
-    print("Killing the rest")
-    os.system(KILL_ALL)
-
-    
     ## uncomment params we change
     os.system("sed -i '/center_x/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
     os.system("sed -i '/center_y/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")

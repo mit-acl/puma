@@ -89,7 +89,7 @@ class DynCorridor:
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
         # if you want to fix the position of the obstacles, uncomment the following lines
-        x = 5
+        x = 0
         y = 0
         z = 1
         offset = 0
@@ -186,7 +186,7 @@ class DynCorridor:
             dynamic_trajectory_msg.pos.x=x #Current position, will be updated later
             dynamic_trajectory_msg.pos.y=y #Current position, will be updated later
             dynamic_trajectory_msg.pos.z=z #Current position, will be updated later
-            dynamic_trajectory_msg.id = 4000 + i #Current id 4000 to avoid interference with ids from agents #TODO
+            dynamic_trajectory_msg.id = 5000 + i #Current id 4000 to avoid interference with ids from agents #TODO
             dynamic_trajectory_msg.is_committed = True
 
             self.all_dyn_traj.append(dynamic_trajectory_msg)
@@ -211,7 +211,7 @@ class DynCorridor:
 
     def generateMarker(self, mesh, bbox, i):
         marker=Marker()
-        marker.id=i
+        marker.id=100+i
         marker.ns="mesh"
         marker.header.frame_id="world"
         marker.type=marker.MESH_RESOURCE
