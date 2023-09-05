@@ -25,7 +25,7 @@ from numpy import linalg as LA
 
 class GoalReachedCheck:
 
-    def __init__(self, num_of_agents, circle_radius):
+    def __init__(self, num_of_agents):
 
         rospy.sleep(3)
 
@@ -138,9 +138,9 @@ class GoalReachedCheck:
     # def SQ16term_goalCB(self, data):
     #     self.term_goal_pos[15,0:3] = np.array([data.pose.position.x, data.pose.position.y, data.pose.position.z])
 
-def startNode(num_agents, circle_radius):
+def startNode(num_agents):
 
-    c = GoalReachedCheck(num_agents, circle_radius)
+    c = GoalReachedCheck(num_agents)
 
     ## Subscribe to the state of each agent and the terminal goal
     for i in range(num_agents):
@@ -159,7 +159,6 @@ if __name__ == '__main__':
     ##
 
     num_of_agents = rospy.get_param("goal_reached_checker/num_of_agents")
-    circle_radius = rospy.get_param("goal_reached_checker/circle_radius")
 
     rospy.init_node('goalReachedCheck')
-    startNode(num_of_agents, circle_radius)
+    startNode(num_of_agents)
