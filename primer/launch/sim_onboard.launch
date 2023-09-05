@@ -13,6 +13,7 @@
   <arg name="perfect_prediction" default="true"/>
   <arg name="gui_mission" default="false"/>
   <arg name="rviz" default="false"/>
+  <arg name="use_planner" default="true"/>
 
   <!-- <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" />  -->
   <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/policies/test23.pt" />
@@ -92,29 +93,34 @@
    PANTHER launch
   -->
 
-  <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
-    <!-- Parameters -->
-    <rosparam file="$(find primer)/param/primer.yaml" command="load"/>
-    <rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
-    <param name="gui_mission" value="$(arg gui_mission)" /> 
-    <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
-    <param name="student_policy_path" value="$(arg student_policy_path)" /> 
-    <param name="static_planning" value="$(arg static_planning)" /> 
-    <!--  <param name="mode" value="$(arg mode)" />  --><!-- noPA (no_perception_aware), py (first_pos_then_yaw), panther (panther) -->
+  <group if="$(arg use_planner)">
 
-    <!-- Subscriptions -->
-    <remap from="~state" to="state"/>
-    <remap from="~who_plans" to="who_plans"/>
-    <remap from="~term_goal" to="term_goal" />
-    <remap from="~trajs_predicted" to="tracker_predictor_node/trajs_predicted" />
+    <node ns="$(arg quad)" name="primer" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
 
-    <!-- Publications -->
-    <remap from="~traj" to="traj"/>
-    <remap from="~trajs_zhejiang" to="trajs_zhejiang"/>
-    <remap from="~goal" to="goal" />
-    <remap from="~setpoint" to="setpoint" />
+      <!-- Parameters -->
+      <rosparam file="$(find primer)/param/primer.yaml" command="load"/>
+      <rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
+      <param name="gui_mission" value="$(arg gui_mission)" /> 
+      <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
+      <param name="student_policy_path" value="$(arg student_policy_path)" /> 
+      <param name="static_planning" value="$(arg static_planning)" /> 
+      <!--  <param name="mode" value="$(arg mode)" />  --><!-- noPA (no_perception_aware), py (first_pos_then_yaw), panther (panther) -->
 
-  </node>
+      <!-- Subscriptions -->
+      <remap from="~state" to="state"/>
+      <remap from="~who_plans" to="who_plans"/>
+      <remap from="~term_goal" to="term_goal" />
+      <remap from="~trajs_predicted" to="tracker_predictor_node/trajs_predicted" />
+
+      <!-- Publications -->
+      <remap from="~traj" to="traj"/>
+      <remap from="~trajs_zhejiang" to="trajs_zhejiang"/>
+      <remap from="~goal" to="goal" />
+      <remap from="~setpoint" to="setpoint" />
+
+    </node>
+
+  </group>
 
 </launch>

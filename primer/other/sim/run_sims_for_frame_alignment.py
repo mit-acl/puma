@@ -72,7 +72,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={0.0} y:={0.0} z:=0.0 rviz:=false")
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner=false")
 
     ## fastsam (triggered by rosservice call /{agent_name}/pose_corrupter/start_drift)
     commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=true")
@@ -137,7 +137,7 @@ def main():
     ##
 
     # for dicts
-    NUM_OF_AGENTS = [1]
+    NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
     OBJECTS_TYPE = ["pads"]
     TRAJ_TYPE = ["venn_diagram"]
