@@ -38,6 +38,8 @@ def get_transformation(bag, veh_pair):
     # topic name
     tpn_frame_align = f'/{ego_name}/frame_align'
 
+    t_clipper_start = 0.0
+
     # get euler angles from data_frame_align (transofrmation matrix from ego to other)
     transformation_matrix_frame_align = []
     t_frame_align = []
@@ -46,9 +48,9 @@ def get_transformation(bag, veh_pair):
         if topic == tpn_frame_align and msg.frame_src == other_name and msg.frame_dest == ego_name:
 
             # check if Clipper found a transformation matrix successfully
-            threshold = 0.000001
+            threshold = 0.00000000000001
             if np.abs(msg.transform[0] - 1.0) < threshold and np.abs(msg.transform[5] - 1.0) < threshold and np.abs(msg.transform[10] - 1.0) < threshold:
-                continue
+                pass
             elif is_initialized == False:
                 t_clipper_start = msg.header.stamp.to_sec()
                 is_initialized = True
@@ -81,7 +83,7 @@ def get_estimate_euler_and_offset(bag, veh_pair, transformation_matrix_frame_ali
             # check if the time is after the clipper start time
             if msg.header.stamp.to_sec() < t_clipper_start:
                 continue
-
+            
             t_estimate.append(msg.header.stamp.to_sec())
 
             # get the most recent transformation matrix

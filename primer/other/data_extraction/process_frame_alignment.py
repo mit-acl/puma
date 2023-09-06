@@ -84,7 +84,7 @@ def get_drift(bag, veh_name):
 def get_clipper_start_time_index(transformation_matrix, t_frame_align, t_est_drift):
 
     # get the time when the euler_est_drift and offsets_est_drift are not zeros
-    threshold = 0.0000000001
+    threshold = 0.00000000000001
     t_start_index = 0
 
     for idx, trans in enumerate(transformation_matrix):
@@ -97,6 +97,8 @@ def get_clipper_start_time_index(transformation_matrix, t_frame_align, t_est_dri
 
     # get start index in t_frame_align
     t_start_index = np.abs(np.array(t_est_drift) - t_clipper_start).argmin()
+
+    print("t_est_drift[t_start_index]: ", t_est_drift[t_start_index])
 
     return t_start_index
 
@@ -111,6 +113,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
     parser.add_argument("-d", "--sim_dir", help="Input directory.")
+    parser.add_argument("-s", "--use_success_rate", help="Use success rate.", default="true")
     args = parser.parse_args()
     VEH_NAMES = ["SQ01s", "SQ02s"]
 
@@ -154,6 +157,8 @@ def main():
         # for loop
         for bag_text in bags:
 
+            print("Processing bag: ", bag_text)
+
             # open the bag
             bag = rosbag.Bag(bag_text, "r")
 
@@ -168,8 +173,11 @@ def main():
             t_est_drift = []
             # for veh_pair in veh_name_combinations:
                 # euler_est_drift, offsets_est_drift, t_est_drift = get_transformation(bag, veh_pair)
-            transformation_matrix_frame_align, t_frame_align = get_transformation(bag, ["SQ01s", "SQ02s"])
-            euler_est_drift, offsets_est_drift, t_est_drift  = get_estimate_euler_and_offset(bag, ["SQ01s", "SQ02s"], transformation_matrix_frame_align, t_frame_align)
+            transformation_matrix_frame_align, t_frame_align, t_clipper_start = get_transformation(bag, ["SQ01s", "SQ02s"])
+            print("t_frame_align: ", t_frame_align)
+            print("t_clipper_start: ", t_clipper_start)
+            euler_est_drift, offsets_est_drift, t_est_drift  = get_estimate_euler_and_offset(bag, ["SQ01s", "SQ02s"], transformation_matrix_frame_align, t_frame_align, t_clipper_start)
+
 
             # wrap euler_estimate
             euler_est_drift[:,0] = wrap_angle(euler_est_drift[:,0])
@@ -203,17 +211,20 @@ def main():
             # find the first time CLIPPER found a solution
             t_clipper_start_index = get_clipper_start_time_index(transformation_matrix_frame_align, t_frame_align, t_est_drift)
 
-            if t_clipper_start_index == 0:
+            if t_clipper_start == 0.0:
                 print(f"CLIPPER did not find a solution in {bag_text}")
                 success_rate.append(0)
                 continue
             else:
+                print(f"CLIPPER found a solution in {bag_text}")
                 success_rate.append(1)
-
-            print("clipper start time: ", t_est_drift[t_clipper_start_index])
 
             # get the difference between the actual drift and the predicted drift
             euler_est_drift = np.array(euler_est_drift)[t_clipper_start_index:]
+
+            print("euler_est_drift: ", euler_est_drift)
+
+
             offsets_est_drift = np.array(offsets_est_drift)[t_clipper_start_index:]
             t_est_drift = t_est_drift[t_clipper_start_index:]
             euler_actual_drift_roll = np.array(euler_actual_drift_roll)
@@ -235,7 +246,8 @@ def main():
                 euler_diff_roll.append(euler[0] - eadr)
                 euler_diff_pitch.append(euler[1] - eadp)
                 euler_diff_yaw.append(euler[2] - eady)
-            
+
+
             for idx, offset in enumerate(offsets_est_drift):
                 # sync the offsets_est_drift and offsets_actual_drift
                 ofadx = get_actual_drift_element(idx, t_est_drift, offsets_actual_drift_x, t_actual)

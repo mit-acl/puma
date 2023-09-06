@@ -91,7 +91,7 @@ class DynCorridor:
         # if you want to fix the position of the obstacles, uncomment the following lines
         x = 0
         y = 0
-        z = 1
+        z = 3
         offset = 0
 
         slower=random.uniform(self.slower_min, self.slower_max)

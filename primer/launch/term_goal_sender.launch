@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+	<arg name="quad" default="SQ01s"/>
+	<arg name="mode" default="1"/>
+    <arg name="circle_radius" default="5.0"/>
+
+	<!-- Start random_goal -->
+	<node ns="$(arg quad)" name="term_goal_sender" pkg="primer" type="term_goal_sender.py" output="screen"/>
+		<param name="$(arg quad)/mode" value="$(arg mode)"/>
+        <param name="$(arg quad)/circle_radius" value="$(arg circle_radius)"/>
+        
+</launch>

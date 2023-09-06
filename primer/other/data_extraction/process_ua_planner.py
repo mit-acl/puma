@@ -51,6 +51,7 @@ def main():
     ## parse arguments
     parser = argparse.ArgumentParser(description="Process UA palanner data")
     parser.add_argument("-d", "--input_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/bags")
+    parser.add_argument("-s", "--use_success_rate", help="Use success rate.", default="true")
     args = parser.parse_args()
 
     ##
@@ -242,7 +243,6 @@ def main():
                     print("SIMULATION WAS NOT PROPERLY STARTED!!!")
                     continue
                 
-
                 ##
                 ## (2) computation time
                 ##

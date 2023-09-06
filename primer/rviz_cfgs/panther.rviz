@@ -766,21 +766,21 @@ Visualization Manager:
       frame: obs_5000
       line_width: 0.03999999910593033
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /SQ02s/primer/obstacles
       Name: ObsEdgeSQ02s
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /SQ01s/primer/actual_traj
@@ -937,9 +937,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5897971391677856
+      Pitch: 0.6297966837882996
       Target Frame: <Fixed Frame>
-      Yaw: 4.71818208694458
+      Yaw: 4.6231770515441895
     Saved: ~
 Window Geometry:
   DepthImage:

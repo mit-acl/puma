@@ -77,10 +77,6 @@ def getColorJet(v, vmin, vmax):
 ## -------------------------------------------------------------------------
 ##
 
-##
-## -------------------------------------------------------------------------
-##
-
 class DynCorridor:
 
     def __init__(self, total_num_obs,gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj, objects_type):

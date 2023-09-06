@@ -33,7 +33,6 @@ def write_readme_file(f, output_folder, d):
     f.write("num_of_objects: {}\n".format(d["num_of_objects"]))
     f.write("objects_type:   {}\n".format(d["objects_type"]))
     f.write("drift_type:     {}\n".format(d["drift_type"]))
-    f.write("traj_type:      {}\n".format(d["traj_type"]))
     f.write("constant_translational_drift_offset: {}\n".format(d["drifts"][:2]))
     f.write("constant_rotational_drift_offset:    {}\n".format(d["drifts"][2]))
     f.write("linear_translational_drift_rate:     {}\n".format(d["drifts"][3:5]))
@@ -67,12 +66,12 @@ def get_drift(drifts, agent_name):
 
         return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, time_start_drift, drifts, x_start, y_start, yaw_start, fastsam_cb_frequency):
+def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, time_start_drift, drifts, x_start, y_start, z_start, yaw_start, fastsam_cb_frequency):
     
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=1.0 yaw:={yaw_start} rviz:=false use_planner:=true 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=3 yaw:={yaw_start} rviz:=false use_planner:=true 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
 
     ## fastsam (triggered by rosservice call /{agent_name}/fast_sam/start_drift)
     commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} fastsam_cb_frequency:={fastsam_cb_frequency} is_sim:=true")
@@ -106,6 +105,15 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
 
     return commands
 
+class TimeKeeper:
+
+    def __init__(self):
+        self.current_time = 0.0
+
+    def rostime_cb(self, msg):
+        # print("msg.clock.secs: {}".format(msg.clock.secs))
+        self.current_time = msg.clock.secs + msg.clock.nsecs*1e-9
+
 def main():
 
     ##
@@ -128,8 +136,7 @@ def main():
     # for dicts
     NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
-    OBJECTS_TYPE = ["pads"]
-    TRAJ_TYPE = ["venn_diagram"]
+    OBJECTS_TYPE = ["pads", "random"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
     cdx = 1.0 # constant drift x
@@ -195,13 +202,13 @@ def main():
     ##
 
     # create a dictionary (cause we don't want a nested for loop)
-    DICTS = [ {"num_of_agents": num_of_agents, "num_of_objects": num_of_objects, "objects_type": objects_type, "traj_type": traj_type, "drifts": drifts} \
-                for num_of_agents in NUM_OF_AGENTS for num_of_objects in NUM_OF_OBJECTS for objects_type in OBJECTS_TYPE for traj_type in TRAJ_TYPE for drifts in DRIFTS]
+    DICTS = [ {"num_of_agents": num_of_agents, "num_of_objects": num_of_objects, "objects_type": objects_type, "drifts": drifts} \
+                for num_of_agents in NUM_OF_AGENTS for num_of_objects in NUM_OF_OBJECTS for objects_type in OBJECTS_TYPE for drifts in DRIFTS]
 
     # loop over the dictionary
     for dic_index, d in enumerate(DICTS):
 
-        if dic_index != 0:
+        if dic_index < 10:
             continue
 
         print("####### Case {} #######".format(dic_index))
@@ -267,7 +274,7 @@ def main():
 
                 # add topics
                 commands = agent_dependent_topics(commands, agent_name, other_agent_names, \
-                                                    KAPPA_MOT, TIME_START_DRIFT, d["drifts"], x_start, y_start, yaw_start, FASTSAM_CB_FREQUENCY)
+                                                    KAPPA_MOT, TIME_START_DRIFT, d["drifts"], x_start, y_start, yaw_start, z_start, FASTSAM_CB_FREQUENCY)
                 # add topics to record
                 TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state \
                 /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal \
@@ -278,7 +285,7 @@ def main():
 
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
-            TOPIC_TO_RECORD = TOPIC_TO_RECORD + "/tf /tf_static /obstacles_mesh /clock /trajs /sim_all_agents_goal_reached"
+            TOPIC_TO_RECORD = TOPIC_TO_RECORD + " /tf /tf_static /obstacles_mesh /clock /trajs /sim_all_agents_goal_reached"
             print("output_folder: {}".format(output_folder))
             commands.append(f"sleep "+str(TIME_START)+f" && cd {output_folder} && rosbag record {TOPIC_TO_RECORD} -o {sim_name} __name:={sim_name}")
             
@@ -286,7 +293,14 @@ def main():
             commands.append(f"roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
             
             ## goal checker
-            commands.append(f"roslaunch --wait primer goal_reached_checker.launch num_of_agents:={d['num_of_agents']}")
+            # commands.append(f"roslaunch --wait primer goal_reached_checker.launch num_of_agents:={d['num_of_agents']}")
+            
+            ## time keeper
+            commands.append(f"roslaunch --wait primer time_keeper.launch sim_time:={SIM_DURATION}")
+
+            ## term_goal_sender (keeps agents moving)
+            for idx, agent_name in enumerate(AGENTS_NAMES):
+                commands.append(f"roslaunch --wait primer term_goal_sender.launch quad:={agent_name} mode:={idx} circle_radius:={CIRCLE_RADIUS}")
 
             ##
             ## tmux & sending commands
@@ -303,36 +317,34 @@ def main():
                 os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ commands[i]+'" '+' C-m')
 
             print("commands sent")
-            time.sleep(3.0)
 
             ##
-            ## wait until the goal is reached
+            ## wait until the simulation ends (or goal reached)
             ##
 
-            is_goal_reached = False
-            tic = time.perf_counter()
-            toc = time.perf_counter()
+            is_control_c_pressed = False
+            while True:
+                if check_goal_reached():
+                    break
 
-            while (toc - tic < SIM_DURATION and not is_goal_reached):
-                toc = time.perf_counter()
-                if(check_goal_reached()):
-                    print('all the agents reached the goal')
-                    is_goal_reached = True
-                time.sleep(0.1)
+                # if Contrl-C is pressed, then break
+                if rospy.is_shutdown():
+                    is_control_c_pressed = True
+                    break
 
-            if (not is_goal_reached):
-                os.system(f'echo "simulation {s}: not goal reached" >> {output_folder}/status.txt')
-                print("Goal is not reached, killing the bag node")
-            else:
-                os.system(f'echo "simulation {s}: goal reached" >> {output_folder}/status.txt')
-                print("Goal is reached, killing the bag node")
+                time.sleep(1.0)
 
+            # kill the simulation
             os.system("rosnode kill "+sim_name)
             time.sleep(0.5)
             print("Killing the rest")
             os.system(KILL_ALL)
+            time.sleep(10.0)
 
-            time.sleep(3.0)
+            # if Contrl-C is pressed, then end the simulation
+            if is_control_c_pressed:
+                return
+
 
     ## process data
     print("Processing data")
@@ -341,22 +353,24 @@ def main():
     ## tmux & sending commands
     ##
 
-    # proc_commands = []
-    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/frame/sim/benchmarking")
+    proc_commands = []
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/ua-planner/multi-sims -s true")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/multi-sims -s true")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/ua-planner")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_map.py -d /media/kota/T7/ua-planner")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/ua-planner")
 
-    # session_name="processing"
-    # os.system("tmux kill-session -t" + session_name)
-    # os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
+    session_name="processing"
+    os.system("tmux kill-session -t" + session_name)
+    os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
 
-    # for i in range(len(proc_commands)):
-    #     os.system('tmux split-window ; tmux select-layout tiled')
+    for i in range(len(proc_commands)):
+        os.system('tmux split-window ; tmux select-layout tiled')
     
-    # for i in range(len(proc_commands)):
-    #     os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
+    for i in range(len(proc_commands)):
+        os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
 
-    # print("proc_commands sent")
+    print("proc_commands sent")
 
     ## uncomment params we change
     os.system("sed -i '/center_x/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
