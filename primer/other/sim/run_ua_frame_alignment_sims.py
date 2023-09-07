@@ -208,8 +208,8 @@ def main():
     # loop over the dictionary
     for dic_index, d in enumerate(DICTS):
 
-        if dic_index < 10:
-            continue
+        # if dic_index < 10:
+        #     continue
 
         print("####### Case {} #######".format(dic_index))
 

@@ -263,7 +263,11 @@ def main():
                 print("(3) number of collisions")
 
                 bag_transformer = BagTfTransformer(bag)
-                sim_start_time = max(sim_start_times.values())
+                buffer_time = 5.0 # if you don't have buffer time, lookupTransform might not be able to find the transform (esp if sim_start_time is 0.0)
+                sim_start_time = max([*sim_start_times.values(), buffer_time])
+
+                print(f"sim_start_time: {sim_start_time}")
+
                 sim_end_time = sim_end_time if sim_end_time != 0 else bag.get_end_time()
                 discrete_times = np.linspace(sim_start_time, sim_end_time, int((sim_end_time - sim_start_time) * DISCRETE_TIME_HZ))
 
@@ -687,7 +691,7 @@ def main():
         ## Save the data
         ##
 
-        with open(os.path.join(INPUT_DIR, "data.txt"), "a") as f:
+        with open(os.path.join(INPUT_DIR, "ua_data.txt"), "a") as f:
             f.write("\n")
             f.write("=============================================\n")
             f.write(d_string + "\n")
@@ -708,7 +712,7 @@ def main():
             f.write(ns_string + "\n")
             f.write("=============================================\n")
         
-        with open(os.path.join(sim_folder, "data.txt"), "a") as f:
+        with open(os.path.join(sim_folder, "ua_data.txt"), "a") as f:
             f.write("\n")
             f.write("=============================================\n")
             f.write(d_string + "\n")

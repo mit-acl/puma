@@ -766,21 +766,21 @@ Visualization Manager:
       frame: obs_5000
       line_width: 0.03999999910593033
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ01s/primer/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ02s/primer/obstacles
       Name: ObsEdgeSQ02s
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /SQ01s/primer/actual_traj
@@ -921,7 +921,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 40.292327880859375
+      Distance: 26.17700958251953
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -937,9 +937,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6297966837882996
+      Pitch: 0.6147966980934143
       Target Frame: <Fixed Frame>
-      Yaw: 4.6231770515441895
+      Yaw: 4.713178634643555
     Saved: ~
 Window Geometry:
   DepthImage:

@@ -218,6 +218,7 @@ def main():
                 ax.grid()
                 # plt.tight_layout()
                 plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_map.pdf'), dpi=300)
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_map.png'), dpi=300)
                 plt.close()
 
 if __name__ == '__main__':

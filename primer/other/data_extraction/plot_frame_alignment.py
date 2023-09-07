@@ -290,6 +290,7 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
 
     plt.tight_layout()
     plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.pdf'))
+    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.png'))
 
 def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_offsets_estimate, t_estimate, font, folder, subfolder, bag_text):
 
@@ -380,7 +381,6 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
                 # calculate the euler angle error between cw and estimate
                 _, _, yaw = euler_actual_offset
                 yaw = wrap_angle([yaw])[0]
-                print("actual yaw offset: ", abs(yaw))
                 ax.arrow3D(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], rx, ry, rz, mutation_scale=10, arrowstyle="-|>", color=cmap(norm(abs(yaw))), linewidth=3)
             # ax.scatter(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], color=dots_colors[int(i/1000)], marker='o', s=60)
             ax.scatter(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], color='deepskyblue', marker='o', s=800, zorder=1, alpha=0.3)
@@ -413,6 +413,7 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     plt.tight_layout()
     # plt.show()
     plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3d_traj.pdf'))
+    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3d_traj.png'))
 
 class Arrow3D(FancyArrowPatch):
 
