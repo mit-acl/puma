@@ -28,3 +28,13 @@
 [submodule "submodules/trajectory_generator"]
         path = submodules/trajectory_generator
         url = https://gitlab.com/mit-acl/fsw/trajectory_generator.git
+[submodule "submodules/motlee"]
+        path = submodules/motlee
+        url = https://gitlab.com/mit-acl/dmot/motlee.git
+[submodule "submodules/motlee_ros"]
+        path = submodules/motlee_ros
+        url = https://gitlab.com/mit-acl/dmot/motlee_ros.git
+[submodule "submodules/clipper"]
+        path = submodules/clipper
+        url = https://github.com/mit-acl/clipper.git
+
