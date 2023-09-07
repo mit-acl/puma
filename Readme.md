@@ -28,10 +28,7 @@ The instructions below assume that you have ROS Noetic installed on your Linux m
 > Note: the instructions below are partly taken from [here](https://github.com/casadi/casadi/wiki/InstallationLinux#installation-on-linux)
 
 #### IPOPT
-```bash
-sudo apt-get install gcc g++ gfortran git cmake liblapack-dev pkg-config --install-recommends
-sudo apt-get install coinor-libipopt1v5 coinor-libipopt-dev
-```
+Install IPOPT and CoinHSL solvers as described [here](https://github.com/ami-iit/ami-commons/blob/master/doc/casadi-ipopt-hsl.md).
 
 #### CasADi
 ```bash
