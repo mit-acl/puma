@@ -111,6 +111,11 @@ If you want to...
 
 * **Train the policy:** You first need to install a linear solver (see instructions below). Then, you can train a new policy but simply running `python3 policy_compression_train.py` inside the `panther_compression` folder. 
 
+Debug...
+
+undefined reference to `PyFrame_GetBack' -> (unofficial solution) build in master first and then move to uncertainty-aware-predictor branch)
+
+
 
 <details>
   <summary> <b>MATLAB (optional dependency)</b></summary>
