@@ -21,8 +21,8 @@ w=0
 # agent1
 agent1_voxl="nx01"
 agent1_nuc="nuc1"
-agent1_ip="192.168.15.2"
-agent1_adhoc_ip="192.168.100.1"
+agent1_ip="192.168.18.2"
+agent1_adhoc_ip="192.168.100.8"
 agent1_quad="NX01"
 
 # agent2
@@ -42,27 +42,31 @@ kappa_mot=600
 
 ######################################
 #            #           #           #   
-#            #     1     #     7     #    
+#            #     1     #     8     #    
 #            #           #           #   
 #            #########################
 #            #           #           #   
-#            #     2     #     8     #   
+#            #     2     #     9     #   
 #            #           #           #   
 #            #########################
 #            #           #           #   
-#            #     3     #     9     #   
+#            #     3     #    10     #   
 #            #           #           #   
 #      0     #########################
 #            #           #           #   
-#            #     4     #    10     #   
+#            #     4     #    11     #   
 #            #           #           #
 #            #########################
 #            #           #           #
-#            #     5     #    11     #
+#            #     5     #    12     #
 #            #           #           #
 #            #########################
 #            #           #           #
-#            #     6     #    12     #
+#            #     6     #    13     #
+#            #           #           #
+#            #########################
+#            #           #           #
+#            #     7     #    14     #
 #            #           #           #
 ######################################
 
@@ -88,91 +92,106 @@ do
 	tmux select-pane -t $SESSION:$w.$i
 done
 
-for i in 1 2 3 4 5 6 7 8 9 10 11 12
+tmux resize-pane -t $SESSION:$w.0 -x 20
+tmux resize-pane -t $SESSION:$w.1 -x 75
+
+for i in 1 2
 do 
 	# tmux select-layout -t $SESSION:$w.$i even-vertical
 	tmux select-pane -t $SESSION:$w.$i
 	tmux split-window -v
 
+	if [ $i=1 ] || [ $i=8 ]
+	then
+		tmux resize-pane -t $SESSION:$w.$i -y 150
+	else
+		tmux resize-pane -t $SESSION:$w.$i -y 10
+	fi
 done
 
 # resize panes for voxl fly
-for i in 1 7
-do
-	tmux resize-pane -t $SESSION:$w.$i -y 30
-done
+# for i in 1 8
+# do
+# done
 
-# resize panes for other panes
-for i in 2 3 4 5 6 8 9 10 11 12
-do
-	tmux resize-pane -t $SESSION:$w.$i -y 10
-done
+# # resize panes for other panes
+# for i in 2 3 4 5 6 7 9 10 11 12 13 14
+# do
+# 	tmux resize-pane -t $SESSION:$w.$i -y 10
+# done
 
-# wait for .bashrc to load
-sleep 1
+# # wait for .bashrc to load
+# sleep 1
 
-# send commands to each pane
-# ssh each voxl 
-tmux send-keys -t $SESSION:$w.1 "ssh root@${agent1_voxl}.local" C-m
-tmux send-keys -t $SESSION:$w.2 "ssh root@${agent1_voxl}.local" C-m
-tmux send-keys -t $SESSION:$w.7 "ssh root@${agent2_voxl}.local" C-m
-tmux send-keys -t $SESSION:$w.8 "ssh root@${agent2_voxl}.local" C-m
+# # send commands to each pane
+# # ssh each voxl 
+# tmux send-keys -t $SESSION:$w.1 "ssh root@${agent1_voxl}.local" C-m
+# tmux send-keys -t $SESSION:$w.2 "ssh root@${agent1_voxl}.local" C-m
+# tmux send-keys -t $SESSION:$w.8 "ssh root@${agent2_voxl}.local" C-m
+# tmux send-keys -t $SESSION:$w.9 "ssh root@${agent2_voxl}.local" C-m
 
-sleep 3
+# sleep 3
 
-# run voxl_voxl_connection
-for i in 1 2 7 8
-do
-	tmux send-keys -t $SESSION:$w.$i "./nuc_voxl_connection" C-m
-done
+# # run voxl_voxl_connection
+# for i in 1 2 8 9
+# do
+# 	tmux send-keys -t $SESSION:$w.$i "./nuc_voxl_connection" C-m
+# done
 
-# ssh each nuc
-# agent 1
-for i in 3 4 5 6
-do 
-    tmux send-keys -t $SESSION:$w.$i "ssh ${agent1_nuc}@${agent1_ip}" C-m
-done
+# # ssh each nuc
+# # agent 1
+# for i in 3 4 5 6 7
+# do 
+#     tmux send-keys -t $SESSION:$w.$i "ssh ${agent1_nuc}@${agent1_ip}" C-m
+# done
 
-# agent 2
-for i in 9 10 11 12
-do 
-    tmux send-keys -t $SESSION:$w.$i "ssh ${agent2_nuc}@${agent2_ip}" C-m
-done
+# # agent 2
+# for i in 10 11 12 13 14
+# do 
+#     tmux send-keys -t $SESSION:$w.$i "ssh ${agent2_nuc}@${agent2_ip}" C-m
+# done
 
-sleep 1
+# sleep 1
 
-# nuc housekeeping 
-for i in 3 4 5 6 9 10 11 12
-do 
-    # ntp date
-    tmux send-keys -t $SESSION:$w.$i "sudo ntpdate time.nist.gov" C-m
-    # ad_hoc
-    tmux send-keys -t $SESSION:$w.$i "cd && ./ad_hoc_without_NM.sh" C-m
-done
+# # nuc housekeeping 
+# for i in 3 4 5 6 7 10 11 12 13 14
+# do 
+#     # ntp date
+#     tmux send-keys -t $SESSION:$w.$i "sudo ntpdate time.nist.gov" C-m
+#     # ad_hoc
+#     tmux send-keys -t $SESSION:$w.$i "cd && ./ad_hoc_without_NM.sh" C-m
+# done
 
-sleep 10
+# sleep 5
 
-# ping each other
-tmux send-keys -t $SESSION:$w.6 "cd && ping ${agent2_adhoc_ip}" C-m
-tmux send-keys -t $SESSION:$w.12 "cd && ping ${agent1_adhoc_ip}" C-m
+# # ping each other
+# tmux send-keys -t $SESSION:$w.7 "cd && ping ${agent2_adhoc_ip}" C-m
+# tmux send-keys -t $SESSION:$w.14 "cd && ping ${agent1_adhoc_ip}" C-m
 
-sleep 5
+# # run roslaunches
+# # base station
+# tmux send-keys -t $SESSION:$w.0 "cd && roslaunch --wait trajectory_generator base_station.launch" C-m
 
-# run roslaunches
-# base station
-tmux send-keys -t $SESSION:$w.0 "cd && roslaunch --wait trajectory_generator base_station.launch" C-m
-# agent1
-tmux send-keys -t $SESSION:$w.1 "fly" C-m
-tmux send-keys -t $SESSION:$w.2 "cd && roslaunch --wait trajectory_generator quad:={agent1_quad} onboard.launch" C-m
-tmux send-keys -t $SESSION:$w.3 "cd && roslaunch --wait primer fastsam.launch quad:=${agent1_quad} is_sim:=false" C-m
-tmux send-keys -t $SESSION:$w.4 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent1_quad} kappa:=${kappa_mot}" C-m
-tmux send-keys -t $SESSION:$w.5 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:={agent1_quad} quad2:={agent2_quad}" C-m
-# agent2
-tmux send-keys -t $SESSION:$w.7 "fly" C-m
-tmux send-keys -t $SESSION:$w.8 "cd && roslaunch --wait trajectory_generator quad:={agent2_quad} onboard.launch" C-m
-tmux send-keys -t $SESSION:$w.9 "cd && roslaunch --wait primer fastsam.launch quad:=${agent2_quad} is_sim:=false" C-m
-tmux send-keys -t $SESSION:$w.10 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent2_quad} kappa:=${kappa_mot}" C-m
-tmux send-keys -t $SESSION:$w.11 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:={agent2_quad} quad2:={agent1_quad}" C-m
+# # snapros for trajectory generator (which takes some time so we do this first)
+# tmux send-keys -t $SESSION:$w.2 "snapros" C-m
+# tmux send-keys -t $SESSION:$w.9 "snapros" C-m
+# sleep 5
+
+# # agent1
+# tmux send-keys -t $SESSION:$w.1 "fly" C-m
+# tmux send-keys -t $SESSION:$w.2 "cd && roslaunch --wait trajectory_generator onboard.launch quad:=${agent1_quad}" C-m
+# tmux send-keys -t $SESSION:$w.3 "cd && roslaunch --wait primer fastsam.launch quad:=${agent1_quad} is_sim:=false" C-m
+# tmux send-keys -t $SESSION:$w.4 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent1_quad} kappa:=${kappa_mot}" C-m
+# tmux send-keys -t $SESSION:$w.5 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:=${agent1_quad} quad2:=[${agent2_quad}]" C-m
+# tmux send-keys -t $SESSION:$w.6 "cd && roslaunch --wait primer t265.launch quad:=${agent1_quad}" C-m
+
+# # agent2
+# tmux send-keys -t $SESSION:$w.8 "fly" C-m
+# tmux send-keys -t $SESSION:$w.9 "cd && roslaunch --wait trajectory_generator onboard.launch quad:=${agent2_quad}" C-m
+# tmux send-keys -t $SESSION:$w.10 "cd && roslaunch --wait primer fastsam.launch quad:=${agent2_quad} is_sim:=false" C-m
+# tmux send-keys -t $SESSION:$w.11 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent2_quad} kappa:=${kappa_mot}" C-m
+# tmux send-keys -t $SESSION:$w.12 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:=${agent2_quad} quad2:=[${agent1_quad}]" C-m
+# tmux send-keys -t $SESSION:$w.13 "cd && roslaunch --wait primer t265.launch quad:=${agent2_quad}" C-m
 
 # attach to the session
 tmux -2 attach-session -t $SESSION
