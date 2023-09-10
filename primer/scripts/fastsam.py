@@ -149,7 +149,10 @@ class FastSAM_ROS:
         cv_img = bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
 
         # undistort cv2_img
-        undistorted_img = cv_img # no need to undistort in sim
+        if self.is_sim:
+            undistorted_img = cv_img # no need to undistort in sim
+        else:
+            undistorted_img = self.undistort_image(cv_img)
 
         ### debug
         # show undistorted_img
@@ -308,7 +311,11 @@ class FastSAM_ROS:
 
         print("pose: ", pose)
 
-        return compute_3d_position_of_each_centroid(blob_means, pose, camera=self.camera, K=self.K)
+        nK = self.K.copy()
+        nK[0,0] = self.K[0,0] * 0.3
+        nK[1,1] = self.K[1,1] * 0.3
+
+        return compute_3d_position_of_each_centroid(blob_means, pose, camera=self.camera, K=nK)
 
     # publish the centroid
     def publish_objarray(self, pose_msg, positions):
