@@ -306,9 +306,6 @@ class FastSAM_ROS:
         pose.append(pose_msg.pose.orientation.z)
         pose.append(pose_msg.pose.orientation.w)
 
-
-
-
         nK = self.K.copy()
         if not self.is_sim:
             nK[0,0] = self.K[0,0] * 0.3
