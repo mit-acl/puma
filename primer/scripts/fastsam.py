@@ -48,7 +48,10 @@ class FastSAM_ROS:
             self.world_name_topic = "world"
 
         # listen to start_drift service
-        self.start_drift = False
+        if self.is_sim:
+            self.start_drift = False
+        else:
+            self.start_drift = True
         rospy.Service('fast_sam/start_drift', Empty, self.start_drift_cb)
 
         # get undistortion params
@@ -63,7 +66,7 @@ class FastSAM_ROS:
         # define FastSAM params
         self.conf = 0.5
         self.iou = 0.9
-        self.DEVICE = 'cuda'
+        self.DEVICE = 'cuda' if self.is_sim else 'cpu'
         self.MAX_BLOB_SIZE = 4000.0
         self.MIN_BLOB_SIZE = 0.0
 
@@ -294,26 +297,22 @@ class FastSAM_ROS:
     # map the blob_means to the world frame
     def map_to_world(self, pose_msg, blob_means):
 
-        if self.is_sim:
-            pose = [] # x, y, z, qx, qy, qz, qw
-            pose.append(pose_msg.pose.position.x)
-            pose.append(pose_msg.pose.position.y)
-            pose.append(pose_msg.pose.position.z)
-            # pose.append(2.0) # just for testing 
-            pose.append(pose_msg.pose.orientation.x)
-            pose.append(pose_msg.pose.orientation.y)
-            pose.append(pose_msg.pose.orientation.z)
-            pose.append(pose_msg.pose.orientation.w)
-        else: # if sim (in sim pose_msg is actually a list)
-            pose = pose_msg.copy()
-            # publish pose (because goal is only sporadically published, we need to republish it)
-            self.publish_pose(pose)
+        pose = [] # x, y, z, qx, qy, qz, qw
+        pose.append(pose_msg.pose.position.x)
+        pose.append(pose_msg.pose.position.y)
+        pose.append(pose_msg.pose.position.z)
+        pose.append(pose_msg.pose.orientation.x)
+        pose.append(pose_msg.pose.orientation.y)
+        pose.append(pose_msg.pose.orientation.z)
+        pose.append(pose_msg.pose.orientation.w)
 
-        print("pose: ", pose)
+
+
 
         nK = self.K.copy()
-        nK[0,0] = self.K[0,0] * 0.3
-        nK[1,1] = self.K[1,1] * 0.3
+        if not self.is_sim:
+            nK[0,0] = self.K[0,0] * 0.3
+            nK[1,1] = self.K[1,1] * 0.3
 
         return compute_3d_position_of_each_centroid(blob_means, pose, camera=self.camera, K=nK)
 
