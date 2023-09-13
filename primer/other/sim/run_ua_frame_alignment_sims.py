@@ -280,7 +280,7 @@ def main():
                 /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal \
                 /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values \
                 /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values \
-                /{}/primer/moving_direction_uncertainty_times""".format(*[agent_name]*23)
+                /{}/primer/moving_direction_uncertainty_times /{}/primer/alpha """.format(*[agent_name]*24)
 
 
             ## rosbag record

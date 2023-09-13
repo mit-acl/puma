@@ -101,7 +101,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
         linear_drift_rate_yaw:={linear_drift_rate_yaw}")
 
     ## trajectory generator onboard
-    commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator quad:={agent_name} onboard.launch")
+    commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator onboard.launch quad:={agent_name} ")
 
     ## takeoff
     commands.append(f"sleep "+str(time_takeoff)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
