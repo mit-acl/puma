@@ -82,7 +82,6 @@
      the openni gazebo plugin.
     -->
     <xacro:macro name="asus_camera" params="name parent *origin">
-
       <xacro:asus_camera_model name="${name}" parent="${parent}">
         <xacro:insert_block name="origin" />
       </xacro:asus_camera_model>
@@ -92,12 +91,11 @@
         <sensor type="depth" name="${name}">
           <update_rate>60</update_rate>
           <camera>
-            <horizontal_fov>${76 * M_PI/180.0}</horizontal_fov>
-            <vertical_fov>${47 * M_PI/180.0}</vertical_fov>
+            <horizontal_fov>${60 * M_PI/180.0}</horizontal_fov>
             <image>
               <format>R8G8B8</format>
-              <width>480</width> <!-- 120, 90 //320, 240 // 480, 480 -->
-              <height>480</height> <!--Note that the focal length is given by f = (width/2) / tan( horizontal_fov/2) 
+              <width>120</width> <!-- 120, 90 //320, 240 // 480, 480 -->
+              <height>120</height> <!--Note that the focal length is given by f = (width/2) / tan( horizontal_fov/2) 
                                                      vertical_fov is given by 2*arctan(height/(2*f))
                                                     
                                                     Also, the camera_info msg will have:
@@ -135,8 +133,6 @@
           </plugin>
         </sensor>
       </gazebo>
-
-
     </xacro:macro>
   </robot>
   
