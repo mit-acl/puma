@@ -1088,6 +1088,8 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       solution.knots_p = getKnotsSolution(guess.knots_p, alpha_guess, double(result["alpha"]));
       solution.knots_y = getKnotsSolution(guess.knots_y, alpha_guess, double(result["alpha"]));
 
+      solution.alpha = double(result["alpha"]);
+
       double total_time_solution = (solution.knots_p(solution.knots_p.cols() - 1) - solution.knots_p(0));
 
       if (total_time_solution > (par_.fitter_total_time + 1e-4))
@@ -1151,17 +1153,17 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       ///////////////////////////
 
       // Print the uncertainty vectors and times
-      // std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
-      // for (auto &tmp : solution.obstacle_uncertainty_list)
-      // {
-      //   std::cout << tmp.transpose() << std::endl;
-      // }
+      std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_list)
+      {
+        std::cout << tmp.transpose() << std::endl;
+      }
 
-      // std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
-      // for (auto &tmp : solution.obstacle_uncertainty_times)
-      // {
-      //   std::cout << tmp << std::endl;
-      // }
+      std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_times)
+      {
+        std::cout << tmp << std::endl;
+      }
 
       ///////////////////////////
       // solution.fillTraj(par_.dc);

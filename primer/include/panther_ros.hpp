@@ -15,6 +15,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
@@ -100,6 +101,7 @@ private:
                       const std::vector<Eigen::Matrix<double, 9, 1>>& moving_direction_sigma_list,
                       const std::vector<double>& moving_direction_uncertainty_times);
 
+  void pubAlpha(double& alpha);
   std_msgs::Float64MultiArray vecEigen3dToFloat64MultiArray(const std::vector<Eigen::Vector3d>& vec_eigen);
   std_msgs::Float64MultiArray vecEigen9dToFloat64MultiArray(const std::vector<Eigen::Matrix<double, 9, 1>>& vec_eigen);
   std_msgs::Float64MultiArray vecDoubleToFloat64MultiArray(const std::vector<double>& vec_double);
@@ -154,6 +156,7 @@ private:
   ros::Publisher pub_moving_direction_uncertainty_values_;
   ros::Publisher pub_moving_direction_sigma_values_;
   ros::Publisher pub_moving_direction_uncertainty_times_;
+  ros::Publisher pub_alpha_;
 
   ros::Publisher pub_guesses_;
   ros::Publisher pub_splines_fitted_;

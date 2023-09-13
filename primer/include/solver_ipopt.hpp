@@ -46,6 +46,8 @@ namespace si  // Solver Ipopt
 struct solOrGuess
 {
 
+  double alpha;
+
   std::vector<Eigen::Vector3d> qp;  // control points for position
   std::vector<double> qy;           // control points for yaw
 
