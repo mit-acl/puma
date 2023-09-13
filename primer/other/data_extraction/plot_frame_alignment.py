@@ -21,6 +21,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from adjustText import adjust_text
 from matplotlib.collections import LineCollection
+import matplotlib.ticker as ticker
 
 def smooth_data(x, y):
     X_Y_Spline = make_interp_spline(x, y)
@@ -185,23 +186,25 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     t_plot = get_correct_t(t_plot)
 
     # make fig and axs
-    fig = plt.figure(figsize=(20, 20))
+    fig = plt.figure(figsize=(50, 50))
     # add title
-    # fig.suptitle(bag_text.split("/")[-3] + '-' + bag_text.split("/")[-2], fontsize=20)
+    # fig.suptitle(bag_text.split("/")[-3] + '-' + bag_text.split("/")[-2], fontsize=80)
 
     # if it's venn diagram, plot relative distance
-    if not traj_type == "circle":
-        ## plot relative distance
-        ax = fig.add_axes([0.1, 0.725, 0.7197, 0.175]) # to match the width with other plots
-        ax.plot(t_rd_plot, relative_distance, label='relative distance', linewidth=3)
-        ax.set_xlabel('Time [s]', fontproperties=font)
-        ax.set_ylabel('Relative Distance [m]', fontproperties=font)
-        ax.legend()
-        ax.grid(True)
-        ax.legend(fontsize=20)
-        ax.xaxis.set_tick_params(labelsize=20)
-        ax.yaxis.set_tick_params(labelsize=20)
-        ax.autoscale()
+    # if not traj_type == "circle":
+    #     ## plot relative distance
+    #     ax = fig.add_axes([0.1, 0.725, 0.7197, 0.175]) # to match the width with other plots
+    #     ax.plot(t_rd_plot, relative_distance, label='relative distance', linewidth=3)
+    #     ax.set_xlabel('Time [s]', fontproperties=font)
+    #     ax.set_ylabel('Relative Distance [m]', fontproperties=font)
+    #     ax.legend()
+    #     ax.grid(True)
+    #     ax.legend(fontsize=80)
+    #     ax.xaxis.set_tick_params(labelsize=80)
+    #     ax.yaxis.set_tick_params(labelsize=80)
+    #     ax.autoscale()
+
+    traj_type = "circle"
 
     # plot euler angle drift
     ax = fig.add_axes([0.1, 0.65, 0.9, 0.25]) if traj_type == "circle" else fig.add_axes([0.1, 0.5, 0.9, 0.175])
@@ -214,22 +217,24 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     segments = np.concatenate([points[:-2], points[1:-1], points[2:]], axis=1) # to make the line smoother https://stackoverflow.com/questions/47851492/plot-curve-with-blending-line-colors-with-matplotlib-pyplot/47856091#47856091
     norm = plt.Normalize(vmin=0.0, vmax=5.0)
     reversed_cmap = plt.get_cmap('coolwarm')
-    lc = LineCollection(segments, cmap=reversed_cmap, norm=norm, label="yaw drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=3)
+    lc = LineCollection(segments, cmap=reversed_cmap, norm=norm, label="yaw drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=10)
     lc.set_array(err_norm)
     line = ax.add_collection(lc)
-    ax.plot(t_plot, euler_actual_drift_yaw, label='actual yaw drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
+    ax.plot(t_plot, euler_actual_drift_yaw, label='actual yaw drift', color='k', linewidth=10, linestyle='-.', alpha=0.5)
     ax.set_xlabel('Time [s]', fontproperties=font)
     ax.set_ylabel('Yaw Angle Estimate [deg]', fontproperties=font)
-    ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
-    min_bound = min(min(euler_estimate[:,2])-5, min(euler_actual_drift_yaw)-5)
-    max_bound = max(max(euler_estimate[:,2])+5, max(euler_actual_drift_yaw)+5)
+    ax.legend(fontsize=80)
+    ax.xaxis.set_tick_params(labelsize=80)
+    ax.yaxis.set_tick_params(labelsize=80)
+    # min_bound = min(min(euler_estimate[:,2])-5, min(euler_actual_drift_yaw)-5)
+    # max_bound = max(max(euler_estimate[:,2])+5, max(euler_actual_drift_yaw)+5)
+    min_bound = -10
+    max_bound = 10
     ax.set_ylim([min_bound, max_bound])
     ax.grid()
     cbar = fig.colorbar(line, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
-    cbar.set_label("Estimate Error [deg]", fontsize=20)
+    cbar.ax.tick_params(labelsize=80)
+    cbar.set_label("Estimate Error [deg]", fontsize=80)
 
     # plot translational drift
     ax = fig.add_axes([0.1, 0.35, 0.9, 0.25]) if traj_type == "circle" else fig.add_axes([0.1, 0.275, 0.9, 0.175])
@@ -243,21 +248,23 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     x_segments = np.concatenate([x_points[:-2], x_points[1:-1], x_points[2:]], axis=1) # to make the line smoother https://stackoverflow.com/questions/47851492/plot-curve-with-blending-line-colors-with-matplotlib-pyplot/47856091#47856091
     norm = plt.Normalize(vmin=0.0, vmax=1.0)
     reversed_cmap = plt.get_cmap('RdYlGn').reversed()
-    lc_x = LineCollection(x_segments, cmap=reversed_cmap, norm=norm, label="x drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=3)
+    lc_x = LineCollection(x_segments, cmap=reversed_cmap, norm=norm, label="x drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=10)
     lc_x.set_array(err_norm)
-    ax.plot(t_plot, offsets_actual_drift_x, label='actual x drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
+    ax.plot(t_plot, offsets_actual_drift_x, label='actual x drift', color='k', linewidth=10, linestyle='-.', alpha=0.5)
     ax.set_xlabel('Time [s]', fontproperties=font)
     ax.set_ylabel('X Estimate [m]', fontproperties=font)
     line_x = ax.add_collection(lc_x)
     cbar = fig.colorbar(line_x, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=80)
     cbar.ax.set_yticklabels([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-    cbar.set_label("X Estimate Error [m]", fontsize=20)
-    ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
-    min_bound = min(min(offsets_estimate[:,0])-0.3, min(offsets_actual_drift_x)-0.3)
-    max_bound = max(max(offsets_estimate[:,0])+0.3, max(offsets_actual_drift_x)+0.3)
+    cbar.set_label("X Estimate Error [m]", fontsize=80)
+    ax.legend(fontsize=80)
+    ax.xaxis.set_tick_params(labelsize=80)
+    ax.yaxis.set_tick_params(labelsize=80)
+    # min_bound = min(min(offsets_estimate[:,0])-0.3, min(offsets_actual_drift_x)-0.3)
+    # max_bound = max(max(offsets_estimate[:,0])+0.3, max(offsets_actual_drift_x)+0.3)
+    min_bound = -2.0
+    max_bound = 2.0
     ax.set_ylim([min_bound, max_bound])
     ax.grid()
 
@@ -270,31 +277,33 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     y_points = np.array([t_estimate, np.array(offsets_estimate)[:,1]]).T.reshape(-1, 1, 2)
     # y_segments = np.concatenate([y_points[:-1], y_points[1:]], axis=1)
     y_segments = np.concatenate([y_points[:-2], y_points[1:-1], y_points[2:]], axis=1) # to make the line smoother https://stackoverflow.com/questions/47851492/plot-curve-with-blending-line-colors-with-matplotlib-pyplot/47856091#47856091
-    lc_y = LineCollection(y_segments, cmap=reversed_cmap, norm=norm, label="y drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=3)
+    lc_y = LineCollection(y_segments, cmap=reversed_cmap, norm=norm, label="y drift estimate", color=reversed_cmap(norm(err_norm)), linewidths=10)
     lc_y.set_array(err_norm) 
-    ax.plot(t_plot, offsets_actual_drift_y, label='actual y drift', color='k', linewidth=2, linestyle='-.', alpha=0.3)
+    ax.plot(t_plot, offsets_actual_drift_y, label='actual y drift', color='k', linewidth=10, linestyle='-.', alpha=0.3)
     ax.set_xlabel('Time [s]', fontproperties=font)
     ax.set_ylabel('Y Estimate [m]', fontproperties=font)
     line_y = ax.add_collection(lc_y)
     cbar = fig.colorbar(line_y, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=80)
     cbar.ax.set_yticklabels([0, 0.2, 0.4, 0.6, 0.8, 1.0])
-    cbar.set_label("Y Estimate Error [m]", fontsize=20)
-    ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
-    min_bound = min(min(offsets_estimate[:,1])-0.3, min(offsets_actual_drift_y)-0.3)
-    max_bound = max(max(offsets_estimate[:,1])+0.3, max(offsets_actual_drift_y)+0.3)
+    cbar.set_label("Y Estimate Error [m]", fontsize=80)
+    ax.legend(fontsize=80)
+    ax.xaxis.set_tick_params(labelsize=80)
+    ax.yaxis.set_tick_params(labelsize=80)
+    # min_bound = min(min(offsets_estimate[:,1])-0.3, min(offsets_actual_drift_y)-0.3)
+    # max_bound = max(max(offsets_estimate[:,1])+0.3, max(offsets_actual_drift_y)+0.3)
+    min_bound = -2.0
+    max_bound = 2.0
     ax.set_ylim([min_bound, max_bound])
     ax.grid()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.pdf'))
     plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.png'))
+    plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_tracking.pdf'))
 
 def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_offsets_estimate, t_estimate, font, folder, subfolder, bag_text):
 
-    fig = plt.figure(figsize=(20, 20))
+    fig = plt.figure(figsize=(50, 50))
     ax = fig.add_subplot(111, projection='3d')
 
     # sync estimate and cw1
@@ -314,7 +323,7 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     x_cw = np.array(cw)[:, 0]
     y_cw = np.array(cw)[:, 1]
     z_cw = np.array(cw)[:, 2]
-    ax.plot3D(x_cw, y_cw, z_cw, label='Ground Truth', color="k", linewidth=15, alpha=0.3)
+    ax.plot3D(x_cw, y_cw, z_cw, label='Ground Truth', color="k", linewidth=40, alpha=0.3)
 
     # plot the estimate trajectory (estimate) with color map
     # Create a continuous norm to map from data points to colors
@@ -328,16 +337,16 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     # lc = Line3DCollection(segments, cmap='viridis', norm=norm, label="Estimate")
     orig_cmap = plt.get_cmap('RdYlGn')
     reversed_cmap = orig_cmap.reversed()
-    lc = Line3DCollection(segments, cmap=reversed_cmap, norm=norm, label="Estimate", color=reversed_cmap(norm(err_norm)), linewidths=3)
+    lc = Line3DCollection(segments, cmap=reversed_cmap, norm=norm, label="Estimate", color=reversed_cmap(norm(err_norm)), linewidths=10)
     
     # Set the values used for colormapping
     lc.set_array(err_norm)
 
     # lc.set_linewidth(3)
     line = ax.add_collection3d(lc)
-    cbar = fig.colorbar(line, ax=ax, shrink=0.5, location='bottom', pad=-0.1, anchor=(0.5, 0.5))
-    cbar.ax.tick_params(labelsize=20)
-    cbar.ax.set_title("Translation Estimate Error [m]", fontsize=20)
+    cbar = fig.colorbar(line, ax=ax, shrink=0.5, location='top', pad=-0.1, anchor=(0.2, -0.1))
+    cbar.ax.tick_params(labelsize=80)
+    cbar.set_label(label="Translation Estimate Error [m]", fontsize=80, labelpad=50)
     
     # add attitude https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
     setattr(Axes3D, 'arrow3D', _arrow3D)
@@ -354,10 +363,12 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     # norm = BoundaryNorm(np.linspace(0, euler_angle_err_max, 100), cmap.N, clip=True)
     norm = plt.Normalize(vmin=0.0, vmax=euler_angle_err_max)
     # set color bar
-    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, shrink=0.5, location='bottom', pad=-0.05)
-    cbar.ax.tick_params(labelsize=20)
+    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, shrink=0.5, location='top', pad=-0.05, anchor=(0.2, -0.6))
+    cbar.ax.tick_params(labelsize=80)
     # make the title bigger
-    cbar.ax.set_title("Yaw Estimate Error [deg]", fontsize=20)
+    cbar.set_label("Yaw Estimate Error [deg]", fontsize=80, labelpad=50)
+
+    arrow_factor = 0.8
 
     # plot orientation
     for i in range(len(cw)):
@@ -367,47 +378,52 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
             r_cw = R.from_quat([cw[i][3], cw[i][4], cw[i][5], cw[i][6]]).as_matrix()[:3,:3]
             for j in range(3):
                 # plot arrow
-                rx = r_cw[0,j] * 0.3; ry = r_cw[1,j] * 0.3; rz = r_cw[2,j] * 0.3
-                ax.arrow3D(cw[i][0], cw[i][1], cw[i][2], rx, ry, rz, mutation_scale=10, arrowstyle="-|>", color='k', linewidth=3)
+                rx = r_cw[0,j] * arrow_factor; ry = r_cw[1,j] * arrow_factor; rz = r_cw[2,j] * arrow_factor
+                ax.arrow3D(cw[i][0], cw[i][1], cw[i][2], rx, ry, rz, mutation_scale=10, arrowstyle="-|>", color='k', linewidth=10, alpha=0.6)
             # plot a marker
             # ax.scatter(cw[i][0], cw[i][1], cw[i][2], color=dots_colors[int(i/1000)], marker='o', s=60)
-            ax.scatter(cw[i][0], cw[i][1], cw[i][2], color='deepskyblue', marker='o', s=800, zorder=1, alpha=0.3)
+            ax.scatter(cw[i][0], cw[i][1], cw[i][2], color='deepskyblue', marker='o', s=10000, zorder=1, alpha=0.3)
 
             # plot orientation for estimate
             r_euler_estimate = R.from_euler("xyz", euler_estimate[i], degrees=True).as_matrix()[:3,:3]
             euler_actual_offset = R.from_matrix(r_euler_estimate).as_euler('xyz', degrees=True) - R.from_quat([cw[i][3], cw[i][4], cw[i][5], cw[i][6]]).as_euler('xyz', degrees=True)
             for j in range(3):
-                rx = r_euler_estimate[0,j] * 0.3; ry = r_euler_estimate[1,j] * 0.3; rz = r_euler_estimate[2,j] * 0.3
+                rx = r_euler_estimate[0,j] * arrow_factor; ry = r_euler_estimate[1,j] * arrow_factor; rz = r_euler_estimate[2,j] * arrow_factor
                 # calculate the euler angle error between cw and estimate
                 _, _, yaw = euler_actual_offset
                 yaw = wrap_angle([yaw])[0]
-                ax.arrow3D(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], rx, ry, rz, mutation_scale=10, arrowstyle="-|>", color=cmap(norm(abs(yaw))), linewidth=3)
+                ax.arrow3D(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], rx, ry, rz, mutation_scale=10, arrowstyle="-|>", color=cmap(norm(abs(yaw))), linewidth=10)
             # ax.scatter(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], color=dots_colors[int(i/1000)], marker='o', s=60)
-            ax.scatter(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], color='deepskyblue', marker='o', s=800, zorder=1, alpha=0.3)
+            ax.scatter(pos_estimate[i][0], pos_estimate[i][1], pos_estimate[i][2], color='deepskyblue', marker='o', s=10000, zorder=1, alpha=0.3)
 
             # connect two dots with a line
             # ax.plot([cw[i][0], pos_estimate[i][0]], [cw[i][1], pos_estimate[i][1]], [cw[i][2], pos_estimate[i][2]], color=dots_colors[int(i/1000)], linewidth=1)
-            ax.plot([cw[i][0], pos_estimate[i][0]], [cw[i][1], pos_estimate[i][1]], [cw[i][2], pos_estimate[i][2]], color='deepskyblue', linewidth=2)
+            ax.plot([cw[i][0], pos_estimate[i][0]], [cw[i][1], pos_estimate[i][1]], [cw[i][2], pos_estimate[i][2]], color='deepskyblue', linewidth=10)
             # add text at 1.2 times the distance from the origin
-            # ax.text(cw[i][0]*1.2, cw[i][1]*1.2, cw[i][2]*1, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=15)
-            if cw[i][0] > 0:
-                ax.text((cw[i][0]-1)*1.05+1, (cw[i][1]-1)*1.2+1, cw[i][2]*1, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=15)
-            else:
-                ax.text((cw[i][0]-1)*1.2+1, (cw[i][1]-1)*1.2+1, cw[i][2]*1.1, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=15)
+            # ax.text(cw[i][0]*1.2, cw[i][1]*1.2, cw[i][2]*1, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=85)
+            # if cw[i][1] > 0:
+            #     ax.text((cw[i][0]-1), (cw[i][1]-1), cw[i][2]*1.2, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=85)
+            # else:
+            #     ax.text((cw[i][0]-1), (cw[i][1]-1), cw[i][2]*0.8, f"{round(t_cw1[i], 2)} [s]", color='k', fontsize=85)
 
     # axis labels
-    ax.set_xlabel('x [m]', fontproperties=font)
-    ax.set_ylabel('y [m]', fontproperties=font)
-    ax.set_zlabel('z [m]', fontproperties=font)
+    ax.set_xlabel('x [m]', fontproperties=font, labelpad=120)
+    ax.set_ylabel('y [m]', fontproperties=font, labelpad=120)
+    ax.set_zlabel('z [m]', fontproperties=font, labelpad=100)
     ax.set_zlim(0, 3)
+    ax.zaxis.set_ticks(np.arange(0, 3, 1))
+    ax.zaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+    ax.view_init(30, 45)
 
     # set axis tick size
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
-    ax.zaxis.set_tick_params(labelsize=20)
+    ax.xaxis.set_tick_params(labelsize=80, pad=50)
+    ax.yaxis.set_tick_params(labelsize=80, pad=50)
+    ax.zaxis.set_tick_params(labelsize=80, pad=50)
+
+    ax.invert_xaxis()
 
     # ax.legend(loc='upper right', bbox_to_anchor=(1.2, 0.9))
-    ax.legend(fontsize=20)
+    ax.legend(fontsize=80)
     ax.set_aspect('equal', 'box')
     ax.grid(True)
     plt.tight_layout()
@@ -606,7 +622,7 @@ def main():
                 font.set_family('serif')
                 plt.rcParams.update({"text.usetex": True})
                 plt.rcParams["font.family"] = "Times New Roman"
-                font.set_size(16)
+                font.set_size(80)
 
                 ### plot the data
                 if PLOT_TYPE == "state_and_cw":

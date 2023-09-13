@@ -94,7 +94,9 @@ def main():
 
     for sim_folder in sim_folders:
 
-        if sim_folder == "/media/kota/T7/ua-planner/single-sims/bags/parm":
+        if sim_folder == "/media/kota/T7/ua-planner/single-sims/bags/" \
+            or sim_folder == "/media/kota/T7/ua-planner/single-sims/boeing-one-test" \
+            or sim_folder == "/media/kota/T7/ua-planner/single-sims/parameters":
             continue
 
         print("Processing " + sim_folder + "...")

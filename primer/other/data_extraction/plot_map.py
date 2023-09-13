@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import font_manager
+import matplotlib.ticker as ticker
 
 def get_data_sync_maps_and_data_sync_world(bag, veh_name):
 
@@ -87,6 +88,7 @@ def main():
     #                     [-1.2788058555668842, 0.8623606354570972]]
 
     # for simulations (need to be synced with floor_objects_env.py)
+    # NOTE: DO NOT CHANGE THE SEED NUMBER (10) -- it is used for all the simulations
     np.random.seed(10)
     xy_min = [-5, -5]
     xy_max = [5, 5]
@@ -169,28 +171,30 @@ def main():
                 font.set_family('serif')
                 plt.rcParams.update({"text.usetex": True})
                 plt.rcParams["font.family"] = "Times New Roman"
-                font.set_size(16)
+                font.set_size(10)
 
                 # plot the data (one for 3D trajectory, one for 2D map)
-                fig = plt.figure(figsize=(12, 6))
+                fig = plt.figure(figsize=(6, 6))
                 
-                ax = fig.add_subplot(121, projection='3d')
+                ax = fig.add_subplot(111, projection='3d')
                 ax.set(xlabel='y [m]', ylabel='x [m]', zlabel='z [m]') # to make it look consistent with the map
                 ax.set_xlim3d(-6, 6)
                 ax.set_ylim3d(-6, 6)
-                ax.set_zlim3d(0, 2.5)
+                ax.set_zlim3d(0, 3)
+                ax.zaxis.set_ticks(np.arange(0, 3, 1))
+                ax.zaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
                 ax.set_aspect('equal', 'box')
                 ax.grid()
                 ax.view_init(30, 45)
-                ax.set_title('3D Trajectory and Map', fontproperties=font)
+                # ax.set_title('3D Trajectory and Map', fontproperties=font)
                 cw1_x = np.array(cw1)[:,0]
                 cw1_y = np.array(cw1)[:,1]
                 cw1_z = np.array(cw1)[:,2]
-                ax.plot3D(cw1_y, cw1_x, cw1_z, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3)
+                ax.plot3D(cw1_y, cw1_x, cw1_z, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3, alpha=0.8)
                 cw2_x = np.array(cw2)[:,0]
                 cw2_y = np.array(cw2)[:,1]
                 cw2_z = np.array(cw2)[:,2]
-                ax.plot3D(cw2_y, cw2_x, cw2_z, label='vehicle 2 traj', color='red', linestyle='-', linewidth=1)
+                ax.plot3D(cw2_y, cw2_x, cw2_z, label='vehicle 2 traj', color='red', linestyle='-', linewidth=3, alpha=0.8)
                 ax.invert_xaxis()
 
                 # plot (state)
@@ -200,25 +204,36 @@ def main():
                 ax.legend()
                 ax.set_aspect('equal', 'box')
                 ax.grid()
+                
+                ax.set_xlabel('x [m]', fontproperties=font, labelpad=1)
+                ax.set_ylabel('y [m]', fontproperties=font, labelpad=1)
+                ax.set_zlabel('z [m]', fontproperties=font, labelpad=1)
+                ax.set_zlim(0, 3)
 
+                # plt.tight_layout()
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3Dmap.pdf'), dpi=300)
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3Dmap.png'), dpi=300)
+                plt.close()
+
+                fig = plt.figure(figsize=(6, 6))
                 # plot (map)
                 # add another plot
-                ax = fig.add_subplot(122)
-                ax.plot(cw1_x, cw1_y, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3)
-                ax.plot(cw2_x, cw2_y, label='vehicle 2 traj', color='red', linestyle='-', linewidth=1)
+                ax = fig.add_subplot(111)
+                ax.plot(cw1_x, cw1_y, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3, alpha=0.8)
+                ax.plot(cw2_x, cw2_y, label='vehicle 2 traj', color='red', linestyle='-', linewidth=3, alpha=0.8)
                 ax.scatter(data_sync_maps[veh_names[0]][-1][0], data_sync_maps[veh_names[0]][-1][1], label=f'vehicle 1 map', color='b', marker='s')
                 ax.scatter(data_sync_maps[veh_names[1]][-1][0], data_sync_maps[veh_names[1]][-1][1], label=f'vehicle 2 map', color='red')
                 ax.scatter([x[0] for x in object_gt], [x[1] for x in object_gt], c='g', marker='x', label=f'objects')
                 ax.set(xlim=[-6, 6], ylim=[-6, 6], xlabel='x [m]', ylabel='y [m]')
                 ax.legend()
                 ax.set_aspect('equal', 'box')
-                ax.set_title('2D Map', fontproperties=font)
+                # ax.set_title('2D Map', fontproperties=font)
                 ax.yaxis.set_label_position("right")
                 ax.yaxis.tick_right()
                 ax.grid()
-                # plt.tight_layout()
-                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_map.pdf'), dpi=300)
-                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_map.png'), dpi=300)
+                plt.tight_layout()
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_2Dmap.pdf'), dpi=300)
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_2Dmap.png'), dpi=300)
                 plt.close()
 
 if __name__ == '__main__':

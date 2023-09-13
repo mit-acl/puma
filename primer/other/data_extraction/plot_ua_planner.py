@@ -186,8 +186,8 @@ def linear_interpolate_data(t_result, data_orig, t_orig):
         
         # linearly interpolate
 
-        left_data = data_orig[:, left_data_idx]
-        right_data = data_orig[:, right_data_idx]
+        left_data = np.array(data_orig[left_data_idx,:])
+        right_data = np.array(data_orig[right_data_idx,:])
         left_t = t_orig[left_data_idx]
         right_t = t_orig[right_data_idx]
         interpolated_data = left_data + (right_data - left_data) * (t - left_t) / (right_t - left_t)
@@ -195,7 +195,7 @@ def linear_interpolate_data(t_result, data_orig, t_orig):
         data_synced_y.append(interpolated_data.tolist()[1])
         data_synced_z.append(interpolated_data.tolist()[2])
     
-    data_synced = np.array([data_synced_x, data_synced_y, data_synced_z])
+    data_synced = np.array([data_synced_x, data_synced_y, data_synced_z]).T
 
     return data_synced
 
@@ -240,8 +240,8 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
         ax.legend()
         ax.grid(True)
         ax.legend(fontsize=20)
-        ax.xaxis.set_tick_params(labelsize=20)
-        ax.yaxis.set_tick_params(labelsize=20)
+        ax.xaxis.set_tick_params(labelsize=40)
+        ax.yaxis.set_tick_params(labelsize=40)
         ax.autoscale()
 
     # plot euler angle drift
@@ -262,14 +262,14 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     ax.set_xlabel('Time [s]', fontproperties=font)
     ax.set_ylabel('Yaw Angle Estimate [deg]', fontproperties=font)
     ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
+    ax.xaxis.set_tick_params(labelsize=40)
+    ax.yaxis.set_tick_params(labelsize=40)
     min_bound = min(min(euler_estimate[:,2])-5, min(euler_actual_drift_yaw)-5)
     max_bound = max(max(euler_estimate[:,2])+5, max(euler_actual_drift_yaw)+5)
     ax.set_ylim([min_bound, max_bound])
     ax.grid()
     cbar = fig.colorbar(line, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
     cbar.set_label("Estimate Error [deg]", fontsize=20)
 
     # plot translational drift
@@ -291,12 +291,12 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     ax.set_ylabel('X Estimate [m]', fontproperties=font)
     line_x = ax.add_collection(lc_x)
     cbar = fig.colorbar(line_x, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
     cbar.ax.set_yticklabels([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     cbar.set_label("X Estimate Error [m]", fontsize=20)
     ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
+    ax.xaxis.set_tick_params(labelsize=40)
+    ax.yaxis.set_tick_params(labelsize=40)
     min_bound = min(min(offsets_estimate[:,0])-0.3, min(offsets_actual_drift_x)-0.3)
     max_bound = max(max(offsets_estimate[:,0])+0.3, max(offsets_actual_drift_x)+0.3)
     ax.set_ylim([min_bound, max_bound])
@@ -318,12 +318,12 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     ax.set_ylabel('Y Estimate [m]', fontproperties=font)
     line_y = ax.add_collection(lc_y)
     cbar = fig.colorbar(line_y, ax=ax, location='right')
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
     cbar.ax.set_yticklabels([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     cbar.set_label("Y Estimate Error [m]", fontsize=20)
     ax.legend(fontsize=20)
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
+    ax.xaxis.set_tick_params(labelsize=40)
+    ax.yaxis.set_tick_params(labelsize=40)
     min_bound = min(min(offsets_estimate[:,1])-0.3, min(offsets_actual_drift_y)-0.3)
     max_bound = max(max(offsets_estimate[:,1])+0.3, max(offsets_actual_drift_y)+0.3)
     ax.set_ylim([min_bound, max_bound])
@@ -376,7 +376,7 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     # lc.set_linewidth(3)
     line = ax.add_collection3d(lc)
     cbar = fig.colorbar(line, ax=ax, shrink=0.5, location='bottom', pad=-0.1, anchor=(0.5, 0.5))
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
     cbar.ax.set_title("Translation Estimate Error [m]", fontsize=20)
     
     # add attitude https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
@@ -395,7 +395,7 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     norm = plt.Normalize(vmin=0.0, vmax=euler_angle_err_max)
     # set color bar
     cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, shrink=0.5, location='bottom', pad=-0.05)
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
     # make the title bigger
     cbar.ax.set_title("Yaw Estimate Error [deg]", fontsize=20)
 
@@ -443,9 +443,9 @@ def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_esti
     ax.set_zlim(0, 3)
 
     # set axis tick size
-    ax.xaxis.set_tick_params(labelsize=20)
-    ax.yaxis.set_tick_params(labelsize=20)
-    ax.zaxis.set_tick_params(labelsize=20)
+    ax.xaxis.set_tick_params(labelsize=40)
+    ax.yaxis.set_tick_params(labelsize=40)
+    ax.zaxis.set_tick_params(labelsize=40)
 
     # ax.legend(loc='upper right', bbox_to_anchor=(1.2, 0.9))
     ax.legend(fontsize=20)
@@ -519,7 +519,7 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner")
+    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/")
     parser.add_argument("-p", "--plot_type", help="Plot type.", default="3d")
     args = parser.parse_args()
 
@@ -578,10 +578,12 @@ def main():
                 tpn_obs_sigma = f'/{VEH_NAME}/primer/obstacle_sigma_values'
                 tpn_obs_uncertainty = f'/{VEH_NAME}/primer/obstacle_uncertainty_values'
                 tpn_obs_times = f'/{VEH_NAME}/primer/obstacle_uncertainty_times'
+                tpn_alpha = f'/{VEH_NAME}/primer/alpha'
                 mv_sigma = []; mv_uncertainty = []; mv_times = []
                 obs_sigma = []; obs_uncertainty = []; obs_times = []
                 replan_start_time = []
-                for topic, msg, t in bag.read_messages(topics=[tpn_mv_sigma, tpn_mv_uncertainty, tpn_mv_times, tpn_obs_sigma, tpn_obs_uncertainty, tpn_obs_times]):
+                alphas = []
+                for topic, msg, t in bag.read_messages(topics=[tpn_mv_sigma, tpn_mv_uncertainty, tpn_mv_times, tpn_obs_sigma, tpn_obs_uncertainty, tpn_obs_times, tpn_alpha]):
                     if topic == tpn_mv_sigma:
                         mv_sigma.append(msg.data)
                     elif topic == tpn_mv_uncertainty:
@@ -599,9 +601,16 @@ def main():
                         obs_uncertainty_dim = msg.layout.dim[1].size
                     elif topic == tpn_obs_times:
                         obs_times.append(msg.data)
+                    elif topic == tpn_alpha:
+                        alphas.append(msg.data)
                 
                 # close the bag
                 bag.close()
+
+                
+                # my_times are normalized by alpha, so need to multiply alpha to get the actual time
+                mv_times = np.array(mv_times) * np.array(alphas)
+                print("mv_times: ", mv_times)
 
                 # make replan_start_time start at 0
                 replan_start_time = np.array(replan_start_time) - replan_start_time[0]
@@ -609,106 +618,154 @@ def main():
                 # number of replan
                 num_replan = len(replan_start_time)
 
+                print(num_replan)
+
                 # convert all the list to numpy array
                 state1 = np.array(state1)
                 t_state1 = np.array(t_state1)
                 mv_sigma = np.array(mv_sigma)
-                mv_uncertainty = np.array(mv_uncertainty).reshape(mv_uncertainty_dim, mv_uncertainty_steps, num_replan) #[x, y, z] for each steps for each replanning
-                mv_times = np.array(mv_times).reshape(mv_uncertainty.shape[2], mv_uncertainty_steps) #t for each steps for each replanning
+                mv_uncertainty = np.array(mv_uncertainty) #[x, y, z] for each steps for each replanning
+                mv_times = np.array(mv_times).reshape(num_replan, mv_uncertainty_steps) #t for each steps for each replanning
                 obs_sigma = np.array(obs_sigma) 
                 obs_uncertainty = np.array(obs_uncertainty) #[x, y, z] for each steps for each replanning
                 obs_times = np.array(obs_times).reshape(num_replan, obs_uncertainty_steps) # for each steps for each replanning
+
+                # reshape the data
+
+                # mv
+                mv_uncertainty_new = np.zeros((num_replan, mv_uncertainty_steps,  mv_uncertainty_dim))
+                for i in range(mv_uncertainty.shape[1]):
+                    replan_idx = int(mv_uncertainty.shape[0] / mv_uncertainty_steps)
+                    dim_idx = i % mv_uncertainty_dim
+                    step_idx = int(i / mv_uncertainty_dim)
+                    mv_uncertainty_new[replan_idx, step_idx, dim_idx] = mv_uncertainty[0, i]
+
+                # obs
+                obs_uncertainty_new = np.zeros((num_replan, obs_uncertainty_steps,  obs_uncertainty_dim))
+                for i in range(obs_uncertainty.shape[1]):
+                    replan_idx = int(obs_uncertainty.shape[0] / obs_uncertainty_steps)
+                    dim_idx = i % obs_uncertainty_dim
+                    step_idx = int(i / obs_uncertainty_dim)
+                    obs_uncertainty_new[replan_idx, step_idx, dim_idx] = obs_uncertainty[0, i]
+
+                # total uncertainty 
+                mv_uncertainty_synced = np.zeros((num_replan, obs_uncertainty_steps, mv_uncertainty_dim))
+                for i in range(num_replan): # for each replanning
+                    mv_uncertainty_synced[i,:,:] = linear_interpolate_data(obs_times[i], mv_uncertainty_new[i,:,:], mv_times[i])
+                
+                total_uncertainty = mv_uncertainty_synced + obs_uncertainty_new
 
                 # font
                 font = font_manager.FontProperties()
                 font.set_family('serif')
                 plt.rcParams.update({"text.usetex": True})
                 plt.rcParams["font.family"] = "Times New Roman"
-                font.set_size(16)
+                font.set_size(40)
 
                 ### plot the uncertainty propagated in horizon ###
-                fig = plt.figure(figsize=(20, 20))
+                fig = plt.figure(figsize=(25, 14))
 
                 # plot total uncertainty (moving direction + obstacle)
-                ax = fig.add_axes(311)
-                
-                ## get total uncertainty
-                # need to sync the time between mv and obs (obstacle propagation has more data points)                
-                mv_uncertainty_synced = np.zeros((num_replan, mv_uncertainty_dim, obs_uncertainty_steps))
-                mv_uncertainty_new = np.zeros((num_replan, mv_uncertainty_dim, obs_uncertainty_steps))
-                # reshape mv_uncertainty to [x, y, z] for each steps for each replanning
-                for i in range(num_replan): # for each replanning
-                    for j in range(mv_uncertainty_dim):
-                        for k in range(mv_uncertainty_steps):
-                            mv_uncertainty_new[i, j, k] = mv_uncertainty[i, k, j]
-                mv_uncertainty = mv_uncertainty_new.copy()
-                
-                # TODO: get correct size of mv_uncertainty and obs_uncertainty in the same way
-                obs_uncertainty_new = np.zeros((num_replan, obs_uncertainty_dim, obs_uncertainty_steps)) # reshape obs_uncertainty to [x, y, z] for each steps for each replanning
-                for i in range(num_replan): # for each replanning
-                    for j in range(obs_uncertainty_dim*obs_uncertainty_steps):
-                        k = j % obs_uncertainty_dim
-                        l = int(j / obs_uncertainty_dim)
-                        obs_uncertainty_new[i, k, l] = obs_uncertainty[i, j]
-                obs_uncertainty = obs_uncertainty_new.copy()
+                # ax = fig.add_axes(311)
 
-                for i in range(num_replan): # for each replanning
-                    mv_uncertainty_synced[i,:,:] = linear_interpolate_data(obs_times[i], mv_uncertainty[i,:,:], mv_times[i])
-                total_uncertainty = mv_uncertainty_synced + obs_uncertainty
-
-                print(total_uncertainty)
-                print(obs_times)
-                print(replan_start_time)
-
-                # plot the total uncertainty
-                for i in range(num_replan): # for each replanning
-                    ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, 0, :], label=f'x in step {i}', linewidth=3, color='r')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, 1, :], label=f'y in step {i}', linewidth=3, color='g')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, 2, :], label=f'z in step {i}', linewidth=3, color='b')
-                ax.set_xlabel('Time [s]', fontproperties=font)
-                ax.set_ylabel('Total Uncertainty [??]', fontproperties=font)
-                ax.grid(True)
-                ax.legend(fontsize=20)
-                ax.xaxis.set_tick_params(labelsize=20)
-                # plt.xlim(0, 8)
-                ax.yaxis.set_tick_params(labelsize=20)
+                # # plot the total uncertainty
+                # for i in range(num_replan): # for each replanning
+                #     ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, :, 0], label=f'x in step {i}', linewidth=3, color='r')
+                #     ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, :, 1], label=f'y in step {i}', linewidth=3, color='g')
+                #     ax.plot(obs_times[i, :] + replan_start_time[i], total_uncertainty[i, :, 2], label=f'z in step {i}', linewidth=3, color='b')
+                # ax.set_xlabel('Time [s]', fontproperties=font)
+                # ax.set_ylabel('Total Uncertainty [??]', fontproperties=font)
+                # ax.grid(True)
+                # ax.legend(fontsize=20)
+                # ax.xaxis.set_tick_params(labelsize=40)
+                # # plt.xlim(0, 8)
+                # ax.yaxis.set_tick_params(labelsize=40)
 
                 ## plot moving direction uncertainty
-                ax = fig.add_axes(312)
+                ax = fig.add_axes(211)
 
                 print("mv_uncertainty_synced.shape: ", mv_uncertainty_synced.shape)
 
                 for i in range(num_replan): # for each replanning
-                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, 0, :], label=f'x in step {i}', linewidth=3, color='r')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, 1, :], label=f'y in step {i}', linewidth=3, color='g')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, 2, :], label=f'z in step {i}', linewidth=3, color='b')
-                ax.set_xlabel('Time [s]', fontproperties=font)
-                ax.set_ylabel('Moving Direction Uncertainty [??]', fontproperties=font)
-                ax.grid(True)
-                ax.legend(fontsize=20)
-                ax.xaxis.set_tick_params(labelsize=20)
-                # plt.xlim(0, 8)
-                ax.yaxis.set_tick_params(labelsize=20)
+                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 0], label=f'Moving direction uncertainty', linewidth=10, color='k')
+                    # ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 1], label=f'y in step {i}', linewidth=10, color='g')
+                    # ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 2], label=f'z in step {i}', linewidth=10, color='b')
+                    # points = np.array([obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 0]]).T.reshape(-1, 1, 2)
+                    # segments = np.concatenate([points[:-2], points[1:-1], points[2:]], axis=1) # to make the line smoother https://stackoverflow.com/questions/47851492/plot-curve-with-blending-line-colors-with-matplotlib-pyplot/47856091#47856091
+                    # norm = plt.Normalize(vmin=0.35, vmax=0.5)
+                    # reversed_cmap = plt.get_cmap('RdYlGn').reversed()
+                    # lc = LineCollection(segments, cmap=reversed_cmap, norm=norm, label="Uncertainty [m]", color=reversed_cmap(norm(mv_uncertainty_synced[i, :, 0])), linewidths=10)
+                    # lc.set_array(mv_uncertainty_synced[i, :, 0])
+                    # line = ax.add_collection(lc)
+                    # cbar = fig.colorbar(line, ax=ax, location='right')
+                    # cbar.ax.tick_params(labelsize=40)
+                    # cbar.set_label("Uncertainty [m]", fontsize=40)
 
-                # ## plot obstacle uncertainty
-                ax = fig.add_axes(313)
-                for i in range(num_replan): # for each replanning
-                    ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty[i, 0, :], label=f'x in step {i}', linewidth=3, color='r')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty[i, 1, :], label=f'y in step {i}', linewidth=3, color='g')
-                    ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty[i, 2, :], label=f'z in step {i}', linewidth=3, color='b')
                 ax.set_xlabel('Time [s]', fontproperties=font)
-                ax.set_ylabel('Obstacle Uncertainty [??]', fontproperties=font)
+                ax.set_ylabel('Standard Deviatoin [m]', fontproperties=font)
                 ax.grid(True)
-                ax.legend(fontsize=20)
-                ax.xaxis.set_tick_params(labelsize=20)
+                ax.legend(fontsize=40)
+                ax.xaxis.set_tick_params(labelsize=40)
+                ax.yaxis.set_tick_params(labelsize=40)
+                plt.ylim(0.33, 0.52)
+                plt.xlim(0, 4.2)
+
+                # looking at the moving direction
+                x1 = 0.1; y1 = 6.0; x2 = 2.2; y2 = 0; x3 = 3.45; y3 = 6.0; x4 = 4.0; y4 = 3.0; 
+                rectangle1 = plt.Rectangle((x2,y2), x3-x2, y3-y2, fc='forestgreen', alpha=0.1)
+                ax.add_patch(rectangle1)
+
+                # add text to indicate the agent's behavior (specific to sim_002_2023-09-12-16-57-33.bag) with textlinewidth=3
+                ax.text(2.33, 0.5, 'Looking at moving direction', fontsize=35, color='forestgreen', fontweight='bold')
+
+                ## plot obstacle uncertainty
+                ax = fig.add_axes(212)
+                for i in range(num_replan): # for each replanning
+                    ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty_new[i, :, 0], label=f'Known obstacle uncertainty', linewidth=10, color='k')
+                    # ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty_new[i, :, 1], label=f'y in step {i}', linewidth=10, color='g')
+                    # ax.plot(obs_times[i, :] + replan_start_time[i], obs_uncertainty_new[i, :, 2], label=f'z in step {i}', linewidth=10, color='b')
+                    # points = np.array([obs_times[i, :] + replan_start_time[i], obs_uncertainty_new[i, :, 0]]).T.reshape(-1, 1, 2)
+                    # segments = np.concatenate([points[:-2], points[1:-1], points[2:]], axis=1) # to make the line smoother https://stackoverflow.com/questions/47851492/plot-curve-with-blending-line-colors-with-matplotlib-pyplot/47856091#47856091
+                    # norm = plt.Normalize(vmin=3.5, vmax=5.0)
+                    # reversed_cmap = plt.get_cmap('RdYlGn').reversed()
+                    # lc = LineCollection(segments, cmap=reversed_cmap, norm=norm, label="Uncertainty [m]", color=reversed_cmap(norm(obs_uncertainty_new[i, :, 0])), linewidths=10)
+                    # lc.set_array(obs_uncertainty_new[i, :, 0])
+                    # line = ax.add_collection(lc)
+                    # cbar = fig.colorbar(line, ax=ax, location='right')
+                    # cbar.ax.tick_params(labelsize=40)
+                    # cbar.set_label("Uncertainty [m]", fontsize=40)
+
+                ax.set_xlabel('Time [s]', fontproperties=font)
+                ax.set_ylabel('Standard Deviatoin [m]', fontproperties=font)
+                ax.set_ylim([3.3, 5.2])
+                plt.xlim(0, 4.2)
+
+                ## plot squares to indicate the agent's behavior (specific to sim_002_2023-09-12-16-57-33.bag)
+
+                # looking at obst
+                x1 = 0.1; y1 = 6.0; x2 = 1.6; y2 = 0; x3 = 3.45; y3 = 6.0; x4 = 4.0; y4 = 3.0; 
+                rectangle1 = plt.Rectangle((x1,y1), x2-x1, y2-y1, fc='forestgreen', alpha=0.1)
+                rectangle2 = plt.Rectangle((x3,y3), x4-x3, y4-y3, fc='forestgreen', alpha=0.1)
+                ax.add_patch(rectangle1)
+                ax.add_patch(rectangle2)
+
+                # add text to indicate the agent's behavior (specific to sim_002_2023-09-12-16-57-33.bag) with textlinewidth=3
+                ax.text(2.1, 5.05, 'Looking at the obstacle', fontsize=35, color='forestgreen', fontweight='bold')
+
+                # add line to indicate the agent's behavior (specific to sim_002_2023-09-12-16-57-33.bag)
+                ax.arrow(1.9, 5.08, -0.3, 0, color='forestgreen', head_width=0.05, linewidth=5)
+                ax.arrow(3.15, 5.08, 0.3, 0, color='forestgreen', head_width=0.05, linewidth=5)
+
+                ax.grid(True)
+                ax.legend(fontsize=40)
+                ax.xaxis.set_tick_params(labelsize=40)
                 # plt.xlim(0, 8)
                 ax.xaxis.limit_range_for_scale(0, 10)
-                ax.yaxis.set_tick_params(labelsize=20)
+                ax.yaxis.set_tick_params(labelsize=40)
                 
                 plt.tight_layout()
-                # plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_uncertainty.png'))
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_uncertainty.png'))
+                plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_uncertainty.pdf'))
                 plt.show()
-                exit()
-
 if __name__ == '__main__':
     main()
