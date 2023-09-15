@@ -16,7 +16,7 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-b", "--objects_location_bag", help="Input bag.", default="/media/kota/T7/frame/hw/day3/object-location/flat-object-location-2023-09-09-19-47-15.bag")
+    parser.add_argument("-b", "--objects_location_bag", help="Input bag.", default="/media/kota/T7/frame/hw/day4/flat_object_location_2023-09-13-15-13-22.bag")
     args = parser.parse_args()
 
     # hardware ground truth (day3 test1)
