@@ -52,12 +52,12 @@ def get_start_end_state():
     for i in range(1):
         x_start_list.append(0)
         y_start_list.append(0)
-        z_start_list.append(1)
+        z_start_list.append(3)
         yaw_start_list.append(0)
 
-        x_goal_list.append(10)
+        x_goal_list.append(15)
         y_goal_list.append(0)
-        z_goal_list.append(1)
+        z_goal_list.append(3)
 
     return x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list
 
@@ -78,22 +78,22 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    # parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/single-sims/")
-    parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/multi-sims/")
+    parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/single-sims/")
+    # parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/multi-sims/")
     parser.add_argument("-v", "--use_rviz", help="Use rviz.", default="true")
     args = parser.parse_args()
 
-    NUM_OF_SIMS = 50
-    NUM_OBS = 1
+    NUM_OF_SIMS = 10
+    NUM_OBS = 2
     USE_PERFECT_CONTROLLER = "true"
-    USE_PERFECT_PREDICTION = "true"
-    SIM_DURATION = 120 # in seconds
+    USE_PERFECT_PREDICTION = "false"
+    SIM_DURATION = 300 # in seconds
     OUTPUT_DIR = args.output_dir
     RECORD_NODE_NAME = "bag_recorder"
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
+    TOPICS_TO_RECORD = "/{}/primer/alpha /{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
     USE_RVIZ = args.use_rviz
-    AGENTS_TYPES = ["primer"] # ["parm_star", "primer"]
+    AGENTS_TYPES = ["parm_star", "primer"]
     TRAJ_NUM_PER_REPLAN_LIST = [10]
     DEFAULT_NUM_MAX_OF_OBST = 1 #TODO: hard-coded
     PRIMER_NUM_MAX_OF_OBST = 1
@@ -158,7 +158,7 @@ def main():
             x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state()
             for i, (x, y, z, yaw) in enumerate(zip(x_start_list, y_start_list, z_start_list, yaw_start_list)):
                 agent_name = "SQ01s"
-                commands.append(f"sleep 5.0 && roslaunch --wait primer sim_onboard.launch quad:={agent_name} perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+                commands.append(f"sleep 5.0 && roslaunch --wait primer sim_onboard.launch quad:={agent_name} use_downward_camera:=false perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
 
             ## rosbag record
             # agent_bag_recorders = []
@@ -170,7 +170,7 @@ def main():
             #     agent_bag_recorders.append(agent_bag_recorder)
             #     commands.append("sleep "+str(time_sleep)+" && cd "+folder_bags+" && rosbag record "+recorded_topics+" -o "+sim_name+"_"+agent_name+" __name:="+agent_bag_recorder)
 
-            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(18)])
+            recorded_topics = TOPICS_TO_RECORD.format(*[agent_name for i in range(19)])
 
             sim_name = f"sim_{str(s).zfill(3)}"
             sim_bag_recorder = sim_name
@@ -233,6 +233,28 @@ def main():
     ## 
     ## uncomment delay_check param
     ##
+
+    ## process data
+    print("Processing data")
+
+    ##
+    ## tmux & sending commands
+    ##
+
+    proc_commands = []
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/single-sims -s true")
+
+    session_name="processing"
+    os.system("tmux kill-session -t" + session_name)
+    os.system("tmux new -d -s "+str(session_name)+" -x 300 -y 300")
+
+    for i in range(len(proc_commands)):
+        os.system('tmux split-window ; tmux select-layout tiled')
+    
+    for i in range(len(proc_commands)):
+        os.system('tmux send-keys -t '+str(session_name)+':0.'+str(i) +' "'+ proc_commands[i]+'" '+' C-m')
+
+    print("proc_commands sent")
 
     os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find primer)/param/primer.yaml")    
 

@@ -190,16 +190,16 @@ def main():
                 cw1_x = np.array(cw1)[:,0]
                 cw1_y = np.array(cw1)[:,1]
                 cw1_z = np.array(cw1)[:,2]
-                ax.plot3D(cw1_y, cw1_x, cw1_z, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3, alpha=0.8)
+                # ax.plot3D(cw1_y, cw1_x, cw1_z, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3, alpha=0.8)
                 cw2_x = np.array(cw2)[:,0]
                 cw2_y = np.array(cw2)[:,1]
                 cw2_z = np.array(cw2)[:,2]
-                ax.plot3D(cw2_y, cw2_x, cw2_z, label='vehicle 2 traj', color='red', linestyle='-', linewidth=3, alpha=0.8)
+                # ax.plot3D(cw2_y, cw2_x, cw2_z, label='vehicle 2 traj', color='red', linestyle='-', linewidth=3, alpha=0.8)
                 ax.invert_xaxis()
 
                 # plot (state)
                 ax.scatter(data_sync_maps[veh_names[0]][-1][1], data_sync_maps[veh_names[0]][-1][0], 0, label=f'vehicle 1 map', color='b', marker='s')
-                ax.scatter(data_sync_maps[veh_names[1]][-1][1], data_sync_maps[veh_names[1]][-1][0], 0, label=f'vehicle 2 map', color='red')
+                # ax.scatter(data_sync_maps[veh_names[1]][-1][1], data_sync_maps[veh_names[1]][-1][0], 0, label=f'vehicle 2 map', color='red')
                 ax.scatter([x[1] for x in object_gt], [x[0] for x in object_gt], [0 for _ in object_gt], c='g', marker='x', label=f'objects')
                 ax.legend()
                 ax.set_aspect('equal', 'box')

@@ -793,9 +793,14 @@ bool Panther::isReplanningNeeded()
 
   mtx_G_term.unlock();
 
+  mtx_state_.lock();
+  mt::state current_state = state_;
+  mtx_state_.unlock();
+
   // Check if we have reached the goal
   mtx_plan_.lock();
-  double dist_to_goal = (G_term.pos - plan_.front().pos).norm();
+  // double dist_to_goal = (G_term.pos - plan_.front().pos).norm();
+  double dist_to_goal = (G_term.pos - current_state.pos).norm();
   mtx_plan_.unlock();
   if (dist_to_goal < par_.goal_radius)
   {
@@ -812,13 +817,15 @@ bool Panther::isReplanningNeeded()
   mtx_plan_.unlock();
 
   //
-  // Check if goal is seen
+  // Check if goal is seen and distance to goal is less than goal_seen_radius
   //
 
-  if (dist_last_plan_to_goal < par_.goal_radius)
+  if (dist_last_plan_to_goal < par_.goal_radius && dist_to_goal < par_.goal_seen_radius)
   {
     changeDroneStatus(DroneStatus::GOAL_SEEN);
     std::cout << "Status changed to GOAL_SEEN!" << std::endl;
+    std::cout << "dist_to_goal= " << dist_to_goal << std::endl;
+    std::cout << "goal_seen_radius= " << par_.goal_seen_radius << std::endl;
     exists_previous_pwp_ = false;
   }
 
@@ -1367,14 +1374,6 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
   ///////////////////////////////////////////////////////////
   ///////////////       OTHER STUFF    //////////////////////
   //////////////////////////////////////////////////////////
-
-  // Check if we have planned until G_term
-  double dist = (G_term_.pos - plan_.back().pos).norm();
-
-  if (dist < par_.goal_radius)
-  {
-    changeDroneStatus(DroneStatus::GOAL_SEEN);
-  }
 
   planner_initialized_ = true;
 

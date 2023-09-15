@@ -65,9 +65,11 @@ def main():
     with open(PANTHER_YAML_PATH) as f:
         PANTHER_YAML_PARAMS = yaml.safe_load(f)
     AGENT_BBOX = np.array(PANTHER_YAML_PARAMS["drone_bbox"]) 
-    OBSTACLE_BBOX = np.array(PANTHER_YAML_PARAMS["obstacle_bbox"])
+    DYN_OBSTACLE_BBOX = np.array(PANTHER_YAML_PARAMS["obstacle_bbox"])
+    STATIC_OBSTACLE_BBOX = np.array([0.3, 2.5, 2.5]) # static obstacle bbox size is actually defined in dynamic_corridor.py
     BBOX_AGENT_AGENT = AGENT_BBOX / 2  + AGENT_BBOX / 2
-    BBOX_AGENT_OBST = AGENT_BBOX / 2 + OBSTACLE_BBOX / 2
+    BBOX_AGENT_DYN_OBST = AGENT_BBOX / 2 + DYN_OBSTACLE_BBOX / 2
+    BBOX_AGENT_STATIC_OBST = AGENT_BBOX / 2 + STATIC_OBSTACLE_BBOX / 2
     FOV_X_DEG = PANTHER_YAML_PARAMS["fov_x_deg"]
     FOV_Y_DEG = PANTHER_YAML_PARAMS["fov_y_deg"]
     FOV_DEPTH = PANTHER_YAML_PARAMS["fov_depth"]
@@ -147,7 +149,7 @@ def main():
 
         # parameters
         NUM_OF_AGENTS = 1 #TODO: hardcoded
-        NUM_OF_OBSTACLES = 1 # TODO: hardcoded
+        NUM_OF_OBSTACLES = 2 # TODO: hardcoded
         AGENTS_LIST = [f"SQ{str(i+1).zfill(2)}s" for i in range(NUM_OF_AGENTS)]
         OBSTACLES_LIST = [f"obs_{4000+i}" for i in range(NUM_OF_OBSTACLES)]
         
@@ -199,6 +201,9 @@ def main():
 
             print("Processing " + bag_file + "...")
 
+            num_of_collisions_btwn_agents_and_obstacles = 0
+            num_of_collisions_btwn_agents = 0
+            
             topics = TOPICS_TO_UNPACK.split(" ")
             agent_names = []
             for i in range(NUM_OF_AGENTS):
@@ -278,52 +283,70 @@ def main():
                 # get a pair of an agent and an obstacle
                 agent_obstacle_pairs = list(itertools.product(AGENTS_LIST, OBSTACLES_LIST))
 
+                ##
+                ## This is for multagent case but I am not using it right now (see TODO below)
+                ##
+
                 # check if the agent-agent pair is in collision
                 # if there's only one agent, then skip this part
-                if NUM_OF_AGENTS > 1:
-                    for t in discrete_times:
-                        for agent_agent_pair in agent_agent_pairs:
-                            agent1 = agent_agent_pair[0]
-                            agent2 = agent_agent_pair[1]
-                            agent1_pose = bag_transformer.lookupTransform("world", agent1, rospy.Time.from_sec(t))
-                            agent2_pose = bag_transformer.lookupTransform("world", agent2, rospy.Time.from_sec(t))
+                # if NUM_OF_AGENTS > 1:
+                #     for t in discrete_times:
+                #         for agent_agent_pair in agent_agent_pairs:
+                #             agent1 = agent_agent_pair[0]
+                #             agent2 = agent_agent_pair[1]
+                #             agent1_pose = bag_transformer.lookupTransform("world", agent1, rospy.Time.from_sec(t))
+                #             agent2_pose = bag_transformer.lookupTransform("world", agent2, rospy.Time.from_sec(t))
                             
-                            x_diff = abs(agent1_pose[0][0] - agent2_pose[0][0])
-                            y_diff = abs(agent1_pose[0][1] - agent2_pose[0][1])
-                            z_diff = abs(agent1_pose[0][2] - agent2_pose[0][2])
+                #             x_diff = abs(agent1_pose[0][0] - agent2_pose[0][0])
+                #             y_diff = abs(agent1_pose[0][1] - agent2_pose[0][1])
+                #             z_diff = abs(agent1_pose[0][2] - agent2_pose[0][2])
 
-                            if x_diff < BBOX_AGENT_AGENT[0] and y_diff < BBOX_AGENT_AGENT[1] and z_diff < BBOX_AGENT_AGENT[2]:
-                                num_of_collisions_btwn_agents += 1
-                                break
+                #             if x_diff < BBOX_AGENT_AGENT[0] and y_diff < BBOX_AGENT_AGENT[1] and z_diff < BBOX_AGENT_AGENT[2]:
+                #                 num_of_collisions_btwn_agents += 1
+                #                 break
             
-                        # check if the agent-obstacle pair is in collision
-                        for agent_obstacle_pair in agent_obstacle_pairs:
-                            agent = agent_obstacle_pair[0]
-                            obstacle = agent_obstacle_pair[1]
-                            agent_pose = bag_transformer.lookupTransform("world", agent, rospy.Time.from_sec(t))
-                            obstacle_pose = bag_transformer.lookupTransform("world", obstacle, rospy.Time.from_sec(t))
+                #         # check if the agent-obstacle pair is in collision
+                #         for agent_obstacle_pair in agent_obstacle_pairs:
+                #             agent = agent_obstacle_pair[0]
+                #             obstacle = agent_obstacle_pair[1]
+                #             agent_pose = bag_transformer.lookupTransform("world", agent, rospy.Time.from_sec(t))
+                #             obstacle_pose = bag_transformer.lookupTransform("world", obstacle, rospy.Time.from_sec(t))
 
-                            x_diff = abs(agent_pose[0][0] - obstacle_pose[0][0])
-                            y_diff = abs(agent_pose[0][1] - obstacle_pose[0][1])
-                            z_diff = abs(agent_pose[0][2] - obstacle_pose[0][2])
+                #             x_diff = abs(agent_pose[0][0] - obstacle_pose[0][0])
+                #             y_diff = abs(agent_pose[0][1] - obstacle_pose[0][1])
+                #             z_diff = abs(agent_pose[0][2] - obstacle_pose[0][2])
 
-                            if x_diff < BBOX_AGENT_OBST[0] and y_diff < BBOX_AGENT_OBST[1] and z_diff < BBOX_AGENT_OBST[2]:
+                #             if x_diff < BBOX_AGENT_OBST[0] and y_diff < BBOX_AGENT_OBST[1] and z_diff < BBOX_AGENT_OBST[2]:
+                #                 num_of_collisions_btwn_agents_and_obstacles += 1
+                #                 break
+                # else:
+
+                ##
+                ## TODO: Hardcoded for single agent with one dynamic obstacle and one static obstacle (the scenario where panther fails but puma works)
+                ##
+
+                for t in discrete_times:
+                    # check if the agent-obstacle pair is in collision
+                    for agent_obstacle_pair in agent_obstacle_pairs:
+                        agent = agent_obstacle_pair[0]
+                        obstacle = agent_obstacle_pair[1]
+                        agent_pose = bag_transformer.lookupTransform("world", agent, rospy.Time.from_sec(t))
+                        obstacle_pose = bag_transformer.lookupTransform("world", obstacle, rospy.Time.from_sec(t))
+
+                        x_diff = abs(agent_pose[0][0] - obstacle_pose[0][0])
+                        y_diff = abs(agent_pose[0][1] - obstacle_pose[0][1])
+                        z_diff = abs(agent_pose[0][2] - obstacle_pose[0][2])
+
+                        if obstacle == "obs_4000": # dynamic obstacle
+
+                            if x_diff < BBOX_AGENT_DYN_OBST[0] and y_diff < BBOX_AGENT_DYN_OBST[1] and z_diff < BBOX_AGENT_DYN_OBST[2]:
                                 num_of_collisions_btwn_agents_and_obstacles += 1
+                                
                                 break
-                else:
-                    for t in discrete_times:
-                        # check if the agent-obstacle pair is in collision
-                        for agent_obstacle_pair in agent_obstacle_pairs:
-                            agent = agent_obstacle_pair[0]
-                            obstacle = agent_obstacle_pair[1]
-                            agent_pose = bag_transformer.lookupTransform("world", agent, rospy.Time.from_sec(t))
-                            obstacle_pose = bag_transformer.lookupTransform("world", obstacle, rospy.Time.from_sec(t))
+                        
+                        if obstacle == "obs_4001": # static obstacle
 
-                            x_diff = abs(agent_pose[0][0] - obstacle_pose[0][0])
-                            y_diff = abs(agent_pose[0][1] - obstacle_pose[0][1])
-                            z_diff = abs(agent_pose[0][2] - obstacle_pose[0][2])
-
-                            if x_diff < BBOX_AGENT_OBST[0] and y_diff < BBOX_AGENT_OBST[1] and z_diff < BBOX_AGENT_OBST[2]:
+                            if x_diff < BBOX_AGENT_STATIC_OBST[0] and y_diff < BBOX_AGENT_STATIC_OBST[1] and z_diff < BBOX_AGENT_STATIC_OBST[2]:
                                 num_of_collisions_btwn_agents_and_obstacles += 1
                                 break
 
@@ -563,10 +586,12 @@ def main():
             yaw_dynamic_constraint_violation_rate = yaw_dynamic_constraint_violation_rate / topic_num
             yaw_dynamic_constraint_violation_rate_list.append(yaw_dynamic_constraint_violation_rate)
 
+            print(num_of_collisions_btwn_agents_and_obstacles)
+
             # (8) success rate
             success = True if reached_goal \
-                and num_of_collisions_btwn_agents <= 1e-6 \
-                and num_of_collisions_btwn_agents_and_obstacles <= 1e-6 else False
+                and num_of_collisions_btwn_agents < 0.5 \
+                and num_of_collisions_btwn_agents_and_obstacles <= 0.5 else False
             success_rate_list.append(success)
 
             # (9) accel trajectory smoothness & (10) jerk trajectory smoothness

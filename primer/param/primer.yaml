@@ -4,9 +4,9 @@
 
 # deployment:
 replanning_trigger_time_student: 0.01 #[seconds] 
-replanning_trigger_time_expert: 1.5  #[seconds] 
+replanning_trigger_time_expert: 0.5  #[seconds]
 pause_time_when_replanning: true
-replanning_lookahead_time: 0.5 #[seconds] #distance in time space = t_in - t_1 in Table I
+replanning_lookahead_time: 0.1 #[seconds] #distance in time space = t_in - t_1 in Table I
 use_mesh_network: false
 use_delaycheck: true
 use_delaycheck_wo_check: false # if you wanna use this, use_delaycheck needs to be true
@@ -22,13 +22,13 @@ obstacle_share_cb_duration: 30.0 #seconds
 use_obstacle_share: false
 use_obstacle_shareCB: false # if it's False and use_obstacle_share is True, then an agent will publish whenever it receives obstacle's traj from tracking predictor. (which could be too frequent, so I intoroduced publishObstacleCB) 
 add_noise_to_obst: false
-agents_ids: ["01", "02"]
+agents_ids: ["01", "02", "03"]
 use_ff: true # use feedforward #Needs to be true if you are using perfect_tracker (because the perfect_tracker needs accel)
 goal_radius: 0.5   #(m) Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
-goal_seen_radius: 10.0 #(m) no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
-Ra: 30.0           # [m] Radius of my planning sphere (planning horizon)
+goal_seen_radius: 3.0 #(m) no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
+Ra: 20.0           # [m] Radius of my planning sphere (planning horizon)
 drone_bbox: [0.05, 0.05, 0.05]  #(m) Used for collision checking
-obstacle_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
+obstacle_bbox: [1.0, 1.0, 1.0]  #(m) Used for collision checking
 dc: 0.01            #(seconds) Duration for the interpolation=Value of the timer pubGoal
 angle_deg_focus_front: 9000 #Angle to decide whether to focus on an obstacle or to focus on front of me, set to very big if you wanna focus always on obstacle
 # flight space size
@@ -36,18 +36,19 @@ x_min: -15.0  # [m] don't forget the .0  , be careful with setting these to extr
 x_max: 15.0   # [m] don't forget the .0
 y_min: -15.0  # [m] don't forget the .0
 y_max: 15.0   # [m] don't forget the .0
-z_min: 2.0   #[m] points below this are considered ground
+z_min: 1.0   #[m] points below this are considered ground
 z_max: 4.0    #[m] 
-ydot_max: 1.0 # 6.28319  # [rd/s] Maximum angular velocity. 0.4 for Hardware
-v_max: [20.0, 20.0, 2.0]   #[m/s]  7.0
+ydot_max: 6.28319  # [rd/s] Maximum angular velocity. 0.4 for Hardware
+v_max: [5.0, 5.0, 5.0]   #[m/s]  7.0
 a_max: [10.0, 10.0, 10.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
-j_max: [5.0, 5.0, 5.0]   #[m/s3] 
+j_max: [20.0, 20.0, 20.0]   #[m/s3] 
 factor_alpha: 1.0 #[-] DeltaT = factor_alpha*States_took_previous_replan
 lower_bound_alpha: 1.0 # [s] when alpha (total time of trajectory) is too small, PARM fails a lot
-max_seconds_keeping_traj: 4.0     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
+max_seconds_keeping_traj: 0.1     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
 gamma: 0.1 #[seconds] >0 Time step between discretization points
 use_expert: true
 use_student: false
+
 
 #############################################
 # Tracker Predictor setting
@@ -64,21 +65,22 @@ is_frame_alignment: true
 #############################################
 # Uncertainty Propagation setting
 #############################################
-uncertainty_aware: true
 
-initial_position_variance_multiplier: 10.0
-initial_velocity_variance_multiplier: 1.0
-initial_acceleration_variance_multiplier: 1.0
+###################################################################################uncertainty_aware: true
 
-initial_position_variance_search_multiplier: 1.0
-initial_velocity_variance_search_multiplier: 0.1
-initial_acceleration_variance_search_multiplier: 0.1
+initial_position_variance_multiplier: 1.0
+initial_velocity_variance_multiplier: 0.1
+initial_acceleration_variance_multiplier: 0.1
+
+initial_position_variance_search_multiplier: 0.1
+initial_velocity_variance_search_multiplier: 0.0
+initial_acceleration_variance_search_multiplier: 0.0
 
 initial_position_variance_for_agents: 0.1
 initial_velocity_variance_for_agents: 0.1
 initial_acceleration_variance_for_agents: 0.01
 
-max_variance: [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+max_variance: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 max_variance_for_moving_direction: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 drone_initial_variance: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 infeasibility_adjust: 0.001
@@ -90,8 +92,8 @@ moving_direction_factor: 1.0
 
 # training:
 # training parameters
-num_of_trajs_per_replan: 3 # num of traj (n_s in Table I in deep panther paper)
-max_num_of_initial_guesses: 3 # (n_runs in Table I)
+num_of_trajs_per_replan: 5 # num of traj (n_s in Table I in deep panther paper)
+max_num_of_initial_guesses: 5 # (n_runs in Table I)
 drone_extra_radius_for_NN: 0.0  #(m) Used for collision checking
 use_closed_form_yaw_student: false #If false, the NN will predict this closed form for the yaw angle
 make_yaw_NN: false
@@ -172,7 +174,7 @@ a_star_samp_x: 5
 a_star_samp_y: 5 
 a_star_samp_z: 5 
 a_star_fraction_voxel_size: 0.0 #\in [0,1] The higher, the bigger the voxel size in A* is(i.e. more prunning)
-a_star_bias: 1.0 #Bias (cost=g+bias*h) in the A* search 
+a_star_bias: 0.1 #Bias (cost=g+bias*h) in the A* search 
 disc_pts_per_interval_oct_search: 4
 max_runtime_octopus_search: 3.0 #[seconds]
 
@@ -200,7 +202,7 @@ c_visibility_yaw_search: 10.0  #weight for the yaw search
 c_maxydot_yaw_search: 10.0     #weight for the yaw search
 c_pos_smooth: 0.0          #weight for the optimization
 c_yaw_smooth: 0.0000001          #weight for the optimization
-c_fov: 10.0                 #weight for the optimization
+c_fov: 1000.0                 #weight for the optimization
 c_final_pos: 100.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
 c_total_time: 0.001           #weight for the optimization
