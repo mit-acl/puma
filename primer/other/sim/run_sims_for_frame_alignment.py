@@ -72,7 +72,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner=false")
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} perfect_controller:=false x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner:=false")
 
     ## fastsam (triggered by rosservice call /{agent_name}/pose_corrupter/start_drift)
     commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=true")
@@ -90,9 +90,12 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     if agent_name == "SQ01s": # hardcoded
         is_constant_drift = drifts[6]
         is_linear_drift = drifts[7]
+        circle_start_type = 1
     elif agent_name == "SQ02s":
         is_constant_drift = False
         is_linear_drift = False
+        circle_start_type = 2
+
 
     commands.append(f"roslaunch --wait primer pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
         constant_drift_y:={constant_drift_y} constant_drift_z:={constant_drift_z} constant_drift_roll:={constant_drift_roll} constant_drift_pitch:={constant_drift_pitch} \
@@ -101,7 +104,10 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
         linear_drift_rate_yaw:={linear_drift_rate_yaw}")
 
     ## trajectory generator onboard
-    commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator onboard.launch quad:={agent_name} ")
+    commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator onboard.launch quad:={agent_name} circle_start_type:={circle_start_type}")
+
+    ## drone marker publisher
+    commands.append(f"sleep "+str(time_traj_gen)+f" && roslaunch --wait primer drone_marker_publisher.launch quad:={agent_name}")
 
     ## takeoff
     commands.append(f"sleep "+str(time_takeoff)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
@@ -124,7 +130,7 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking")
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
     parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=False, type=bool)
     parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
@@ -140,7 +146,7 @@ def main():
     NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
     OBJECTS_TYPE = ["pads"]
-    TRAJ_TYPE = ["venn_diagram"]
+    TRAJ_TYPE = ["circle"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
     cdx = 1.0 # constant drift x
@@ -158,17 +164,13 @@ def main():
     # trans linear drift
     # rot linear drift
     # trans and rot linear drift
-    # DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
-    #             [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
-    #             [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
-    #             [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
-    #             [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
-    #             [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
-    #             [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
-
-    DRIFTS = [[0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
-                [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
-                [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
+    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False]]
+                # [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
+                # [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                # [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                # [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
+                # [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
+                # [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
     
     # others
     NUM_OF_SIMS = 1
@@ -286,7 +288,7 @@ def main():
                                                     TIME_MOVE_TO_START, TIME_START_TRAJ, \
                                                     d["drifts"])    
                 # add topics to record
-                topics_to_record = topics_to_record + "/{}/world /{}/state /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift ".format(*[agent_name]*7)
+                topics_to_record = topics_to_record + "/{}/camera/fisheye1/image_raw /{}/drone_marker /obstacles_mesh /{}/world /{}/state /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift ".format(*[agent_name]*9)
 
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
@@ -334,9 +336,9 @@ def main():
     ##
 
     proc_commands = []
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/frame/sim/benchmarking")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/frame/sim/benchmarking")
+    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d {args.output_dir}")
+    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d {args.output_dir}")
+    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d {args.output_dir}")
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)
