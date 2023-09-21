@@ -51,14 +51,14 @@
   <group if="$(arg gazebo)">
 
     <!-- forward facing camera for tracking -->
-    <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
+    <!-- <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
         <arg name="name" value="$(arg quad)"/>
         <arg name="tf_prefix" default="$(optenv ROS_NAMESPACE)"/>
         <arg name="x" value="$(arg x)"/>
         <arg name="y" value="$(arg y)"/>
         <arg name="z" value="$(arg z)"/>
         <arg name="yaw" default="$(arg yaw)"/>
-    </include>
+    </include> -->
 
     <!-- downward facing camera for frame alignment-->
     <group if="$(arg use_downward_camera)">
@@ -89,13 +89,13 @@
     Perfect Controller for Agent (TODO: needs to give veh and num arguments for each agent)
   -->
 
-  <!-- <group unless="$(arg perfect_controller)"> 
+  <group unless="$(arg perfect_controller)"> 
     <include file="$(find snap_sim)/launch/sim.launch">
       <arg name="veh" value="$(arg veh)"/>
       <arg name="num" value="$(arg num)"/>
       <arg name="rviz" value="$(arg rviz)"/>
     </include> 
-  </group> -->
+  </group>
 
   <!--
     Static Transformer for Agent
