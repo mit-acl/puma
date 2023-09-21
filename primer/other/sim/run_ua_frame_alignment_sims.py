@@ -71,7 +71,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=3 yaw:={yaw_start} rviz:=false use_planner:=true 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=3 yaw:={yaw_start} perfect_controller:=true rviz:=false use_planner:=true  2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
 
     ## fastsam (triggered by rosservice call /{agent_name}/fast_sam/start_drift)
     commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} fastsam_cb_frequency:={fastsam_cb_frequency} is_sim:=true")
@@ -121,7 +121,7 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/ua-planner/multi-sims")
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/ua-planner/multi-sims/ones_used_in_icra24/videos")
     parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=False, type=bool)
     parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
@@ -198,6 +198,12 @@ def main():
     os.system(KILL_ALL)
 
     ##
+    ## we use PUMA
+    ##
+
+    os.system("sed -i '/uncertainty_aware:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+
+    ##
     ## simulation loop
     ##
 
@@ -254,7 +260,8 @@ def main():
             
             ## roscore
             commands.append("roscore")
-            
+
+
             ## publish params for trajectory_generator
             AGENTS_NAMES = [] # create a list of agent names
             for i in range(1, d["num_of_agents"]+1):
@@ -263,7 +270,6 @@ def main():
             ## sim_base_station
             commands.append(f"roslaunch --wait primer sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
             
-
             x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state(d['num_of_agents'], CIRCLE_RADIUS, INITIAL_POSITIONS_SHAPE)
 
             ## for each agent we add topics for onboard fastsam/mot/trajectory_generator
@@ -276,12 +282,14 @@ def main():
                 commands = agent_dependent_topics(commands, agent_name, other_agent_names, \
                                                     KAPPA_MOT, TIME_START_DRIFT, d["drifts"], x_start, y_start, yaw_start, z_start, FASTSAM_CB_FREQUENCY)
                 # add topics to record
-                TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state \
+                TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/drone_marker /{}/camera/fisheye1/image_raw /{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state \
                 /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal \
                 /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values \
                 /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values \
-                /{}/primer/moving_direction_uncertainty_times /{}/primer/alpha """.format(*[agent_name]*24)
+                /{}/primer/moving_direction_uncertainty_times /{}/primer/alpha """.format(*[agent_name]*26)
 
+                ## alsways use puma(primer)
+                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware true")
 
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
@@ -290,7 +298,7 @@ def main():
             commands.append(f"sleep "+str(TIME_START)+f" && cd {output_folder} && rosbag record {TOPIC_TO_RECORD} -o {sim_name} __name:={sim_name}")
             
             ## publish goal
-            commands.append(f"roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
+            commands.append(f"sleep "+str(TIME_SEND_GOAL)+f" && roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
             
             ## goal checker
             # commands.append(f"roslaunch --wait primer goal_reached_checker.launch num_of_agents:={d['num_of_agents']}")
@@ -324,7 +332,7 @@ def main():
 
             is_control_c_pressed = False
             while True:
-                if check_goal_reached():
+                if check_goal_reached(): # it's really not goal reached but time_keeper publishs this topic when time is up
                     break
 
                 # if Contrl-C is pressed, then break
@@ -375,6 +383,7 @@ def main():
     ## uncomment params we change
     os.system("sed -i '/center_x/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
     os.system("sed -i '/center_y/s/^#//g' $(rospack find trajectory_generator)/config/default.yaml")
+    os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find primer)/param/primer.yaml")
 
 if __name__ == '__main__':
     main()
