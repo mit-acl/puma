@@ -81,7 +81,7 @@ class DynCorridor:
         self.name = name[1:-1]
 
         self.total_num_obs=total_num_obs
-        self.num_of_dyn_objects = 2
+        self.num_of_dyn_objects = 1
         self.num_of_stat_objects = total_num_obs-self.num_of_dyn_objects; 
         self.x_min= 1.0 
         self.x_max= 3.0
@@ -132,7 +132,7 @@ class DynCorridor:
             dynamic_trajectory_msg.pos.x=x #Current position, will be updated later
             dynamic_trajectory_msg.pos.y=y #Current position, will be updated later
             dynamic_trajectory_msg.pos.z=z #Current position, will be updated later
-            dynamic_trajectory_msg.id = 4000 + i #Current id 4000 to avoid interference with ids from agents #TODO
+            dynamic_trajectory_msg.id = 5000 + i #Current id 4000 to avoid interference with ids from agents #TODO
             dynamic_trajectory_msg.is_committed = True
 
             self.all_dyn_traj.append(dynamic_trajectory_msg)
@@ -165,7 +165,7 @@ class DynCorridor:
         z=random.uniform(self.z_min, self.z_max)
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
-        x = 5
+        x = 0
         y = 0
         z = 3
 
@@ -219,7 +219,7 @@ class DynCorridor:
 
     def generateMarker(self, mesh, bbox, i):
         marker=Marker()
-        marker.id=i
+        marker.id=5000+i
         marker.ns="mesh"
         marker.header.frame_id="world"
         marker.type=marker.MESH_RESOURCE

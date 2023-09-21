@@ -235,7 +235,7 @@ class DynCorridor:
     def generateMarker(self, mesh, bbox, i):
         
         marker=Marker()
-        marker.id=i
+        marker.id=4000+i
         marker.ns="mesh"
         marker.header.frame_id="world"
         marker.type=marker.MESH_RESOURCE

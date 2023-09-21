@@ -591,7 +591,6 @@ void Panther::setTerminalGoal(mt::state& term_goal)
   }
   else
   {
-    std::cout << "need_to_do_stuff_term_goal_= " << need_to_do_stuff_term_goal_ << std::endl;
     need_to_do_stuff_term_goal_ = true;  // will be done in updateState();
   }
 }
@@ -659,9 +658,6 @@ void Panther::updateState(mt::state data)
 
   state_initialized_ = true;
 
-  
-
-
   if (need_to_do_stuff_term_goal_)
   {
     // std::cout << "DOING STUFF TERM GOAL -----------" << std::endl;
@@ -707,11 +703,11 @@ void Panther::doStuffTermGoal()
   //   std::cout << "Start Yawing" << std::endl;
   // }
 
+  changeDroneStatus(DroneStatus::YAWING);
+
   //
   // No matter what, let's do yawing (might need to change this if we give term_goal while agent is flying)
   //
-
-  changeDroneStatus(DroneStatus::YAWING);
   
   // save the state that the agent started yawing
   mt::state yawing_start_state_;
@@ -797,16 +793,9 @@ bool Panther::isReplanningNeeded()
   mt::state current_state = state_;
   mtx_state_.unlock();
 
-  // Check if we have reached the goal
-  mtx_plan_.lock();
-  // double dist_to_goal = (G_term.pos - plan_.front().pos).norm();
-  double dist_to_goal = (G_term.pos - current_state.pos).norm();
-  mtx_plan_.unlock();
-  if (dist_to_goal < par_.goal_radius)
-  {
-    changeDroneStatus(DroneStatus::GOAL_REACHED);
-    exists_previous_pwp_ = false;
-  }
+  //
+  // Check if goal is seen and distance to goal is less than goal_seen_radius
+  //
 
   //
   // Check if we have seen the goal in the last replan
@@ -816,9 +805,9 @@ bool Panther::isReplanningNeeded()
   double dist_last_plan_to_goal = (G_term.pos - plan_.back().pos).norm();
   mtx_plan_.unlock();
 
-  //
-  // Check if goal is seen and distance to goal is less than goal_seen_radius
-  //
+  mtx_plan_.lock();
+  double dist_to_goal = (G_term.pos - current_state.pos).norm();
+  mtx_plan_.unlock();
 
   if (dist_last_plan_to_goal < par_.goal_radius && dist_to_goal < par_.goal_seen_radius)
   {
@@ -826,6 +815,13 @@ bool Panther::isReplanningNeeded()
     std::cout << "Status changed to GOAL_SEEN!" << std::endl;
     std::cout << "dist_to_goal= " << dist_to_goal << std::endl;
     std::cout << "goal_seen_radius= " << par_.goal_seen_radius << std::endl;
+    exists_previous_pwp_ = false;
+  }
+
+  // Check if we have reached the goal
+  if (dist_to_goal < par_.goal_radius)
+  {
+    changeDroneStatus(DroneStatus::GOAL_REACHED);
     exists_previous_pwp_ = false;
   }
 
