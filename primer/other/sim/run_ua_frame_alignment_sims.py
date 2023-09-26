@@ -121,7 +121,8 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/ua-planner/multi-sims/ones_used_in_icra24/videos")
+    # parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/ua-planner/multi-sims/ones_used_in_icra24/videos")
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
     parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=False, type=bool)
     parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
@@ -136,7 +137,7 @@ def main():
     # for dicts
     NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
-    OBJECTS_TYPE = ["pads", "random"]
+    OBJECTS_TYPE = ["random"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
     cdx = 1.0 # constant drift x
@@ -154,12 +155,7 @@ def main():
     # trans linear drift
     # rot linear drift
     # trans and rot linear drift
-    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
-                [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
-                [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
-                [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
+    DRIFTS = [[cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
                 [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
 
     # others
@@ -181,8 +177,8 @@ def main():
     ##
 
     TIME_START = 5.0
-    TIME_SEND_GOAL = 20.0 
-    TIME_START_DRIFT = 20.0
+    TIME_SEND_GOAL = 30.0 
+    TIME_START_DRIFT = 30.0
 
     ##
     ## Start and end states
@@ -362,11 +358,13 @@ def main():
     ##
 
     proc_commands = []
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/ua-planner/multi-sims -s true")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/multi-sims -s true")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/ua-planner")
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_map.py -d /media/kota/T7/ua-planner")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d /media/kota/T7/ua-planner/multi-sims -s true")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/multi-sims -s true")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d /media/kota/T7/ua-planner")
+    # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_map.py -d /media/kota/T7/ua-planner")
     # proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d /media/kota/T7/ua-planner")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_map_animation.py -d /media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_2d_data_animation.py -d /media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos -p tracking")    
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)

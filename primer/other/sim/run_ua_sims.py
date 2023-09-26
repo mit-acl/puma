@@ -55,7 +55,7 @@ def get_start_end_state():
         z_start_list.append(3)
         yaw_start_list.append(0)
 
-        x_goal_list.append(15)
+        x_goal_list.append(12)
         y_goal_list.append(0)
         z_goal_list.append(3)
 
@@ -78,12 +78,12 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/single-sims/")
+    parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/single-sims/bags")
     # parser.add_argument("-d", "--output_dir", help="Output directory.", default="/media/kota/T7/ua-planner/multi-sims/")
     parser.add_argument("-v", "--use_rviz", help="Use rviz.", default="true")
     args = parser.parse_args()
 
-    NUM_OF_SIMS = 10
+    NUM_OF_SIMS = 5
     NUM_OBS = 2
     USE_PERFECT_CONTROLLER = "true"
     USE_PERFECT_PREDICTION = "false"
@@ -93,7 +93,7 @@ def main():
     KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
     TOPICS_TO_RECORD = "/{}/primer/alpha /{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
     USE_RVIZ = args.use_rviz
-    AGENTS_TYPES = ["parm_star", "primer"]
+    AGENTS_TYPES = ["primer"]
     TRAJ_NUM_PER_REPLAN_LIST = [10]
     DEFAULT_NUM_MAX_OF_OBST = 1 #TODO: hard-coded
     PRIMER_NUM_MAX_OF_OBST = 1
@@ -242,7 +242,7 @@ def main():
     ##
 
     proc_commands = []
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/single-sims -s true")
+    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/single-sims/bags -s true")
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)

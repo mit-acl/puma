@@ -519,7 +519,7 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/")
+    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/used_in_icra_paper/primer")
     parser.add_argument("-p", "--plot_type", help="Plot type.", default="3d")
     args = parser.parse_args()
 
@@ -687,7 +687,7 @@ def main():
                 print("mv_uncertainty_synced.shape: ", mv_uncertainty_synced.shape)
 
                 for i in range(num_replan): # for each replanning
-                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 0], label=f'Moving direction uncertainty', linewidth=10, color='k')
+                    ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 0], label=f'Direction of motion uncertainty', linewidth=10, color='k')
                     # ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 1], label=f'y in step {i}', linewidth=10, color='g')
                     # ax.plot(obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 2], label=f'z in step {i}', linewidth=10, color='b')
                     # points = np.array([obs_times[i, :] + replan_start_time[i], mv_uncertainty_synced[i, :, 0]]).T.reshape(-1, 1, 2)
@@ -716,7 +716,7 @@ def main():
                 ax.add_patch(rectangle1)
 
                 # add text to indicate the agent's behavior (specific to sim_002_2023-09-12-16-57-33.bag) with textlinewidth=3
-                ax.text(2.33, 0.5, 'Looking at moving direction', fontsize=35, color='forestgreen', fontweight='bold')
+                ax.text(2.33, 0.5, 'Looking at direction of motion', fontsize=35, color='forestgreen', fontweight='bold')
 
                 ## plot obstacle uncertainty
                 ax = fig.add_axes(212)

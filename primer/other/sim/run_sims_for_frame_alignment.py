@@ -146,7 +146,7 @@ def main():
     NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
     OBJECTS_TYPE = ["pads"]
-    TRAJ_TYPE = ["circle"]
+    TRAJ_TYPE = ["circle", "venn"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
     cdx = 1.0 # constant drift x
@@ -164,13 +164,13 @@ def main():
     # trans linear drift
     # rot linear drift
     # trans and rot linear drift
-    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False]]
-                # [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
+    # DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
+    DRIFTS =   [[cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
                 # [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
                 # [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
                 # [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
                 # [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
-                # [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
+                [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
     
     # others
     NUM_OF_SIMS = 1
@@ -214,9 +214,6 @@ def main():
 
     # loop over the dictionary
     for dic_index, d in enumerate(DICTS):
-
-        if dic_index != 0:
-            continue
 
         print("####### Case {} #######".format(dic_index))
 

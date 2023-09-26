@@ -96,9 +96,9 @@ def main():
 
     for sim_folder in sim_folders:
 
-        if sim_folder == "/media/kota/T7/ua-planner/single-sims/bags/" \
-            or sim_folder == "/media/kota/T7/ua-planner/single-sims/boeing-one-test" \
-            or sim_folder == "/media/kota/T7/ua-planner/single-sims/parameters":
+        if sim_folder == "/media/kota/T7/ua-planner/single-sims/bags/pkls" \
+            or sim_folder == "/media/kota/T7/ua-planner/single-sims/test0" \
+            or sim_folder == "/media/kota/T7/ua-planner/single-sims/ua_data.txt":
             continue
 
         print("Processing " + sim_folder + "...")
