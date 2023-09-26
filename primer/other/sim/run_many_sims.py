@@ -44,11 +44,11 @@ def get_start_end_state(num_of_agents, circle_radius, INITIAL_POSITIONS_SHAPE) -
             angle = 2*math.pi/num_of_agents * i
             x_start_list.append(circle_radius*math.cos(angle))
             y_start_list.append(circle_radius*math.sin(angle))
-            z_start_list.append(0.0)
+            z_start_list.append(3.0)
             yaw_start_list.append(math.atan2(y_start_list[i], x_start_list[i]) + math.pi)
             x_goal_list.append(-x_start_list[i])
             y_goal_list.append(-y_start_list[i])
-            z_goal_list.append(0.0)
+            z_goal_list.append(3.0)
 
     elif INITIAL_POSITIONS_SHAPE=="square": #square is supported up to 4 agents
 
@@ -56,11 +56,11 @@ def get_start_end_state(num_of_agents, circle_radius, INITIAL_POSITIONS_SHAPE) -
             angle = math.pi/2 * i + math.pi/4
             x_start_list.append(circle_radius*math.cos(angle))
             y_start_list.append(circle_radius*math.sin(angle))
-            z_start_list.append(0.0)
+            z_start_list.append(3.0)
             yaw_start_list.append(math.atan2(y_start_list[i], x_start_list[i]) + math.pi)
             x_goal_list.append(-x_start_list[i])
             y_goal_list.append(-y_start_list[i])
-            z_goal_list.append(0.0)
+            z_goal_list.append(3.0)
 
     elif INITIAL_POSITIONS_SHAPE=="line": #square is supported up to 4 agents
 
@@ -68,11 +68,11 @@ def get_start_end_state(num_of_agents, circle_radius, INITIAL_POSITIONS_SHAPE) -
             x_start_list.append(0.0)
             # start from one line depending on the number of agents
             y_start_list.append(i)
-            z_start_list.append(0.0)
+            z_start_list.append(3.0)
             yaw_start_list.append(0.0)
             x_goal_list.append(2*circle_radius)
             y_goal_list.append(num_of_agents-1-i)
-            z_goal_list.append(0.0)
+            z_goal_list.append(3.0)
 
     return x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list
 

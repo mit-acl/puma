@@ -58,6 +58,20 @@ std::vector<Eigen::Vector3d> casadiMatrix2StdVectorEigen3d(const casadi::DM &qp_
   return qp;
 }
 
+std::vector<Eigen::Matrix<double, 9, 1>> casadiMatrix2StdVectorEigen9d(const casadi::DM &qp_casadi)
+{
+  std::vector<Eigen::Matrix<double, 9, 1>> qp;
+  for (int i = 0; i < qp_casadi.columns(); i++)
+  {
+    Eigen::Matrix<double, 9, 1> tmp;
+    tmp << double(qp_casadi(0, i)), double(qp_casadi(1, i)), double(qp_casadi(2, i)), double(qp_casadi(3, i)),
+        double(qp_casadi(4, i)), double(qp_casadi(5, i)), double(qp_casadi(6, i)), double(qp_casadi(7, i)),
+        double(qp_casadi(8, i));
+    qp.push_back(tmp);
+  }
+  return qp;
+}
+
 std::vector<double> casadiMatrix2StdVectorDouble(const casadi::DM &qy_casadi)
 {
   return static_cast<std::vector<double>>(qy_casadi);
@@ -85,13 +99,14 @@ casadi::DM stdVectorDouble2CasadiRowVector(const std::vector<double> &qy)
   return casadi_matrix;
 }
 
-casadi::DM eigen3d2CasadiMatrix(const Eigen::Vector3d &data)
+casadi::DM eigenXd2CasadiMatrix(const Eigen::Matrix<double, Eigen::Dynamic, 1> &data)
 {
-  casadi::DM casadi_matrix(3, 1);
+  casadi::DM casadi_matrix(data.rows(), 1);
 
-  casadi_matrix(0, 0) = data.x();
-  casadi_matrix(1, 0) = data.y();
-  casadi_matrix(2, 0) = data.z();
+  for (int i = 0; i < data.rows(); i++)
+  {
+    casadi_matrix(i, 0) = data(i);
+  }
 
   return casadi_matrix;
 }
@@ -229,19 +244,38 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
 
   if (par_.use_panther_star)
   {
-    std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
-    myfile >> index_instruction_;
-    cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
-    cf_op_ = casadi::Function::load(folder + "op.casadi");
-    cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
-    cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
-    cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
-                                                                                   "violation.casadi");
-    cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
-                                                                                                 "yaw_"
-                                                                                                 "dyn_limits_"
-                                                                                                 "constraints_"
-                                                                                                 "violation.casadi");
+    if (par_.uncertainty_aware)
+    {
+      std::fstream myfile(folder + "index_instruction_ua.txt", std::ios_base::in);
+      myfile >> index_instruction_;
+      cf_compute_cost_ = casadi::Function::load(folder + "compute_cost_ua.casadi");
+      cf_op_ = casadi::Function::load(folder + "op_ua.casadi");
+      cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw_ua.casadi");
+      cf_visibility_ = casadi::Function::load(folder + "visibility_ua.casadi");
+      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
+                                                                                    "violation_ua.casadi");
+      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
+                                                                                                  "yaw_"
+                                                                                                  "dyn_limits_"
+                                                                                                  "constraints_"
+                                                                                                  "violation_ua.casadi");
+    }
+    else
+    {
+      std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
+      myfile >> index_instruction_;
+      cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
+      cf_op_ = casadi::Function::load(folder + "op.casadi");
+      cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
+      cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
+      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
+                                                                                    "violation.casadi");
+      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
+                                                                                                  "yaw_"
+                                                                                                  "dyn_limits_"
+                                                                                                  "constraints_"
+                                                                                                  "violation.casadi");
+    }
   }
   else
   {
@@ -403,45 +437,54 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
 
   for (const auto &obstacle_i : obstacles_for_opt_)
   {
-    VertexesObstacle vertexes_obstacle_i;
 
-    // std::vector<Eigen::Vector3d> ctrl_pts_obs_i = casadiMatrix2StdVectorEigen3d(obstacle_i.ctrl_pts);
+    // right now we are treating obstacle and agent the same way
+    // maybe in the future we want to treat them differently
+
+    VertexesObstacle vertexes_obstacle_i;
 
     for (int j = 0; j < par_.num_seg; j++)
     {
       std::vector<double> times =
           linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
-
-      // std::cout << "times.size()= " << times.size() << std::endl;
-
       VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
 
       for (int k = 0; k < times.size(); k++)
       {
-        // std::cout << "times[k]= " << times[k] << std::endl;
-
         mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
 
-        Eigen::Vector3d delta = obstacle_i.bbox_inflated / 2.0;
+        Eigen::Vector3d delta;
+        if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
+          delta = obstacle_i.bbox_inflated / 2.0;
+        }
+        else{ // if it is an obstacle, then we need to use the uncertainty
+          mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
+          delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
+        }
+
+        // std::cout << "times[" << k << "]= " << times[k] << std::endl;
+        // std::cout << "state.pos= " << state.pos.transpose() << std::endl;
+        // std::cout << "unc.pos= " << unc.pos.transpose() << std::endl;
+        // std::cout << "delta= " << delta.transpose() << std::endl;
 
         // clang-format off
-         vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
-         vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
-         vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k)=     (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+1)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+2)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+3)=   (Eigen::Vector3d(state.pos.x() + delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+4)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+5)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() + delta.z()));
+        vertexes_interval_j.col(8*k+6)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() + delta.y(), state.pos.z() - delta.z()));
+        vertexes_interval_j.col(8*k+7)=   (Eigen::Vector3d(state.pos.x() - delta.x(), state.pos.y() - delta.y(), state.pos.z() + delta.z()));
         // clang-format on
 
-        // std::cout << "vertexes_interval_j= \n" << vertexes_interval_j << std::endl;
       }
 
       vertexes_obstacle_i.push_back(vertexes_interval_j);
     }
 
     hulls_.push_back(vertexes_obstacle_i);
+
   }
 
   num_of_obst_ = hulls_.size();
@@ -649,7 +692,7 @@ double SolverIpopt::computeCost(si::solOrGuess sol_or_guess)
     map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
-        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }
 
   // map_arguments["all_nd"] = all_nd;                                 // Only appears in the constraints
@@ -747,9 +790,19 @@ std::map<std::string, casadi::DM> SolverIpopt::getMapConstantArguments()
   {
     map_arguments["obs_" + std::to_string(i) + "_ctrl_pts"] =
         stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_uncertainty_ctrl_pts"] =
+        stdVectorEigen3d2CasadiMatrix(obstacles_for_opt_[i].uncertainty_ctrl_pts);
+    map_arguments["obs_" + std::to_string(i) + "_sigma_0"] =
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].sigma_0);
     map_arguments["obs_" + std::to_string(i) + "_bbox_inflated"] =
-        eigen3d2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
+        eigenXd2CasadiMatrix(obstacles_for_opt_[i].bbox_inflated);
   }
+
+  map_arguments["max_variance"] = eigenXd2CasadiMatrix(par_.max_variance);
+  map_arguments["max_variance_for_moving_direction"] = eigenXd2CasadiMatrix(par_.max_variance_for_moving_direction);
+  map_arguments["drone_initial_variance"] = eigenXd2CasadiMatrix(par_.drone_initial_variance);
+  map_arguments["infeasibility_adjust"] = par_.infeasibility_adjust;
+  map_arguments["moving_direction_factor"] = par_.moving_direction_factor;
 
   map_arguments["c_pos_smooth"] = par_.c_pos_smooth;
   map_arguments["c_yaw_smooth"] = par_.c_yaw_smooth;
@@ -879,10 +932,11 @@ bool SolverIpopt::optimize(bool supress_all_prints)
     map_arguments["pCPs"] = matrix_qp_guess;
 
     ////////////////////////////////Generate Yaw Guess
-    casadi::DM matrix_qy_guess(1, sy_.N);  // TODO: do this just once?
+    casadi::DM matrix_qy_guess(1, sy_.N+1);  // TODO: do this just once?
 
-    matrix_qy_guess = generateYawGuess(matrix_qp_guess, initial_state_.yaw, initial_state_.dyaw, final_state_.dyaw,
-                                       t_init_, t_final_guess_);
+    if (par_.use_yaw_guess_for_opt){
+      matrix_qy_guess = generateYawGuess(matrix_qp_guess, initial_state_.yaw, initial_state_.dyaw, final_state_.dyaw, t_init_, t_final_guess_);
+    }
 
     map_arguments["yCPs"] = matrix_qy_guess;
 
@@ -1034,6 +1088,8 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       solution.knots_p = getKnotsSolution(guess.knots_p, alpha_guess, double(result["alpha"]));
       solution.knots_y = getKnotsSolution(guess.knots_y, alpha_guess, double(result["alpha"]));
 
+      solution.alpha = double(result["alpha"]);
+
       double total_time_solution = (solution.knots_p(solution.knots_p.cols() - 1) - solution.knots_p(0));
 
       if (total_time_solution > (par_.fitter_total_time + 1e-4))
@@ -1082,6 +1138,31 @@ bool SolverIpopt::optimize(bool supress_all_prints)
         print_supresser.start();
 
         abort();
+      }
+
+      ///////////////////////////
+      // Uncertrainty Results
+
+      solution.obstacle_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["obstacle_uncertainty_list"]);
+      solution.obstacle_sigma_list = casadiMatrix2StdVectorEigen9d(result["obstacle_sigma_list"]);
+      solution.obstacle_uncertainty_times = casadiMatrix2StdVectorDouble(result["obstacle_uncertainty_times"]);
+
+      solution.moving_direction_uncertainty_list = casadiMatrix2StdVectorEigen3d(result["moving_direction_uncertainty_list"]);
+      solution.moving_direction_sigma_list = casadiMatrix2StdVectorEigen9d(result["moving_direction_sigma_list"]);
+      solution.moving_direction_uncertainty_times = casadiMatrix2StdVectorDouble(result["moving_direction_uncertainty_times"]);
+      ///////////////////////////
+
+      // Print the uncertainty vectors and times
+      std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_list)
+      {
+        std::cout << tmp.transpose() << std::endl;
+      }
+
+      std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
+      for (auto &tmp : solution.obstacle_uncertainty_times)
+      {
+        std::cout << tmp << std::endl;
       }
 
       ///////////////////////////

@@ -71,53 +71,7 @@ def getColorJet(v, vmin, vmax):
 
 class DynCorridor:
 
-    def getTrajectoryPosMeshBBox(self, i):
-        delta_beginning=2.0
-
-        delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
-        x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
-        y=random.uniform(self.y_min, self.y_max)
-        z=random.uniform(self.z_min, self.z_max)
-        offset=random.uniform(-2*math.pi, 2*math.pi)
-
-        # x = 3
-        # y = 0
-        # z = 1
-        # offset = 0
-
-        slower=random.uniform(self.slower_min, self.slower_max)
-        s=self.scale
-        if(self.getType(i)=="dynamic"):
-            mesh=random.choice(self.available_meshes_dynamic)
-            bbox=self.bbox_dynamic; 
-            if(self.type_of_obst_traj=="trefoil"):
-                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="eightCurve"):
-                [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="square"):
-                [x_string, y_string, z_string] = self.square(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="epitrochoid"):
-                [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="static"):
-                [x_string, y_string, z_string] = self.static(2.5,0.0,1.0)    
-            else:
-                print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
-                exit();         
-
-        else:
-            mesh=random.choice(self.available_meshes_static)
-            bbox=self.bbox_static_vert
-            z=bbox[2]/2.0
-            [x_string, y_string, z_string] = self.wave_in_z(x, y, z, self.scale[2], offset, 1.0)
-        return [x_string, y_string, z_string, x, y, z, mesh, bbox]
-
-    def getType(self,i):
-        if(i<self.num_of_dyn_objects):
-            return "dynamic"
-        else:
-            return "static"
-
-    def __init__(self, total_num_obs,gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj):
+    def __init__(self, total_num_obs, gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj):
 
         random.seed(datetime.now())
 
@@ -127,8 +81,8 @@ class DynCorridor:
         self.name = name[1:-1]
 
         self.total_num_obs=total_num_obs
-        self.num_of_dyn_objects=int(1.0*total_num_obs)
-        self.num_of_stat_objects=total_num_obs-self.num_of_dyn_objects; 
+        self.num_of_dyn_objects = 1
+        self.num_of_stat_objects = total_num_obs-self.num_of_dyn_objects; 
         self.x_min= 1.0 
         self.x_max= 3.0
         self.y_min= 1.0 
@@ -136,9 +90,9 @@ class DynCorridor:
         self.z_min= 1.0
         self.z_max= 1.0
         # self.scale= [(self.x_max-self.x_min)/self.total_num_obs, 5.0, 1.0]
-        self.scale= [alpha_scale_obst_traj, alpha_scale_obst_traj, alpha_scale_obst_traj]
+        self.scale= [alpha_scale_obst_traj, 2*alpha_scale_obst_traj, alpha_scale_obst_traj]
         self.slower_min=3.0   #1.2 or 2.3
-        self.slower_max=3.0   #1.2 or 2.3
+        self.slower_max=6.0   #1.2 or 2.3
 
         PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
         with open(PANTHER_YAML_PATH) as f:
@@ -146,7 +100,7 @@ class DynCorridor:
 
         self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in primer.yaml
         self.add_noise_to_obst = PANTHER_YAML_PARAMS["add_noise_to_obst"]
-        self.bbox_static_vert=[0.4, 0.4, 4]
+        self.bbox_static_vert=[0.3, 2.5, 2.5]
         self.bbox_static_horiz=[0.4, 8, 0.4]
         self.percentage_vert=0.0
         self.name_obs="obs_"
@@ -164,6 +118,7 @@ class DynCorridor:
         self.total_num_obs=self.num_of_dyn_objects + self.num_of_stat_objects
 
         for i in range(self.total_num_obs): 
+
             [traj_x, traj_y, traj_z, x, y, z, mesh, bbox]=self.getTrajectoryPosMeshBBox(i);           
             self.marker_array.markers.append(self.generateMarker(mesh, bbox, i))
 
@@ -177,7 +132,7 @@ class DynCorridor:
             dynamic_trajectory_msg.pos.x=x #Current position, will be updated later
             dynamic_trajectory_msg.pos.y=y #Current position, will be updated later
             dynamic_trajectory_msg.pos.z=z #Current position, will be updated later
-            dynamic_trajectory_msg.id = 4000 + i #Current id 4000 to avoid interference with ids from agents #TODO
+            dynamic_trajectory_msg.id = 5000 + i #Current id 4000 to avoid interference with ids from agents #TODO
             dynamic_trajectory_msg.is_committed = True
 
             self.all_dyn_traj.append(dynamic_trajectory_msg)
@@ -187,7 +142,7 @@ class DynCorridor:
         self.pubTraj = rospy.Publisher('/trajs', DynTraj, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh = rospy.Publisher('/obstacles_mesh', MarkerArray, queue_size=1, latch=True)
 
-        # self.pubShapes_dynamic_mesh_zhejiang = rospy.Publisher('/obstacles_mesh_zhejiang', MarkerArray, queue_size=1, latch=True)
+        self.pubShapes_dynamic_mesh_zhejiang = rospy.Publisher('/obstacles_mesh_zhejiang', MarkerArray, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh_colored = rospy.Publisher('/obstacles_mesh_colored', MarkerArray, queue_size=1, latch=True)
         self.pubTraj_zhejiang = rospy.Publisher('/SQ01s/trajs_zhejiang', DynTraj, queue_size=1, latch=True)
 
@@ -200,9 +155,71 @@ class DynCorridor:
 
         rospy.sleep(0.5)
 
+    def getTrajectoryPosMeshBBox(self, i):
+
+        delta_beginning=2.0
+
+        delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
+        x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
+        y=random.uniform(self.y_min, self.y_max)
+        z=random.uniform(self.z_min, self.z_max)
+        offset=random.uniform(-2*math.pi, 2*math.pi)
+
+        x = 0
+        y = 0
+        z = 3
+
+        slower=random.uniform(self.slower_min, self.slower_max)
+        s=self.scale
+        
+        if self.getType(i) == "dynamic": # if dynamic
+
+            mesh=random.choice(self.available_meshes_dynamic)
+            bbox=self.bbox_dynamic; 
+            if(self.type_of_obst_traj=="trefoil"):
+                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+                if i==1:
+                    [x_string, y_string, z_string] = self.trefoil(12,1,3, self.scale[0] * 0.01,self.scale[1] * 0.01,self.scale[2] * 0.01, offset, slower)
+                    bbox=self.bbox_static_vert; 
+            elif(self.type_of_obst_traj=="eightCurve"):
+                [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="square"):
+                [x_string, y_string, z_string] = self.square(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="epitrochoid"):
+                [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
+            elif(self.type_of_obst_traj=="static"):
+                [x_string, y_string, z_string] = self.static(8,1.0,3.0)
+
+            else:
+                print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
+                exit();         
+
+        else: # if static
+
+            mesh=random.choice(self.available_meshes_static)
+            bbox=self.bbox_static_vert
+            z=bbox[2]/2.0
+            
+            if i == 1:
+                [x_string, y_string, z_string] = self.static(12,0,3.0)
+            elif i == 2:
+                [x_string, y_string, z_string] = self.static(12,-1.0,3.0)
+            elif i == 3:
+                [x_string, y_string, z_string] = self.static(12,1,3.0)
+
+
+            # [x_string, y_string, z_string] = self.wave_in_z(x, y, z, self.scale[2], offset, 1.0)
+        return [x_string, y_string, z_string, x, y, z, mesh, bbox]
+
+    def getType(self,i):
+        if i < self.num_of_dyn_objects:
+            return "dynamic"
+        else:
+            return "static"
+
     def generateMarker(self, mesh, bbox, i):
         marker=Marker()
-        marker.id=i
+        marker.id=5000+i
         marker.ns="mesh"
         marker.header.frame_id="world"
         marker.type=marker.MESH_RESOURCE

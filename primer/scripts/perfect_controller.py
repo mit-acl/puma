@@ -94,6 +94,7 @@ class FakeSim:
         w_q_b=quaternion_multiply(qabc,qpsi)
 
         self.state.header.frame_id="world"
+        self.state.header.stamp=rospy.Time.now()
         self.state.pos=data.p
         self.state.vel=data.v
         self.state.quat.w=w_q_b[3]  #w
@@ -110,7 +111,7 @@ class FakeSim:
                          (self.state.quat.x, self.state.quat.y, self.state.quat.z, self.state.quat.w),
                          rospy.Time.now(),
                          self.name,
-                         "vicon")
+                         "world")
 
     def getDroneMarker(self):
         marker=Marker()

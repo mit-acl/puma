@@ -7,3 +7,6 @@
 *.m~
 *core
 *.o
+.vscode/*
+build
+primer/matlab/casadi_generated_files copy/*

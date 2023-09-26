@@ -1,4 +1,4 @@
-# PRIMER: Perception-Aware Robust Learning-based Multiagent Trajectory Planner #
+# PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment #
 
 ## General Setup
 
@@ -11,9 +11,12 @@ The instructions below assume that you have ROS Noetic installed on your Linux m
 > Note: the instructions below are partly taken from [here](https://github.com/casadi/casadi/wiki/InstallationLinux#installation-on-linux)
 
 #### IPOPT
+Install IPOPT and CoinHSL solvers as described [here](https://github.com/ami-iit/ami-commons/blob/master/doc/casadi-ipopt-hsl.md). Skip the casdai instllations and put this in your `~/.bashrc` insteade of what is listed.
 ```bash
-sudo apt-get install gcc g++ gfortran git cmake liblapack-dev pkg-config --install-recommends
-sudo apt-get install coinor-libipopt1v5 coinor-libipopt-dev
+export IPOPT_DIR=~/robot-code/CoinIpopt/install
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${IPOPT_DIR}/lib/pkgconfig
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${IPOPT_DIR}/lib
+export PATH=${PATH}:${IPOPT_DIR}/lib
 ```
 
 #### CasADi
@@ -32,7 +35,8 @@ sudo make install
 
 cd ~/installations && mkdir casadi && cd casadi
 git clone https://github.com/casadi/casadi
-cd casadi 
+cd casadi
+git checkout 3.5.5
 #cd build && make clean && cd .. && rm -rf build #Only if you want to clean any previous installation/compilation 
 mkdir build && cd build
 cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_IPOPT=ON -DWITH_MATLAB=OFF -DWITH_PYTHON=ON -DWITH_DEEPBIND=ON ..
@@ -93,6 +97,11 @@ If you want to...
 * **Modify the optimization problem:**, You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
 
 * **Train the policy:** You first need to install a linear solver (see instructions below). Then, you can train a new policy but simply running `python3 policy_compression_train.py` inside the `panther_compression` folder. 
+
+Debug...
+
+undefined reference to `PyFrame_GetBack' -> (unofficial solution) build in master first and then move to uncertainty-aware-predictor branch)
+
 
 
 <details>

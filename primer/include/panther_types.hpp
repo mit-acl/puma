@@ -16,6 +16,7 @@
 #include "timer.hpp"
 
 #include "mparser.hpp"
+#include <motlee_msgs/SE3Transform.h>
 // #include <any>
 // #include <utility>
 
@@ -90,6 +91,8 @@ struct obstacleForOpt
   // casadi::DM bbox_inflated;
   // casadi::DM ctrl_pts;
   std::vector<Eigen::Vector3d> ctrl_pts;
+  std::vector<Eigen::Vector3d> uncertainty_ctrl_pts;
+  Eigen::Matrix<double, 9, 1> sigma_0;
   Eigen::Vector3d bbox_inflated;
   bool is_dummy = false;
   bool is_agent = false;
@@ -101,6 +104,12 @@ struct obstacleForOpt
     {
       std::cout << termcolor::yellow << q.transpose() << termcolor::reset << std::endl;
     }
+    std::cout << termcolor::red << "uncertainty_ctrl_pts=" << termcolor::reset << std::endl;
+    for (auto& q : uncertainty_ctrl_pts)
+    {
+      std::cout << termcolor::red << q.transpose() << termcolor::reset << std::endl;
+    }
+    std::cout << termcolor::blue << "simga_0=" << sigma_0.transpose() << termcolor::reset << std::endl;
     std::cout << termcolor::blue << "bbox_inflated=" << bbox_inflated.transpose() << termcolor::reset << std::endl;
   }
 };
@@ -667,6 +676,12 @@ struct PieceWisePol
     return U;
   }
 
+  Eigen::VectorXd uDeriv(Eigen::VectorXd U) const
+  {
+    // Remove the first element
+    return U.tail(U.rows() - 1);
+  }
+
   int getInterval(double t) const
   {
     if (t >= times[times.size() - 1])
@@ -722,6 +737,17 @@ struct PieceWisePol
     return u;
   }
 
+  Eigen::VectorXd coeffDeriv(Eigen::VectorXd coeff) const
+  {
+    int coeff_degree = coeff.rows() - 1;
+    Eigen::VectorXd coeff_der(coeff_degree);
+    for (int i = 0; i < coeff_der.rows(); i++)
+    {
+      coeff_der(i) = coeff(i) * (coeff_degree - i);
+    }
+    return coeff_der;
+  }
+
   Eigen::Vector3d eval(double t) const
   {
     Eigen::Vector3d result;
@@ -742,6 +768,36 @@ struct PieceWisePol
     result.x() = all_coeff_x[j].transpose() * tmp;
     result.y() = all_coeff_y[j].transpose() * tmp;
     result.z() = all_coeff_z[j].transpose() * tmp;
+    return result;
+  }
+
+  Eigen::Vector3d evalDeriv(double t, int degree) const
+  {
+    Eigen::Vector3d result;
+
+    double tt = t;
+    // Saturate
+    saturateMinMax(tt, times[0], times[times.size() - 1]);
+
+    double u = t2u(tt);
+    int j = getInterval(tt);  // TODO [Improve efficiency]: note that t2u is already calling getInterval()
+
+    Eigen::VectorXd tmp_u = getU(u);
+    Eigen::VectorXd tmp_coeff_x = all_coeff_x[j];
+    Eigen::VectorXd tmp_coeff_y = all_coeff_y[j];
+    Eigen::VectorXd tmp_coeff_z = all_coeff_z[j];
+
+    for (int i = 0; i < degree; i++)
+    {
+      tmp_u = uDeriv(tmp_u);
+      tmp_coeff_x = coeffDeriv(tmp_coeff_x);
+      tmp_coeff_y = coeffDeriv(tmp_coeff_y);
+      tmp_coeff_z = coeffDeriv(tmp_coeff_z);
+    }
+
+    result.x() = tmp_coeff_x.transpose() * tmp_u;
+    result.y() = tmp_coeff_y.transpose() * tmp_u;
+    result.z() = tmp_coeff_z.transpose() * tmp_u;
     return result;
   }
 
@@ -815,6 +871,18 @@ struct parameters
 {
   //
   // clang-format off
+  bool            is_frame_alignment;
+  bool            use_yaw_guess_for_opt;
+  double          initial_position_variance_for_agents;
+  double          initial_velocity_variance_for_agents;
+  double          initial_acceleration_variance_for_agents;
+  double          initial_position_variance_multiplier;
+  double          initial_velocity_variance_multiplier;
+  double          initial_acceleration_variance_multiplier;
+  double          initial_position_variance_search_multiplier;
+  double          initial_velocity_variance_search_multiplier;
+  double          initial_acceleration_variance_search_multiplier;
+  double          obstacle_visualization_duration;
   bool            add_noise_to_obst;
   bool            use_expert_for_other_agents_in_training;
   double          goal_seen_radius_training;
@@ -907,6 +975,12 @@ struct parameters
   double          alpha_shrink;                       //void setVar_alpha_shrink(const std::string& value) { alpha_shrink = std::stod(value); };
   double          norminv_prob;                       //void setVar_norminv_prob(const std::string& value) { norminv_prob = std::stod(value); };
   int             disc_pts_per_interval_oct_search;   //void setVar_disc_pts_per_interval_oct_search(const std::string& value) { disc_pts_per_interval_oct_search = std::stoi(value); };
+  bool            uncertainty_aware;
+  Eigen::Matrix<double, 9, 1> max_variance;           //void setVar_max_variance(const std::string& value) { max_variance = std::stod(value); };
+  Eigen::Matrix<double, 9, 1> max_variance_for_moving_direction; //void setVar_max_variance_for_moving_direction(const std::string& value) { max_variance_for_moving_direction = std::stod(value); };
+  Eigen::Matrix<double, 9, 1> drone_initial_variance; //void setVar_ego_initial_variance(const std::string& value) { ego_initial_variance = std::stod(value); };
+  double          infeasibility_adjust;               //void setVar_infeasibility_adjust(const std::string& value) { infeasibility_adjust = std::stod(value); };
+  double          moving_direction_factor;            //void setVar_moving_direction_factor(const std::string& value) { moving_direction_factor = std::stod(value); };
   double          c_smooth_yaw_search;                //void setVar_c_smooth_yaw_search(const std::string& value) { c_smooth_yaw_search = std::stod(value); };
   double          c_visibility_yaw_search;            //void setVar_c_visibility_yaw_search(const std::string& value) { c_visibility_yaw_search = std::stod(value); };
   double          c_maxydot_yaw_search;               //void setVar_c_maxydot_yaw_search(const std::string& value) { c_maxydot_yaw_search = std::stod(value); }; 

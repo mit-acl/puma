@@ -126,6 +126,50 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "use_expert", par_.use_expert);
   safeGetParam(nh1_, "use_student", par_.use_student);
 
+  //
+  // Tracker Predictor params
+  //
+  
+  safeGetParam(nh1_, "obstacle_visualization_duration", par_.obstacle_visualization_duration);
+
+  //
+  // Uncertainty Prediction params
+  //
+
+  safeGetParam(nh1_, "uncertainty_aware", par_.uncertainty_aware);
+
+  safeGetParam(nh1_, "initial_position_variance_multiplier", par_.initial_position_variance_multiplier);
+  safeGetParam(nh1_, "initial_velocity_variance_multiplier", par_.initial_velocity_variance_multiplier);
+  safeGetParam(nh1_, "initial_acceleration_variance_multiplier", par_.initial_acceleration_variance_multiplier);
+
+  safeGetParam(nh1_, "initial_position_variance_search_multiplier", par_.initial_position_variance_search_multiplier);
+  safeGetParam(nh1_, "initial_velocity_variance_search_multiplier", par_.initial_velocity_variance_search_multiplier);
+  safeGetParam(nh1_, "initial_acceleration_variance_search_multiplier", par_.initial_acceleration_variance_search_multiplier);
+
+  safeGetParam(nh1_, "initial_position_variance_for_agents", par_.initial_position_variance_for_agents);
+  safeGetParam(nh1_, "initial_velocity_variance_for_agents", par_.initial_velocity_variance_for_agents);
+  safeGetParam(nh1_, "initial_acceleration_variance_for_agents", par_.initial_acceleration_variance_for_agents);
+
+  std::vector<double> max_variance_tmp;
+  safeGetParam(nh1_, "max_variance", max_variance_tmp);
+  par_.max_variance << max_variance_tmp[0], max_variance_tmp[1], max_variance_tmp[2],
+                       max_variance_tmp[3], max_variance_tmp[4], max_variance_tmp[5],
+                       max_variance_tmp[6], max_variance_tmp[7], max_variance_tmp[8];
+
+  std::vector<double> max_variance_for_moving_direction_tmp;
+  safeGetParam(nh1_, "max_variance_for_moving_direction", max_variance_for_moving_direction_tmp);
+  par_.max_variance_for_moving_direction << max_variance_for_moving_direction_tmp[0], max_variance_for_moving_direction_tmp[1], max_variance_for_moving_direction_tmp[2],
+                       max_variance_for_moving_direction_tmp[3], max_variance_for_moving_direction_tmp[4], max_variance_for_moving_direction_tmp[5],
+                       max_variance_for_moving_direction_tmp[6], max_variance_for_moving_direction_tmp[7], max_variance_for_moving_direction_tmp[8];
+
+  std::vector<double> drone_initial_variance_tmp;
+  safeGetParam(nh1_, "drone_initial_variance", drone_initial_variance_tmp);
+  par_.drone_initial_variance << drone_initial_variance_tmp[0], drone_initial_variance_tmp[1], drone_initial_variance_tmp[2],
+                       drone_initial_variance_tmp[3], drone_initial_variance_tmp[4], drone_initial_variance_tmp[5],
+                       drone_initial_variance_tmp[6], drone_initial_variance_tmp[7], drone_initial_variance_tmp[8];  
+
+  safeGetParam(nh1_, "infeasibility_adjust", par_.infeasibility_adjust);
+  safeGetParam(nh1_, "moving_direction_factor", par_.moving_direction_factor);
 
   //
   // training params
@@ -240,6 +284,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "lambda_obst_avoidance_violation", par_.lambda_obst_avoidance_violation);
   safeGetParam(nh1_, "lambda_dyn_lim_violation", par_.lambda_dyn_lim_violation);
   safeGetParam(nh1_, "num_of_intervals", par_.num_of_intervals);
+  safeGetParam(nh1_, "use_yaw_guess_for_opt", par_.use_yaw_guess_for_opt);
 
   //
   // other
@@ -276,6 +321,12 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "static_planning", par_.static_planning);
   safeGetParam(nh1_, "perfect_prediction", par_.perfect_prediction);
 
+  //
+  // frame alignment
+  //
+
+  safeGetParam(nh1_, "is_frame_alignment", par_.is_frame_alignment);
+
   // safeGetParam(nh1_, "distance_to_force_final_pos", par_.distance_to_force_final_pos);
   // safeGetParam(nh1_, "factor_alloc_when_forcing_final_pos", par_.factor_alloc_when_forcing_final_pos);
   // par_.force_final_pos = false;
@@ -301,6 +352,9 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
                                                                 "hold");
   verify((par_.c_visibility_yaw_search >= 0), "par_.c_visibility_yaw_search>=0 must hold");
   verify((par_.num_of_yaw_per_layer >= 1), "par_.num_of_yaw_per_layer>=1 must hold");
+
+  verify((par_.infeasibility_adjust > 0), "par_.infeasibility_adjust>0 must hold");
+  verify((par_.moving_direction_factor != 0), "par_.moving_direction_factor!=0 must hold");
 
   verify((par_.c_pos_smooth >= 0), "par_.c_pos_smooth>=0 must hold");
   verify((par_.c_yaw_smooth >= 0), "par_.c_yaw_smooth>=0 must hold");
@@ -350,6 +404,15 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_best_solution_student_ = nh1_.advertise<visualization_msgs::MarkerArray>("best_solution_student", 1);
   pub_best_solutions_student_ = nh1_.advertise<visualization_msgs::MarkerArray>("best_solutions_student", 1);
 
+  pub_obstacle_uncertainty_ = nh1_.advertise<visualization_msgs::Marker>("obstacle_uncertainty", 1);
+  pub_obstacle_uncertainty_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_uncertainty_values", 1);
+  pub_obstacle_sigma_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_sigma_values", 1);
+  pub_obstacle_uncertainty_times_ = nh1_.advertise<std_msgs::Float64MultiArray>("obstacle_uncertainty_times", 1);
+  pub_moving_direction_uncertainty_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_uncertainty_values", 1);
+  pub_moving_direction_sigma_values_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_sigma_values", 1);
+  pub_moving_direction_uncertainty_times_ = nh1_.advertise<std_msgs::Float64MultiArray>("moving_direction_uncertainty_times", 1);
+  pub_alpha_ = nh1_.advertise<std_msgs::Float64>("alpha", 1);
+
   pub_guesses_ = nh1_.advertise<visualization_msgs::MarkerArray>("guesses", 1);
   pub_splines_fitted_ = nh1_.advertise<visualization_msgs::MarkerArray>("splines_fitted", 1);
 
@@ -366,11 +429,13 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_obstacles_ = nh1_.advertise<visualization_msgs::Marker>("obstacles", 1);
   pub_log_ = nh1_.advertise<panther_msgs::Log>("log", 1);
   pub_is_ready_ = nh1_.advertise<panther_msgs::IsReady>("is_ready", 1);
+  pub_pause_sim_ = nh1_.advertise<std_msgs::Bool>("pause_sim", 1);
 
   // Subscribers
   sub_term_goal_ = nh1_.subscribe("term_goal", 1, &PantherRos::terminalGoalCB, this);
   sub_whoplans_ = nh1_.subscribe("who_plans", 1, &PantherRos::whoPlansCB, this);
   sub_state_ = nh1_.subscribe("state", 1, &PantherRos::stateCB, this);
+  // sub_frame_align_ = nh1_.subscribe("frame_align", 1, &PantherRos::frameAlignCB, this);
 
   ////Services
   pauseGazebo_ = nh1_.serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
@@ -380,6 +445,25 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   std::string myns = ros::this_node::getNamespace();
   std::string veh = myns.substr(1, 2);
 
+  // add frame alignment transformation matrix for each agent
+  if (par_.is_frame_alignment)
+  {
+    ROS_INFO("Using frame alignment");
+    for (std::string id : par_.agents_ids)  // id is a string
+    {
+      std::string agent;
+      veh == "NX" ? agent = "/" + veh + id : agent = "/" + veh + id + "s";
+      std::cout << "agent name initialized" << agent << std::endl;
+      if (myns != agent)
+      {  // if my namespace is the same as the agent, then it's you
+        mtx_frame_align_.lock();
+        dict_frame_align_[agent] = Eigen::Matrix4d::Identity();
+        mtx_frame_align_.unlock();
+      }
+    }
+  }
+
+  // add subscriber for each agent
   if (par_.use_mesh_network)
   {
     ROS_INFO("Using Multiagent Scheme");
@@ -390,7 +474,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
       std::cout << "agent name initialized" << agent << std::endl;
       if (myns != agent)
       {  // if my namespace is the same as the agent, then it's you
-        sub_traj_list_.push_back(nh1_.subscribe(agent + "/panther/trajs", 3, &PantherRos::trajCB,
+        sub_traj_list_.push_back(nh1_.subscribe(agent + "/primer/trajs", 3, &PantherRos::trajCB,
                                                 this));  // The number is the queue size
       }
     }
@@ -511,6 +595,121 @@ void PantherRos::pubObstacles(mt::Edges edges_obstacles)
 // ------------------------------------------------------------------------------------------------------
 //
 
+void PantherRos::pubAlpha(double& alpha)
+{
+  std_msgs::Float64 msg;
+  msg.data = alpha;
+  pub_alpha_.publish(msg);
+}
+
+
+void PantherRos::pubObstaclesWithUncertainty(mt::Edges edges_obstacles_uncertainty)
+{
+  clearObstacleUncertaintyEdges();
+  if (edges_obstacles_uncertainty.size() > 0)
+  {
+    pub_obstacle_uncertainty_.publish(edges2Marker(edges_obstacles_uncertainty, color(BLUE_NORMAL)));
+  }
+
+  return;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::pubUncertainty(const std::vector<Eigen::Vector3d>& obstacle_uncertainty_list,
+                                const std::vector<Eigen::Matrix<double, 9, 1>>& obstacle_sigma_list,
+                                const std::vector<double>& obstacle_uncertainty_times,
+                                const std::vector<Eigen::Vector3d>& moving_direction_uncertainty_list,
+                                const std::vector<Eigen::Matrix<double, 9, 1>>& moving_direction_sigma_list,
+                                const std::vector<double>& moving_direction_uncertainty_times)
+{
+  if (obstacle_uncertainty_times.size() > 0)
+  {
+    pub_obstacle_uncertainty_values_.publish(vecEigen3dToFloat64MultiArray(obstacle_uncertainty_list));
+    pub_obstacle_sigma_values_.publish(vecEigen9dToFloat64MultiArray(obstacle_sigma_list));
+    pub_obstacle_uncertainty_times_.publish(vecDoubleToFloat64MultiArray(obstacle_uncertainty_times));
+
+    pub_moving_direction_uncertainty_values_.publish(vecEigen3dToFloat64MultiArray(moving_direction_uncertainty_list));
+    pub_moving_direction_sigma_values_.publish(vecEigen9dToFloat64MultiArray(moving_direction_sigma_list));
+    pub_moving_direction_uncertainty_times_.publish(vecDoubleToFloat64MultiArray(moving_direction_uncertainty_times));
+  }
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+std_msgs::Float64MultiArray PantherRos::vecEigen3dToFloat64MultiArray(const std::vector<Eigen::Vector3d>& vec_eigen)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_eigen.size();
+  msg.layout.dim[0].stride = vec_eigen[0].size() * vec_eigen.size();
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[1].size = vec_eigen[0].size();
+  msg.layout.dim[1].stride = vec_eigen[0].size();
+
+  for (auto vec : vec_eigen)
+  {
+    for (int i = 0; i < vec.size(); i++)
+    {
+      msg.data.push_back(vec[i]);
+    }
+  }
+  return msg;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+std_msgs::Float64MultiArray PantherRos::vecEigen9dToFloat64MultiArray(const std::vector<Eigen::Matrix<double, 9, 1>>& vec_eigen)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_eigen.size();
+  msg.layout.dim[0].stride = vec_eigen[0].size() * vec_eigen.size();
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[1].size = vec_eigen[0].size();
+  msg.layout.dim[1].stride = vec_eigen[0].size();
+
+  for (auto vec : vec_eigen)
+  {
+    for (int i = 0; i < vec.size(); i++)
+    {
+      msg.data.push_back(vec[i]);
+    }
+  }
+  return msg;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+std_msgs::Float64MultiArray PantherRos::vecDoubleToFloat64MultiArray(const std::vector<double>& vec_double)
+{
+  std_msgs::Float64MultiArray msg;
+
+  msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+  msg.layout.dim[0].size = vec_double.size();
+  msg.layout.dim[0].stride = vec_double.size();
+
+  for (auto vec : vec_double)
+  {
+    msg.data.push_back(vec);
+  }
+  return msg;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void PantherRos::obstacleTrajCB(const panther_msgs::DynTraj& msg)
 {
   //
@@ -534,8 +733,67 @@ void PantherRos::obstacleTrajCB(const panther_msgs::DynTraj& msg)
 // ------------------------------------------------------------------------------------------------------
 //
 
+void PantherRos::frameAlignCB(const motlee_msgs::SE3Transform& msg)
+{
+
+  //
+  // store this received transform in frame_align_
+  //
+
+  mtx_frame_align_.lock();
+  dict_frame_align_[msg.frame_src] << msg.transform[0], msg.transform[1], msg.transform[2], msg.transform[3],
+                        msg.transform[4], msg.transform[5], msg.transform[6], msg.transform[7], 
+                        msg.transform[8], msg.transform[9], msg.transform[10], msg.transform[11],
+                        msg.transform[12], msg.transform[13], msg.transform[14], msg.transform[15];
+  mtx_frame_align_.unlock();
+
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::getFrameAlignmentT(Eigen::Matrix4d& T, const double qw, const double qx, const double qy, const double qz, const double px, const double py, const double pz) 
+{
+  T.setIdentity();
+  T.block<3,3>(0,0) = Eigen::Quaterniond(qw, qx, qy, qz).toRotationMatrix();
+  T.block<3,1>(0,3) << px, py, pz;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::applyFrameAlignment(Eigen::Matrix4d& T, const std::string& frame_src)
+{
+  Eigen::Matrix4d T_new;
+  // std::cout << "mtx_frame_align_.lock() in applyFrameAlignment" << std::endl;
+  mtx_frame_align_.lock();
+  // std::cout << "dict_frame_align_[" << frame_src << "]: " << dict_frame_align_[frame_src] << std::endl;
+  T_new = dict_frame_align_[frame_src] * T;
+  mtx_frame_align_.unlock();
+  // std::cout << "mtx_frame_align_.unlock() in applyFrameAlignment" << std::endl;
+  T = T_new;
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::getPosFromT(std::vector<double>& pos, const Eigen::Matrix4d& T)
+{
+  pos.push_back(T(0,3));
+  pos.push_back(T(1,3));
+  pos.push_back(T(2,3));
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
 void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
 {
+
   //
   // Check if the trajecotry is from myself
   //
@@ -545,106 +803,263 @@ void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
     return;
   }
 
-  //
-  // Check if we can should use this trajectory
-  //
+  // If frame alignment is enabled, then transform the trajectory to the correct frame
+  if (par_.is_frame_alignment && msg.is_agent){
 
-  Eigen::Vector3d w_pos(msg.pos.x, msg.pos.y, msg.pos.z);  // position in world frame
-  double dist = (state_.pos - w_pos).norm();
-  bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
+    std::cout << "frame alignment is enabled" << std::endl;
 
-  //
-  // Check if this trajectory is in FOV
-  //
+    std::cout << "agent id: " << msg.id << std::endl;
 
-  
-  Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame
-                                                                // (i.e., depth optical frame)
-  bool inFOV =                                                  // check if it's inside the field of view.
-      c_pos.z() < par_.fov_depth &&                             //////////////////////
-      fabs(atan2(c_pos.x(), c_pos.z())) <
-          ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
-      fabs(atan2(c_pos.y(), c_pos.z())) <
-          ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+    //
+    // If the trajectory is from another agent, apply frame alignment
+    //
 
-  if (par_.impose_FOV_in_trajCB && inFOV == false)
-  {
-    return;
-  }
+    // get agent name
+    std::string myns = ros::this_node::getNamespace();
+    std::string veh = myns.substr(1, 2);
 
-  // if (can_use_its_info == false)
-  // {
-  //   return;
-  // } //TODO: Commented (4-Feb-2021)
+    std::string agent;
+    veh == "NX" ? agent = "/" + veh + "0" + std::to_string(msg.id) : agent = "/" + veh + "0" + std::to_string(msg.id) + "s"; //TODO: hardcoded 0 and not compatible with more than 10 agents    
+    
+    // get agent's transformation matrix T_agent
+    Eigen::Matrix4d T_agent;
+    getFrameAlignmentT(T_agent, 1.0, 0.0, 0.0, 0.0, msg.pos.x, msg.pos.y, msg.pos.z);
 
-  mt::dynTraj tmp;
-  tmp.use_pwp_field = msg.use_pwp_field;
+    // apply frame alignment
+    applyFrameAlignment(T_agent, agent);
+    
+    // get corrected position
+    std::vector<double> pos;
+    getPosFromT(pos, T_agent);
 
-  //
-  // add noise to the obstacle trajectory
-  //
+    //
+    // check if we can use this trajectory
+    //
 
-  double noise_factor;
-  if (inFOV){
-    noise_factor = 0.01 * par_.obstacle_bbox[0]; // 1% of bbox
-  }
-  else 
-  {
-    noise_factor = 0.1 * par_.obstacle_bbox[0]; // 10% of bbox
-  }
+    Eigen::Vector3d w_pos(pos[0], pos[1], pos[2]);  // position in world frame
+    double dist = (state_.pos - w_pos).norm();
+    bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
 
-  // generate uniform noise
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> dis(-noise_factor, noise_factor);
+    //
+    // Check if this trajectory is in FOV
+    //
 
-  if (msg.use_pwp_field)
-  {
-    tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
-    tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
-  }
-  else
-  {
-    if (par_.add_noise_to_obst){
-      
-      tmp.s_mean.push_back(msg.s_mean[0] + "+" + std::to_string(dis(gen)));
-      tmp.s_mean.push_back(msg.s_mean[1] + "+" + std::to_string(dis(gen)));
-      tmp.s_mean.push_back(msg.s_mean[2] + "+" + std::to_string(dis(gen)));
+    Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame (i.e., depth optical frame)
+    bool inFOV =                                                  // check if it's inside the field of view.
+        c_pos.z() < par_.fov_depth &&                             //////////////////////
+        fabs(atan2(c_pos.x(), c_pos.z())) <
+            ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
+        fabs(atan2(c_pos.y(), c_pos.z())) <
+            ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+    
+    if (par_.impose_FOV_in_trajCB && inFOV == false)
+    {
+      return;
+    }
 
-    } 
-    else 
+    mt::dynTraj tmp;
+    tmp.use_pwp_field = msg.use_pwp_field;
+
+    if (msg.use_pwp_field) // agents
+    {
+
+      //
+      // frame alignment
+      //
+
+      tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
+      tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
+
+      // all_coeff_x, all_coeff_y, and all_coeff_z are vector of coefficients of the polynomials
+      // Ex. all_coeff_x = [[a b c d ...]' of Int0 , [a b c d ...]' of Int1,...]
+
+      std::vector<Eigen::VectorXd> rotated_all_coeff_x;
+      std::vector<Eigen::VectorXd> rotated_all_coeff_y;
+      std::vector<Eigen::VectorXd> rotated_all_coeff_z;
+
+      // debug
+      // print all_coeff_x, all_coeff_y, and all_coeff_z
+      tmp.pwp_mean.print();
+
+      // for loop over all the intervals
+      for (int i = 0; i < tmp.pwp_mean.getNumOfIntervals(); i++)
+      {
+
+        rotated_all_coeff_x.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        rotated_all_coeff_y.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        rotated_all_coeff_z.push_back(Eigen::VectorXd::Zero(tmp.pwp_mean.getDeg() + 1)); // +1 because there is constant (eg. [a b c d] is 3rd degree)
+
+        // for loop over all the coefficients
+        
+        mtx_frame_align_.lock();
+        
+        for (int j = 0; j < tmp.pwp_mean.getDeg() + 1; j++) // +1 because there is constant (eg. [a b c d] is 3rd degree)
+        {
+
+          Eigen::Vector4d coeff_vector = Eigen::Vector4d(tmp.pwp_mean.all_coeff_x[i][j], tmp.pwp_mean.all_coeff_y[i][j], tmp.pwp_mean.all_coeff_z[i][j], 1); 
+          Eigen::Vector4d rotated_coeff_vector = dict_frame_align_[agent] * coeff_vector;
+
+          rotated_all_coeff_x[i][j] = rotated_coeff_vector[0];
+          rotated_all_coeff_y[i][j] = rotated_coeff_vector[1];
+          rotated_all_coeff_z[i][j] = rotated_coeff_vector[2];
+
+        } // end for loop over all the coefficients
+
+        mtx_frame_align_.unlock();
+
+      } // end for loop over all the intervals
+
+      tmp.pwp_mean.all_coeff_x = rotated_all_coeff_x;
+      tmp.pwp_mean.all_coeff_y = rotated_all_coeff_y;
+      tmp.pwp_mean.all_coeff_z = rotated_all_coeff_z;
+
+      // debug
+      // print all_coeff_x, all_coeff_y, and all_coeff_z
+      std::cout << "rotated pwp_mean: " << std::endl;
+      tmp.pwp_mean.print();
+
+    }
+    else // if not use_pwp_field (obstacles)
     {
       tmp.s_mean.push_back(msg.s_mean[0]);
       tmp.s_mean.push_back(msg.s_mean[1]);
       tmp.s_mean.push_back(msg.s_mean[2]);
+      tmp.s_var.push_back(msg.s_var[0]);
+      tmp.s_var.push_back(msg.s_var[1]);
+      tmp.s_var.push_back(msg.s_var[2]);
     }
 
-    tmp.s_var.push_back(msg.s_var[0]);
-    tmp.s_var.push_back(msg.s_var[1]);
-    tmp.s_var.push_back(msg.s_var[2]);
+    //
+    // publish the trajectory
+    //
+
+    tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
+    tmp.id = msg.id;
+    tmp.is_agent = msg.is_agent;
+    tmp.is_committed = msg.is_committed;
+    tmp.time_received = ros::Time::now().toSec();
+    panther_ptr_->updateTrajObstacles(tmp);
+
+    std::cout << "end of frame alignment" << std::endl;
+
+    //
+    // Obstacle Sharing
+    //
+
+    if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+    {
+      panther_msgs::DynTraj tmp_obs_msg;
+      tmp_obs_msg = msg;
+      tmp_obs_msg.id = 5000 + id_;
+      pub_traj_.publish(tmp_obs_msg);
+    }
+
   }
-
-  tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
-
-  tmp.id = msg.id;
-  tmp.is_agent = msg.is_agent;
-  tmp.is_committed = msg.is_committed;
-  tmp.time_received = ros::Time::now().toSec();
-
-  panther_ptr_->updateTrajObstacles(tmp);
-
-  //
-  // Obstacle Sharing
-  //
-
-  if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+  else // if not frame_alignment enabled or it it's obstacle
   {
-    panther_msgs::DynTraj tmp_obs_msg;
-    tmp_obs_msg = msg;
-    tmp_obs_msg.id = 5000 + id_;
-    pub_traj_.publish(tmp_obs_msg);
-  }
-}
+
+    //
+    // Check if we can should use this trajectory
+    //
+
+    Eigen::Vector3d w_pos(msg.pos.x, msg.pos.y, msg.pos.z);  // position in world frame
+    double dist = (state_.pos - w_pos).norm();
+    bool can_use_its_info = (dist <= 4 * par_.Ra);  // See explanation of 4*Ra in Panther::updateTrajObstacles
+
+    //
+    // Check if this trajectory is in FOV
+    //
+
+    
+    Eigen::Vector3d c_pos = c_T_b_ * (w_T_b_.inverse()) * w_pos;  // position of the obstacle in the camera frame
+                                                                  // (i.e., depth optical frame)
+    bool inFOV =                                                  // check if it's inside the field of view.
+        c_pos.z() < par_.fov_depth &&                             //////////////////////
+        fabs(atan2(c_pos.x(), c_pos.z())) <
+            ((par_.fov_x_deg * M_PI / 180.0) / 2.0) &&  ///// Note that fov_x_deg means x camera_depth_optical_frame
+        fabs(atan2(c_pos.y(), c_pos.z())) <
+            ((par_.fov_y_deg * M_PI / 180.0) / 2.0);  ///// Note that fov_y_deg means x camera_depth_optical_frame
+
+    if (par_.impose_FOV_in_trajCB && inFOV == false)
+    {
+      return;
+    }
+
+    // if (can_use_its_info == false)
+    // {
+    //   return;
+    // } //TODO: Commented (4-Feb-2021)
+
+    mt::dynTraj tmp;
+    tmp.use_pwp_field = msg.use_pwp_field;
+
+    //
+    // add noise to the obstacle trajectory
+    //
+
+    double noise_factor;
+    if (inFOV){
+      noise_factor = 0.01 * par_.obstacle_bbox[0]; // 1% of bbox
+    }
+    else 
+    {
+      noise_factor = 0.1 * par_.obstacle_bbox[0]; // 10% of bbox
+    }
+
+    // generate uniform noise
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dis(-noise_factor, noise_factor);
+
+    if (msg.use_pwp_field)
+    {
+      tmp.pwp_mean = pwpMsg2Pwp(msg.pwp_mean);
+      tmp.pwp_var = pwpMsg2Pwp(msg.pwp_var);
+    }
+    else
+    {
+      if (par_.add_noise_to_obst){
+        
+        tmp.s_mean.push_back(msg.s_mean[0] + "+" + std::to_string(dis(gen)));
+        tmp.s_mean.push_back(msg.s_mean[1] + "+" + std::to_string(dis(gen)));
+        tmp.s_mean.push_back(msg.s_mean[2] + "+" + std::to_string(dis(gen)));
+
+      } 
+      else 
+      {
+        tmp.s_mean.push_back(msg.s_mean[0]);
+        tmp.s_mean.push_back(msg.s_mean[1]);
+        tmp.s_mean.push_back(msg.s_mean[2]);
+      }
+
+      tmp.s_var.push_back(msg.s_var[0]);
+      tmp.s_var.push_back(msg.s_var[1]);
+      tmp.s_var.push_back(msg.s_var[2]);
+    }
+
+    tmp.bbox << msg.bbox[0], msg.bbox[1], msg.bbox[2];
+
+    tmp.id = msg.id;
+    tmp.is_agent = msg.is_agent;
+    tmp.is_committed = msg.is_committed;
+    tmp.time_received = ros::Time::now().toSec();
+
+    panther_ptr_->updateTrajObstacles(tmp);
+
+    //
+    // Obstacle Sharing
+    //
+
+    if (par_.use_obstacle_share && !par_.use_obstacle_shareCB && !tmp.is_agent)
+    {
+      panther_msgs::DynTraj tmp_obs_msg;
+      tmp_obs_msg = msg;
+      tmp_obs_msg.id = 5000 + id_;
+      pub_traj_.publish(tmp_obs_msg);
+    }
+
+  } // end of else (if not frame_alignment enabled)
+} // end of trajCB
 
 //
 // ------------------------------------------------------------------------------------------------------
@@ -721,6 +1136,7 @@ void PantherRos::obstacleEdgeCB(const ros::TimerEvent& e)
   mtx_w_T_b_.lock();
   panther_ptr_->pubObstacleEdge(edges_obstacles, c_T_b_, w_T_b_);
   mtx_w_T_b_.unlock();
+  clearObstacleEdges();
   pubObstacles(edges_obstacles);
 }
 
@@ -752,7 +1168,9 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
   if (ros::ok() && published_initial_position_ == true)
   {
+
     mt::Edges edges_obstacles;
+    mt::Edges edges_obstacles_uncertainty;
     mt::trajectory X_safe;
 
     si::solOrGuess best_solution_expert;
@@ -772,6 +1190,10 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
 
     if (par_.pause_time_when_replanning)
     {
+      // not sure why, but when you record rosbag using tmux, it won't stop recording when it's paused so add this topic to indicate the pause
+      std_msgs::Bool msg;
+      msg.data = true;
+      pub_pause_sim_.publish(msg);
       pauseTime();
     }
 
@@ -783,11 +1205,14 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
     bool replanned = false;
 
     replanned =
-        panther_ptr_->replan(edges_obstacles, best_solution_expert, best_solutions_expert, best_solution_student,
+        panther_ptr_->replan(edges_obstacles, edges_obstacles_uncertainty, best_solution_expert, best_solutions_expert, best_solution_student,
                              best_solutions_student, guesses, splines_fitted, planes, log, k_index_end);
 
     if (par_.pause_time_when_replanning)
     {
+      std_msgs::Bool msg;
+      msg.data = false;
+      pub_pause_sim_.publish(msg);
       unpauseTime();
     }
 
@@ -883,8 +1308,16 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
       visual_tools_->deleteAllMarkers();
       visual_tools_->enableBatchPublishing();
 
-      std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
+      // std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
       pubObstacles(edges_obstacles);
+      pubObstaclesWithUncertainty(edges_obstacles_uncertainty);
+
+      // Publish Uncertainty
+      pubUncertainty(best_solution_expert.obstacle_uncertainty_list, best_solution_expert.obstacle_sigma_list,
+                     best_solution_expert.obstacle_uncertainty_times, best_solution_expert.moving_direction_uncertainty_list,
+                     best_solution_expert.moving_direction_sigma_list, best_solution_expert.moving_direction_uncertainty_times);
+
+      pubAlpha(best_solution_expert.alpha);
       pubTraj(X_safe);
       publishPlanes(planes);
 
@@ -1048,7 +1481,7 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
     pubCBTimer_.start();                                                                 /////// Oct-12-2021
     replanCBTimer_.start();
 
-    if (par_.perfect_prediction)  // tracker_predictor and obstacleEdgeCBTimer conflicts and throw an error
+    if (par_.use_obstacle_edge_cb)
     {
       obstacleEdgeCBTimer_.start();
     }
@@ -1062,6 +1495,9 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
     is_ready_msg.header.stamp = ros::Time::now();
     is_ready_msg.is_ready = true;
     pub_is_ready_.publish(is_ready_msg);
+
+    std::cout << "published is_ready_msg" << std::endl;
+
   }
 }
 
@@ -1158,7 +1594,8 @@ visualization_msgs::MarkerArray PantherRos::pubVectorOfsolOrGuess(const std::vec
       // double alpha = sol_or_guess.prob;
       // saturate(sol_or_guess.prob, 0.08, 1.0);  // min_value so that it can be seen at least a little bit
 
-      double max_value = par_.v_max.maxCoeff();
+      // double max_value = par_.v_max.maxCoeff();
+      double max_value = 3.0;
 
       // std::cout << "sol_or_guess.isInCollision()= " << sol_or_guess.isInCollision() << std::endl;
       // std::cout << "min_cost= " << min_cost << std::endl;
@@ -1213,8 +1650,8 @@ void PantherRos::pubTraj(const std::vector<mt::state>& data)
 
   double scale = 0.15;
 
-  traj_safe_colored_ =
-      trajectory2ColoredMarkerArray(data, par_.v_max.maxCoeff(), increm, name_drone_, scale, "vel", id_, par_.n_agents);
+  // traj_safe_colored_ = trajectory2ColoredMarkerArray(data, par_.v_max.maxCoeff(), increm, name_drone_, scale, "vel", id_, par_.n_agents);
+  traj_safe_colored_ = trajectory2ColoredMarkerArray(data, 3.0, increm, name_drone_, scale, "vel", id_, par_.n_agents);
   pub_traj_safe_colored_.publish(traj_safe_colored_);
 }
 
@@ -1236,7 +1673,8 @@ void PantherRos::pubActualTraj()
 
   // if (par_.color_type == "vel")
   // {
-  m.color = getColorJet(current_state.vel.norm(), 0, par_.v_max.maxCoeff());  // note that par_.v_max is per axis!
+  // m.color = getColorJet(current_state.vel.norm(), 0, par_.v_max.maxCoeff());  // note that par_.v_max is per axis!
+  m.color = getColorJet(current_state.vel.norm(), 0, 3.0);  // note that par_.v_max is per axis!
   // }
   // else
   // {
@@ -1295,6 +1733,26 @@ void PantherRos::clearMarkerColoredTraj()
   pub_actual_traj_.publish(m);
 }
 
+void PantherRos::clearObstacleEdges()
+{
+  // clear only the edges of the obstacles that are published 5 seconds ago
+  visualization_msgs::Marker m;
+  m.type = visualization_msgs::Marker::LINE_LIST;
+  m.action = visualization_msgs::Marker::DELETEALL;
+  m.id = 0;
+  pub_obstacles_.publish(m);
+}
+
+void PantherRos::clearObstacleUncertaintyEdges()
+{
+  // clear only the edges of the obstacles that are published 5 seconds ago
+  visualization_msgs::Marker m;
+  m.type = visualization_msgs::Marker::LINE_LIST;
+  m.action = visualization_msgs::Marker::DELETEALL;
+  m.id = 0;
+  pub_obstacle_uncertainty_.publish(m);
+}
+
 void PantherRos::pubState(const mt::state& data, const ros::Publisher pub)
 {
   geometry_msgs::PointStamped p;
@@ -1305,6 +1763,9 @@ void PantherRos::pubState(const mt::state& data, const ros::Publisher pub)
 
 void PantherRos::terminalGoalCB(const geometry_msgs::PoseStamped& msg)
 {
+
+  std::cout << "terminalGoalCB" << std::endl;
+
   mt::state G_term;
   double z;
   if (fabs(msg.pose.position.z) < 1e-5)  // This happens when you click in RVIZ (msg.z is 0.0)

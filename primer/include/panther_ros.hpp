@@ -13,6 +13,9 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <ros/ros.h>
+#include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
@@ -23,13 +26,16 @@
 #include <panther_msgs/WhoPlans.h>
 #include <panther_msgs/DynTraj.h>
 
+#include <mutex>
+#include <map>
+#include <string>
+
 #include "utils.hpp"
 #include "panther.hpp"
 #include "panther_types.hpp"
 
 #include "timer.hpp"
 
-#include <mutex>
 
 // #define WHOLE 1  // Whole trajectory (part of which is planned on unkonwn space)
 // #define SAFE 2   // Safe path
@@ -75,23 +81,40 @@ private:
   // void clearMarkerSetOfArrows();
   void clearMarkerActualTraj();
   void clearMarkerColoredTraj();
-
+  void clearObstacleEdges();
+  void clearObstacleUncertaintyEdges();
   void pubActualTraj();
   visualization_msgs::MarkerArray clearArrows();
   // geometry_msgs::Vector3 vectorNull();
-
   void clearMarkerArray(visualization_msgs::MarkerArray& tmp, ros::Publisher& publisher);
-
   void publishPoly(const vec_E<Polyhedron<3>>& poly);
   // visualization_msgs::MarkerArray Matrix2ColoredMarkerArray(Eigen::MatrixXd& X, int type);
-
   void publishText();
-
   void publishFOV();
-
   void pubObstacles(mt::Edges edges_obstacles);
+  void pubObstaclesWithUncertainty(mt::Edges edges_obstacles_uncertainty);
 
+  void pubUncertainty(const std::vector<Eigen::Vector3d>& obstacle_uncertainty_list,
+                      const std::vector<Eigen::Matrix<double, 9, 1>>& obstacle_sigma_list,
+                      const std::vector<double>& obstacle_uncertainty_times,
+                      const std::vector<Eigen::Vector3d>& moving_direction_uncertainty_list,
+                      const std::vector<Eigen::Matrix<double, 9, 1>>& moving_direction_sigma_list,
+                      const std::vector<double>& moving_direction_uncertainty_times);
+
+  void pubAlpha(double& alpha);
+  std_msgs::Float64MultiArray vecEigen3dToFloat64MultiArray(const std::vector<Eigen::Vector3d>& vec_eigen);
+  std_msgs::Float64MultiArray vecEigen9dToFloat64MultiArray(const std::vector<Eigen::Matrix<double, 9, 1>>& vec_eigen);
+  std_msgs::Float64MultiArray vecDoubleToFloat64MultiArray(const std::vector<double>& vec_double);
+
+  void frameAlignCB(const motlee_msgs::SE3Transform& msg);
+  void getFrameAlignmentT(Eigen::Matrix4d& T, const double qw, const double qx, const double qy, const double qz, const double px, const double py, const double pz);
+  void applyFrameAlignment(Eigen::Matrix4d& T, const std::string& frame_src);
+  void getPosFromT(std::vector<double>& pos, const Eigen::Matrix4d& T);
   void constructFOVMarker();
+
+  // dictory of frame alignment transform matrix
+  std::map<std::string, Eigen::Matrix4d> dict_frame_align_;
+  std::mutex mtx_frame_align_;
 
   mt::state state_;
 
@@ -126,6 +149,15 @@ private:
   ros::Publisher pub_best_solutions_student_;
   ros::Publisher pub_best_solution_student_;
 
+  ros::Publisher pub_obstacle_uncertainty_;
+  ros::Publisher pub_obstacle_uncertainty_values_;
+  ros::Publisher pub_obstacle_sigma_values_;
+  ros::Publisher pub_obstacle_uncertainty_times_;
+  ros::Publisher pub_moving_direction_uncertainty_values_;
+  ros::Publisher pub_moving_direction_sigma_values_;
+  ros::Publisher pub_moving_direction_uncertainty_times_;
+  ros::Publisher pub_alpha_;
+
   ros::Publisher pub_guesses_;
   ros::Publisher pub_splines_fitted_;
 
@@ -144,10 +176,12 @@ private:
   ros::Publisher pub_obstacles_;
   ros::Publisher pub_log_;
   ros::Publisher pub_is_ready_;
+  ros::Publisher pub_pause_sim_;
 
   ros::Subscriber sub_term_goal_;
   ros::Subscriber sub_whoplans_;
   ros::Subscriber sub_state_;
+  ros::Subscriber sub_frame_align_;
   ros::Subscriber sub_traj_;                    // subscriber for obs perfect traj prediction
   std::vector<ros::Subscriber> sub_traj_list_;  // subscribers for each agent
 
