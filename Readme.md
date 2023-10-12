@@ -8,9 +8,13 @@
 
 
 TODO: add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
+
 TODO: clean up the branches
+
 TODO: rename all the files (primer to puma)
+
 TODO: list and clean up main files (main.m, fastsam.py, ...)
+
 TODO: clean up the submodules (include clipper, motlee, motlee_ros?)
 
 ## PUMA Setup 
