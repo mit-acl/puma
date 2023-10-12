@@ -1,12 +1,10 @@
 # PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment #
 
-#### **Submitted to 2023 IEEE International Conference on Robotics and Automation (ICRA)**
+#### **Submitted to 2024 IEEE International Conference on Robotics and Automation (ICRA)**
 
-| ------------------------- | ------------------------- |
-<a target="_blank" href=""><img src="./primer/imgs/pads-const-xy-circle-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, circle, constant drifts)"></a> | <a target="_blank" href=""><img src="./primer/imgs/pads-linear-venn-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, partically overlapping circle, linear drfits)"></a> | 
+<a target="_blank" href=""><img src="./primer/imgs/pads-const-xy-circle-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, circle, constant drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/pads-linear-venn-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, partically overlapping circle, linear drfits)"></a>  
 
-| ------------------------- | ------------------------- |
-|<a target="_blank" href=""><img src="./primer/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a> | <a target="_blank" href=""><img src="./primer/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>|  
+<a target="_blank" href=""><img src="./primer/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
 
 ## Setup
