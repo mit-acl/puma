@@ -1594,8 +1594,8 @@ visualization_msgs::MarkerArray PantherRos::pubVectorOfsolOrGuess(const std::vec
       // double alpha = sol_or_guess.prob;
       // saturate(sol_or_guess.prob, 0.08, 1.0);  // min_value so that it can be seen at least a little bit
 
-      // double max_value = par_.v_max.maxCoeff();
-      double max_value = 3.0;
+      double max_value = par_.v_max.maxCoeff();
+      // double max_value = 3.0;
 
       // std::cout << "sol_or_guess.isInCollision()= " << sol_or_guess.isInCollision() << std::endl;
       // std::cout << "min_cost= " << min_cost << std::endl;
@@ -1650,8 +1650,8 @@ void PantherRos::pubTraj(const std::vector<mt::state>& data)
 
   double scale = 0.15;
 
-  // traj_safe_colored_ = trajectory2ColoredMarkerArray(data, par_.v_max.maxCoeff(), increm, name_drone_, scale, "vel", id_, par_.n_agents);
-  traj_safe_colored_ = trajectory2ColoredMarkerArray(data, 3.0, increm, name_drone_, scale, "vel", id_, par_.n_agents);
+  traj_safe_colored_ = trajectory2ColoredMarkerArray(data, par_.v_max.maxCoeff(), increm, name_drone_, scale, "vel", id_, par_.n_agents);
+  // traj_safe_colored_ = trajectory2ColoredMarkerArray(data, 3.0, increm, name_drone_, scale, "vel", id_, par_.n_agents);
   pub_traj_safe_colored_.publish(traj_safe_colored_);
 }
 
@@ -1673,8 +1673,8 @@ void PantherRos::pubActualTraj()
 
   // if (par_.color_type == "vel")
   // {
-  // m.color = getColorJet(current_state.vel.norm(), 0, par_.v_max.maxCoeff());  // note that par_.v_max is per axis!
-  m.color = getColorJet(current_state.vel.norm(), 0, 3.0);  // note that par_.v_max is per axis!
+  m.color = getColorJet(current_state.vel.norm(), 0, par_.v_max.maxCoeff());  // note that par_.v_max is per axis!
+  // m.color = getColorJet(current_state.vel.norm(), 0, 3.0);  // note that par_.v_max is per axis!
   // }
   // else
   // {

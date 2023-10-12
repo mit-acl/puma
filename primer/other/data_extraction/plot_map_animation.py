@@ -9,6 +9,7 @@ import rosbag
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib import font_manager
 
 def get_data_sync_maps_and_data_sync_world(veh_name):
 
@@ -180,6 +181,12 @@ for folder in folders:
 
 
             # plot the data
+            font = font_manager.FontProperties()
+            font.set_family('serif')
+            plt.rcParams.update({"text.usetex": True})
+            plt.rcParams["font.family"] = "Times New Roman"
+            font.set_size(10)
+
             fig, ax = plt.subplots()
 
             # plot (state)
@@ -247,10 +254,9 @@ for folder in folders:
                 else:
                     return world0, maps0, line0
 
-            # high res
-            animation_text = 'high_res_map_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
+            animation_text = 'map_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
             ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world[veh_names[0]]), interval=100/len(data_sync_world[veh_names[0]]), blit=True)
-            FFwriter = animation.FFMpegWriter(fps=len(data_sync_world[veh_names[0]])/100, extra_args=['-vcodec', 'libx264'], bitrate=10000)
+            FFwriter = animation.FFMpegWriter(fps=len(data_sync_world[veh_names[0]])/100, extra_args=['-vcodec', 'libx264'], bitrate=50000)
             ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
 
             # low res

@@ -23,6 +23,8 @@ from adjustText import adjust_text
 from matplotlib.collections import LineCollection
 import matplotlib.ticker as ticker
 import matplotlib.animation as animation
+import matplotlib
+from plot_hw_frame_alignment import get_transformation_euler_and_offset, filter_estimate
 
 def smooth_data(x, y):
     X_Y_Spline = make_interp_spline(x, y)
@@ -174,21 +176,19 @@ def wrap_angle(angles):
 def get_correct_t(t_plot):
     # make sure the t_rd_plot, t_estimate, t_plot's last element is 100 [s]
     t_plot = np.array(t_plot)
-    if t_plot[-1] > 100:
-        t_plot = t_plot - t_plot[-1] + 100
+    if t_plot[-1] > 60:
+        t_plot = t_plot - t_plot[-1] + 60
     return t_plot
 
-def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
-                         offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text):
+def plot_estimate_and_gt(font, t_estimate, euler_estimate, euler_actual_drift_yaw, offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text):
     
-    # make sure the t_rd_plot, t_estimate, t_plot's last element is 100 [s]
-    t_rd_plot = get_correct_t(t_rd_plot)
+    # make sure t_estimate, t_plot's last element is 100 [s]
     t_estimate = get_correct_t(t_estimate)
-    t_plot = get_correct_t(t_plot)
 
     # the size is too big? sparse the data
-    t_estimate = t_estimate[::10]
-    euler_estimate = euler_estimate[::10]
+    t_estimate = np.array(t_estimate)
+    euler_estimate = np.array(euler_estimate)
+    offsets_estimate = np.array(offsets_estimate)
 
     ## plot animation
     print("plotting animation...")
@@ -196,27 +196,52 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     # plot the data
     fig, axes = plt.subplots(3, 1, figsize=(10, 10))
 
+    matplotlib.rcParams.update({'font.size': 22})
+
     # plot (state)
+    # set super title for all axes
+    fig.suptitle('Estimate vs. Ground Truth', fontsize=30)
+    
+    # Euler Estimate
     line0, = axes[0].plot(t_estimate[0], euler_estimate[0,2], label='Euler Estimate', linewidth=3)
-    axes[0].plot(t_plot, euler_actual_drift_yaw, label='Actual Yaw Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[0].set(xlim=[0, 100], ylim=[-10, 10], xlabel='Time [s]', ylabel='Euler Estimte [deg]')
-    axes[0].legend()
+    axes[0].plot(t_estimate, euler_actual_drift_yaw, label='Actual Yaw Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
+    axes[0].set(xlim=[0, 60], ylim=[-10, 10], ylabel='Euler Estimte [deg]')
+    axes[0].set_ylabel('Euler Estimate [deg]', fontproperties=font)
+    axes[0].legend(fontsize=20)
     axes[0].grid(True)
+    axes[0].set_yticks(np.arange(-10, 10+1, 5))
+    axes[0].set_yticklabels(np.arange(-10, 10+1, 5), fontsize=20)
+    axes[0].set_xticks(np.arange(0, 60+1, 10))
+    axes[0].set_xticklabels(np.arange(0, 60+1, 10), fontsize=20)
+
+    # X Offset
     line1, = axes[1].plot(t_estimate[0], offsets_estimate[0,0], label='X Estimate', linewidth=3)
-    axes[1].plot(t_plot, offsets_actual_drift_x, label='Actual X Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[1].set(xlim=[0, 100], ylim=[-2, 2], xlabel='Time [s]', ylabel='X Estimate [m]')
-    axes[1].legend()
+    axes[1].plot(t_estimate, offsets_actual_drift_x, label='Actual X Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
+    axes[1].set(xlim=[0, 60], ylim=[-1, 1], ylabel='X Estimate [m]')
+    axes[1].set_ylabel('X Estimate [m]', fontproperties=font)
+    axes[1].legend(fontsize=20)
     axes[1].grid(True)
+    axes[1].set_yticks(np.arange(-1, 1+0.1, 0.5))
+    axes[1].set_yticklabels(np.arange(-1, 1+0.1, 0.5), fontsize=20)
+    axes[1].set_xticks(np.arange(0, 60+1, 10))
+    axes[1].set_xticklabels(np.arange(0, 60+1, 10), fontsize=20)
+
+    # Y Offset
     line2, = axes[2].plot(t_estimate[0], offsets_estimate[0,1], label='Y Estimate', linewidth=3)
-    axes[2].plot(t_plot, offsets_actual_drift_y, label='Actual Y Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[2].set(xlim=[0, 100], ylim=[-2, 2], xlabel='Time [s]', ylabel='Y Estimate [m]')
-    axes[2].legend()
+    axes[2].plot(t_estimate, offsets_actual_drift_y, label='Actual Y Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
+    axes[2].set(xlim=[0, 60], ylim=[-1, 1], xlabel='Time [s]', ylabel='Y Estimate [m]')
+    axes[2].set_xlabel('Time [s]', fontproperties=font)
+    axes[2].set_ylabel('Y Estimate [m]', fontproperties=font)
+    axes[2].legend(fontsize=20)
     axes[2].grid(True)
+    axes[2].set_yticks(np.arange(-1, 1+0.1, 0.5))
+    axes[2].set_yticklabels(np.arange(-1, 1+0.1, 0.5), fontsize=20)
+    axes[2].set_xticks(np.arange(0, 60+1, 10))
+    axes[2].set_xticklabels(np.arange(0, 60+1, 10), fontsize=20)
+    # plot the data
     # ax.set_aspect('equal', 'box')
-    t_ani = []
-    euler_ani = []
-    x_offset_ani = []
-    y_offset_ani = []
+    t_ani, euler_ani, x_offset_ani, y_offset_ani = [], [], [], []
+
     def update(frame):
         # euler
         t_ani.append(t_estimate[frame])
@@ -229,17 +254,10 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
         y_offset_ani.append(offsets_estimate[frame,1])
         line2.set_data(t_ani, y_offset_ani)
         return line0, line1, line2
-
-    # high res
-    animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '_2d_high_res.mp4'
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t_estimate), interval=100/len(t_estimate), blit=True)
-    FFwriter = animation.FFMpegWriter(fps=len(t_estimate)/100, extra_args=['-vcodec', 'libx264'], bitrate=10000)
-    ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
-
-    # low res
-    animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '_2d_low_res.mp4'
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t_estimate), interval=100/len(t_estimate), blit=True)
-    FFwriter = animation.FFMpegWriter(fps=len(t_estimate)/100, extra_args=['-vcodec', 'libx264'], bitrate=3000)
+    
+    animation_text = '2d_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
+    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t_estimate), interval=60/len(t_estimate), blit=True)
+    FFwriter = animation.FFMpegWriter(fps=len(t_estimate)/60, extra_args=['-vcodec', 'libx264'], bitrate=10000)
     ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
 
 def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_offsets_estimate, t_estimate, font, folder, subfolder, bag_text):
@@ -436,186 +454,95 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/frame/hw")
-    parser.add_argument("-p", "--plot_type", help="Plot type.", default="both")
+    parser.add_argument("-b", "--bag_name", help="Input directory.", default="/media/kota/T7/frame/hw/day5/test11/NX08_test_2023-09-14-00-47-15.bag")
+    parser.add_argument("-p", "--plot_type", help="Plot type. (state_and_cw, both, tracking, 3d)", default="both")
     args = parser.parse_args()
 
     VEH_NAMES = ["NX08", "NX04"]
     PLOT_TYPE = args.plot_type
 
-    # get folders from input directory
-    folders = []
-    for file in os.listdir(args.sim_dir):
-        if os.path.isdir(os.path.join(args.sim_dir, file)):
-            folders.append(os.path.join(args.sim_dir, file))
+    bag_text = args.bag_name
+    subfolder = os.path.dirname(bag_text)
+    folder = os.path.dirname(subfolder)
+    print(f"folder: {folder}")
+    print(f"subfolder: {subfolder}")
 
-    # sort folders and if not a directory then remove it from the list
-    folders.sort()
-    folders = [folder for folder in folders if os.path.isdir(folder)]
+    # open the bag
+    bag = rosbag.Bag(bag_text, "r")
 
-    for folder in folders:
+    # get permutations of veh_names
+    # veh_name_permutations = permutations(VEH_NAMES)
 
-        print("Processing folder: {}".format(folder))
+    # get combinations of veh_names
+    # veh_name_combinations = combinations(VEH_NAMES,2)
 
-        for subfolder in os.listdir(folder):
+    # get transformation_matrix_frame_align and t_frame_align
+    transformation_matrix_frame_align = []
+    t_frame_align = []
+    # for veh_pair in veh_name_combinations:
+    transformation_matrix_frame_align, t_frame_align, t_clipper_start = get_transformation(bag, VEH_NAMES)
 
-            # if subfolder is not a directory, then skip
-            if not os.path.isdir(os.path.join(folder, subfolder)):
-                continue
+    # get euler_estimate and offsets_estimate that is synced with t_frame_align
+    euler_estimate = []
+    offsets_estimate = []
+    euler_estimate, offsets_estimate, t_estimate = get_transformation_euler_and_offset(transformation_matrix_frame_align, t_frame_align, t_clipper_start)
+    
+    # keep data only between trajectory start and end time
+    traj_start_time = 1694666885.0
+    traj_end_time = traj_start_time + 60.0
+    new_t_estimate = []
+    new_euler_estimate = []
+    new_offsets_estimate = []
+    for idx, t in enumerate(t_estimate):
+        if t >= traj_start_time and t <= traj_end_time:
+            new_t_estimate.append(t)
+            new_euler_estimate.append(euler_estimate[idx])
+            new_offsets_estimate.append(offsets_estimate[idx])
+    t_estimate = np.array(new_t_estimate)
+    euler_estimate = np.array(new_euler_estimate)
+    offsets_estimate = np.array(new_offsets_estimate)
 
-            print("Processing subfolder: {}".format(subfolder))
+    # data before clipper should be removed
+    new_t_estimate = []
+    new_euler_estimate = []
+    new_offsets_estimate = []
+    for idx, t in enumerate(t_estimate):
+        if t >= t_clipper_start:
+            new_t_estimate.append(t)
+            new_euler_estimate.append(euler_estimate[idx])
+            new_offsets_estimate.append(offsets_estimate[idx])
+    t_estimate = np.array(new_t_estimate)
+    euler_estimate = np.array(new_euler_estimate)
+    offsets_estimate = np.array(new_offsets_estimate)
 
-            # get bags from input directory
-            bags = []
-            for file in os.listdir(os.path.join(folder, subfolder)):
-                if file.endswith(".bag"):
-                    bags.append(os.path.join(folder, subfolder, file))
+    # wrap euler_estimate
+    euler_estimate[:,0] = wrap_angle(euler_estimate[:,0])
+    euler_estimate[:,1] = wrap_angle(euler_estimate[:,1])
+    euler_estimate[:,2] = wrap_angle(euler_estimate[:,2])
 
-            # sort bags by time
-            bags.sort()
+    # close the bag
+    bag.close()
 
-            # for loop
-            for bag_text in bags:
+    # get actual euler and offsets (our experiment used mocap so there's not drift)
+    euler_actual_drift_yaw = np.zeros(len(t_estimate))
+    offsets_actual_drift_x = np.zeros(len(t_estimate))
+    offsets_actual_drift_y = np.zeros(len(t_estimate))
 
-                # open the bag
-                bag = rosbag.Bag(bag_text, "r")
+    # filter out the euler and offsets that changed too much from the previous one
+    euler_estimate_filtered = []
+    offsets_estimate_filtered = []
+    euler_estimate_filtered, offsets_estimate_filtered= filter_estimate(euler_estimate, offsets_estimate)
 
-                # get permutations of veh_names
-                # veh_name_permutations = permutations(VEH_NAMES)
+    # font
+    font = font_manager.FontProperties()
+    font.set_family('serif')
+    plt.rcParams.update({"text.usetex": True})
+    plt.rcParams["font.family"] = "Times New Roman"
+    font.set_size(20)
 
-                # get combinations of veh_names
-                # veh_name_combinations = combinations(VEH_NAMES,2)
-
-                # get transformation_matrix_frame_align and t_frame_align
-                transformation_matrix_frame_align = []
-                t_frame_align = []
-                # for veh_pair in veh_name_combinations:
-                transformation_matrix_frame_align, t_frame_align, t_clipper_start = get_transformation(bag, ["NX08", "NX04"])
-
-                # get euler_estimate and offsets_estimate that is synced with t_frame_align
-                euler_estimate = []
-                offsets_estimate = []
-                euler_estimate, offsets_estimate, t_estimate = get_estimate_euler_and_offset(bag, ["NX08", "NX04"], transformation_matrix_frame_align, t_frame_align, t_clipper_start)
-                
-                # wrap euler_estimate
-                euler_estimate[:,0] = wrap_angle(euler_estimate[:,0])
-                euler_estimate[:,1] = wrap_angle(euler_estimate[:,1])
-                euler_estimate[:,2] = wrap_angle(euler_estimate[:,2])
-
-                # get drift
-                drift, t_plot = get_drift(bag, VEH_NAMES[0])
-                # get euler_actual_drift and offsets_actual_drift
-                euler_actual_drift_roll = []
-                euler_actual_drift_pitch = []
-                euler_actual_drift_yaw = []
-                offsets_actual_drift_x = []
-                offsets_actual_drift_y = []
-                for i in range(len(drift)):
-                    euler_actual_drift_roll.append(drift[i].drift_euler[0])
-                    euler_actual_drift_pitch.append(drift[i].drift_euler[1])
-                    euler_actual_drift_yaw.append(drift[i].drift_euler[2])
-                    offsets_actual_drift_x.append(drift[i].drift_pos[0])
-                    offsets_actual_drift_y.append(drift[i].drift_pos[1])
-
-                # wrap euler_actual_drift
-                euler_actual_drift_roll = wrap_angle(euler_actual_drift_roll)
-                euler_actual_drift_pitch = wrap_angle(euler_actual_drift_pitch)
-                euler_actual_drift_yaw = wrap_angle(euler_actual_drift_yaw)
-
-                # get state (or world)
-                tpn_state1 = f'/{VEH_NAMES[0]}/state'
-                tpn_state2 = f'/{VEH_NAMES[1]}/state'
-                state1 = []
-                state1_quat = []
-                t_state1 = []
-                state2 = []
-                t_state2 = []
-                for topic, msg, t in bag.read_messages(topics=[tpn_state1, tpn_state2]):
-                    if topic == tpn_state1:
-                        state1.append([msg.pos.x, msg.pos.y, msg.pos.z, msg.quat.x, msg.quat.y, msg.quat.z, msg.quat.w])
-                        state1_quat.append([msg.quat.x, msg.quat.y, msg.quat.z, msg.quat.w])
-                        t_state1.append(msg.header.stamp.to_sec())
-                    if topic == tpn_state2:
-                        state2.append([msg.pos.x, msg.pos.y, msg.pos.z])
-                        t_state2.append(msg.header.stamp.to_sec())
-                
-                # # get corrupted world (debug)
-                tpn_cw1 = f'/{VEH_NAMES[0]}/corrupted_world'
-                tpn_cw2 = f'/{VEH_NAMES[1]}/corrupted_world'
-                cw1 = []
-                t_cw1 = []
-                cw2 = []
-                t_cw2 = []
-                for topic, msg, t in bag.read_messages(topics=[tpn_cw1, tpn_cw2]):
-                    if topic == tpn_cw1:
-                        cw1.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-                        t_cw1.append(msg.header.stamp.to_sec())
-                    if topic == tpn_cw2:
-                        cw2.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-                        t_cw2.append(msg.header.stamp.to_sec())
-                        
-                # close the bag
-                bag.close()
-                
-                # font
-                font = font_manager.FontProperties()
-                font.set_family('serif')
-                plt.rcParams.update({"text.usetex": True})
-                plt.rcParams["font.family"] = "Times New Roman"
-                font.set_size(80)
-
-                ### plot the data
-                print("plot_type: ", PLOT_TYPE)
-                if PLOT_TYPE == "state_and_cw":
-                    ## (0) plot state and corrupted world
-                    plot_state_and_cw(state1, cw1, state1_quat)
-                elif PLOT_TYPE == "both":
-                    ## get relative distance
-                    # first get synced state1 and state2
-                    if len(state1) > len(state2):
-                        state1_synced = sync_data(t_state2, state1, t_state1)
-                        state2_synced = state2.copy()
-                        t_rd_plot = t_state2.copy()
-                    else:
-                        state2_synced = sync_data(t_state1, state2, t_state2)
-                        state1_synced = state1.copy()
-                        t_rd_plot = t_state1.copy()
-                    relative_distance = []
-                    for i in range(len(t_rd_plot)):
-                        relative_distance.append(np.linalg.norm(np.array(state1_synced[i])[:3] - np.array(state2_synced[i])[:3]))
-
-                    ## (1) plot relative position, euler angles, and offsets
-                    plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
-                                offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
-                    
-                    ## (2) plot ground truth position and estimate position in 3D
-                    # the estimate traj's red color means the error is big and if it's small is should be green 
-                    plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_estimate, t_estimate, font, folder, subfolder, bag_text)
-
-                elif PLOT_TYPE == "tracking":
-
-                    ## get relative distance
-                    # first get synced state1 and state2
-                    if len(state1) > len(state2):
-                        state1_synced = sync_data(t_state2, state1, t_state1)
-                        state2_synced = state2.copy()
-                        t_rd_plot = t_state2.copy()
-                    else:
-                        state2_synced = sync_data(t_state1, state2, t_state2)
-                        state1_synced = state1.copy()
-                        t_rd_plot = t_state1.copy()
-                    relative_distance = []
-                    for i in range(len(t_rd_plot)):
-                        relative_distance.append(np.linalg.norm(np.array(state1_synced[i])[:3] - np.array(state2_synced[i])[:3]))
-                    
-                    ## (1) plot relative position, euler angles, and offsets
-                    plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
-                                offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
-                    
-                elif PLOT_TYPE == "3d":
-                    ## (2) plot ground truth position and estimate position in 3D
-                    # the estimate traj's red color means the error is big and if it's small is should be green 
-                    plot_3d_traj_with_error_color_map(state1,t_state1, cw1, t_cw1, offsets_estimate, euler_estimate, t_estimate, font, folder, subfolder, bag_text)
-
+    ### plot the data (test11 day5's NX04 data is corrupted so i can just lot "tracking" for ICRA24
+    ## (1) plot relative position, euler angles, and offsets
+    plot_estimate_and_gt(font, t_estimate, euler_estimate_filtered, euler_actual_drift_yaw, offsets_estimate_filtered, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
+        
 if __name__ == '__main__':
     main()

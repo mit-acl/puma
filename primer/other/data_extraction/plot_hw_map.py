@@ -151,7 +151,7 @@ def main():
                 print("Processing bag: ", bag_text)
                 bag = rosbag.Bag(bag_text, "r")
 
-                veh_names = ["NX01"]
+                veh_names = ["NX08"]
                 if bag_text.find(veh_names[0]) == -1:
                     continue
 
@@ -227,10 +227,9 @@ def main():
                 plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_3Dmap.png'), dpi=300)
                 plt.close()
 
-                fig = plt.figure(figsize=(6, 6))
+                fig, ax= plt.subplots()
                 # plot (map)
                 # add another plot
-                ax = fig.add_subplot(111)
                 ax.plot(world1_x, world1_y, label='vehicle 1 traj', color='b', linestyle='-', linewidth=3, alpha=0.8)
                 if len(veh_names) > 1:
                     ax.plot(world2_x, world2_y, label='vehicle 2 traj', color='red', linestyle='-', linewidth=3, alpha=0.8)
@@ -239,11 +238,9 @@ def main():
                     ax.scatter(data_sync_maps[veh_names[1]][-1][0], data_sync_maps[veh_names[1]][-1][1], label=f'vehicle 2 map', color='red')
                 ax.scatter([x[0] for x in object_gt], [x[1] for x in object_gt], c='g', marker='x', label=f'objects')
                 ax.set(xlim=[-6, 6], ylim=[-6, 6], xlabel='x [m]', ylabel='y [m]')
-                ax.legend()
+                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
                 ax.set_aspect('equal', 'box')
                 # ax.set_title('2D Map', fontproperties=font)
-                ax.yaxis.set_label_position("right")
-                ax.yaxis.tick_right()
                 ax.grid()
                 plt.tight_layout()
                 plt.savefig(os.path.join(folder, subfolder, os.path.splitext(os.path.basename(bag_text))[0] + '_2Dmap.pdf'), dpi=300)

@@ -9,6 +9,7 @@ import rosbag
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib import font_manager
 
 def get_data_sync_maps_and_data_sync_world(veh_name):
 
@@ -26,10 +27,10 @@ def get_data_sync_maps_and_data_sync_world(veh_name):
 
     for topic, msg, t in bag.read_messages(topics=[tpn_detections, tpn_maps, tpn_world]):
 
-        # first 1 min of data is not useful for run.bag (Aug 2023)
-        # if t.to_sec() < MIN_TIME or t.to_sec() > MAX_TIME:
-            # print("skipping data: ", t.to_sec())
-            # continue
+        # cut off the beginning and end (NX08_test_2023-09-14-00-47-15.bag)
+        if t.to_sec() < MIN_TIME or t.to_sec() > MAX_TIME:
+            print("skipping data: ", t.to_sec())
+            continue
 
         if topic == tpn_detections:
             data_detections.append(msg)
@@ -105,12 +106,12 @@ def get_data_sync_between_agents(data_sync_maps, data_sync_world, veh_names, t_m
 # data extraction from bag file
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-parser.add_argument("-d", "--sim_dir", help="Input directory.")
+parser.add_argument("-d", "--sim_dir", help="Input directory.", default='/media/kota/T7/frame/hw/')
 args = parser.parse_args()
 
 # cut off time for run.bag (Aug 2023)
-MIN_TIME = 1691525005
-MAX_TIME = 1691525018
+MIN_TIME = 1694666885
+MAX_TIME = 1694666946
 
 # hardware ground truth (Aug 2023)
 object_gt = [[-3.0372080186368464, 0.22397204552242447], \
@@ -202,11 +203,17 @@ for folder in folders:
 
 
             # plot the data
+            font = font_manager.FontProperties()
+            font.set_family('serif')
+            plt.rcParams.update({"text.usetex": True})
+            plt.rcParams["font.family"] = "Times New Roman"
+            font.set_size(10)
+
             fig, ax = plt.subplots()
 
             # plot (state)
             world0 = ax.scatter(data_sync_world[veh_names[0]][0].pos.x, data_sync_world[veh_names[0]][0].pos.y, label=f'vehicle1', color='orange', marker='s')
-            maps0 = ax.scatter(data_sync_maps[veh_names[0]][0][0], data_sync_maps[veh_names[0]][0][1], label=f'map1', color='orange', marker='s')
+            maps0 = ax.scatter(data_sync_maps[veh_names[0]][0][0], data_sync_maps[veh_names[0]][0][1], label=f'map1', color='orange', marker='o')
             line0, = ax.plot(data_sync_world[veh_names[0]][0].pos.x, data_sync_world[veh_names[0]][0].pos.y, label=f'path1', color='orange', alpha=0.3)
             if len(veh_names) > 1:
                 world1 = ax.scatter(data_sync_world[veh_names[1]][0].pos.x, data_sync_world[veh_names[1]][0].pos.y, label=f'vehicle2', color='red')
@@ -269,14 +276,7 @@ for folder in folders:
                 else:
                     return world0, maps0, line0
 
-            # high res
-            animation_text = 'high_res_map_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
+            animation_text = 'map_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
             ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world[veh_names[0]]), interval=100/len(data_sync_world[veh_names[0]]), blit=True)
             FFwriter = animation.FFMpegWriter(fps=len(data_sync_world[veh_names[0]])/100, extra_args=['-vcodec', 'libx264'], bitrate=10000)
-            ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
-
-            # low res
-            animation_text = 'low_res_map_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
-            ani = animation.FuncAnimation(fig=fig, func=update, frames=len(data_sync_world[veh_names[0]]), interval=100/len(data_sync_world[veh_names[0]]), blit=True)
-            FFwriter = animation.FFMpegWriter(fps=len(data_sync_world[veh_names[0]])/100, extra_args=['-vcodec', 'libx264'], bitrate=3000)
             ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)

@@ -23,6 +23,7 @@ from adjustText import adjust_text
 from matplotlib.collections import LineCollection
 import matplotlib.ticker as ticker
 import matplotlib.animation as animation
+import matplotlib 
 
 def smooth_data(x, y):
     X_Y_Spline = make_interp_spline(x, y)
@@ -172,23 +173,23 @@ def wrap_angle(angles):
     return new_angles
 
 def get_correct_t(t_plot):
-    # make sure the t_rd_plot, t_estimate, t_plot's last element is 100 [s]
+    # make sure t_estimate, t_plot's last element is 100 [s]
     t_plot = np.array(t_plot)
     if t_plot[-1] > 100:
         t_plot = t_plot - t_plot[-1] + 100
     return t_plot
 
-def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
+def plot_estimate_and_gt(t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
                          offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text):
     
-    # make sure the t_rd_plot, t_estimate, t_plot's last element is 100 [s]
-    t_rd_plot = get_correct_t(t_rd_plot)
+    # make sure t_estimate, t_plot's last element is 100 [s]
     t_estimate = get_correct_t(t_estimate)
     t_plot = get_correct_t(t_plot)
 
     # the size is too big? sparse the data
     t_estimate = t_estimate[::10]
     euler_estimate = euler_estimate[::10]
+    offsets_estimate = offsets_estimate[::10]
 
     ## plot animation
     print("plotting animation...")
@@ -196,27 +197,53 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
     # plot the data
     fig, axes = plt.subplots(3, 1, figsize=(10, 10))
 
+    matplotlib.rcParams.update({'font.size': 22})
+
     # plot (state)
+    # set super title for all axes
+    fig.suptitle('Estimate vs. Ground Truth', fontsize=30)
+    
+    # Euler Estimate
     line0, = axes[0].plot(t_estimate[0], euler_estimate[0,2], label='Euler Estimate', linewidth=3)
     axes[0].plot(t_plot, euler_actual_drift_yaw, label='Actual Yaw Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[0].set(xlim=[0, 100], ylim=[-10, 10], xlabel='Time [s]', ylabel='Euler Estimte [deg]')
-    axes[0].legend()
+    axes[0].set(xlim=[0, 100], ylim=[-5, 5], ylabel='Euler Estimte [deg]')
+    axes[0].set_ylabel('Euler Estimate [deg]', fontsize=20)
+    axes[0].legend(fontsize=20)
     axes[0].grid(True)
+    axes[0].set_xticks(np.arange(0,100+1,25))
+    axes[0].set_xticklabels(np.arange(0,100+1,25), fontsize=20)
+    axes[0].set_yticks(np.arange(-5, 10+1, 2.5))
+    axes[0].set_yticklabels(np.arange(-5, 10+1, 2.5), fontsize=20)
+
+    # X Offset
     line1, = axes[1].plot(t_estimate[0], offsets_estimate[0,0], label='X Estimate', linewidth=3)
     axes[1].plot(t_plot, offsets_actual_drift_x, label='Actual X Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[1].set(xlim=[0, 100], ylim=[-2, 2], xlabel='Time [s]', ylabel='X Estimate [m]')
-    axes[1].legend()
+    axes[1].set(xlim=[0, 100], ylim=[-1, 1], ylabel='X Estimate [m]')
+    axes[1].set_ylabel('X Estimate [m]', fontsize=20)
+    axes[1].legend(fontsize=20)
     axes[1].grid(True)
+    axes[1].set_xticks(np.arange(0,100+1,25))
+    axes[1].set_xticklabels(np.arange(0,100+1,25), fontsize=20)
+    axes[1].set_yticks(np.arange(-1, 1+0.1, 0.5))
+    axes[1].set_yticklabels(np.arange(-1, 1+0.1, 0.5), fontsize=20)
+
+    # Y Offset
     line2, = axes[2].plot(t_estimate[0], offsets_estimate[0,1], label='Y Estimate', linewidth=3)
     axes[2].plot(t_plot, offsets_actual_drift_y, label='Actual Y Drift', color='k', linewidth=2, linestyle='-.', alpha=0.5)
-    axes[2].set(xlim=[0, 100], ylim=[-2, 2], xlabel='Time [s]', ylabel='Y Estimate [m]')
-    axes[2].legend()
+    axes[2].set(xlim=[0, 100], ylim=[-1, 1], xlabel='Time [s]', ylabel='Y Estimate [m]')
+    axes[2].set_xlabel('Time [s]', fontsize=20)
+    axes[2].set_ylabel('Y Estimate [m]', fontsize=20)
+    axes[2].legend(fontsize=20)
     axes[2].grid(True)
+    axes[2].set_xticks(np.arange(0,100+1,25))
+    axes[2].set_xticklabels(np.arange(0,100+1,25), fontsize=20)
+    axes[2].set_yticks(np.arange(-1, 1+0.1, 0.5))
+    axes[2].set_yticklabels(np.arange(-1, 1+0.1, 0.5), fontsize=20)
+
+    # plot the data
     # ax.set_aspect('equal', 'box')
-    t_ani = []
-    euler_ani = []
-    x_offset_ani = []
-    y_offset_ani = []
+    t_ani, euler_ani, x_offset_ani, y_offset_ani = [], [], [], []
+
     def update(frame):
         # euler
         t_ani.append(t_estimate[frame])
@@ -230,16 +257,10 @@ def plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_e
         line2.set_data(t_ani, y_offset_ani)
         return line0, line1, line2
 
-    # high res
-    animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '_2d_high_res.mp4'
+    animation_text = '2d_animation_' + bag_text.split('/')[-1][4:-4] + '.mp4'
     ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t_estimate), interval=100/len(t_estimate), blit=True)
+    # ani = animation.FuncAnimation(fig=fig, func=update, frames=5, interval=100/len(t_estimate), blit=True)
     FFwriter = animation.FFMpegWriter(fps=len(t_estimate)/100, extra_args=['-vcodec', 'libx264'], bitrate=10000)
-    ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
-
-    # low res
-    animation_text = 'animation_' + bag_text.split('/')[-1][4:-4] + '_2d_low_res.mp4'
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t_estimate), interval=100/len(t_estimate), blit=True)
-    FFwriter = animation.FFMpegWriter(fps=len(t_estimate)/100, extra_args=['-vcodec', 'libx264'], bitrate=3000)
     ani.save(os.path.join(folder, subfolder, animation_text), writer=FFwriter)
 
 def plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_offsets_estimate, t_estimate, font, folder, subfolder, bag_text):
@@ -400,12 +421,10 @@ class Arrow3D(FancyArrowPatch):
     
 def _arrow3D(ax, x, y, z, dx, dy, dz, *args, **kwargs):
     '''Add an 3d arrow to an `Axes3D` instance.'''
-
     arrow = Arrow3D(x, y, z, dx, dy, dz, *args, **kwargs)
     ax.add_artist(arrow)
 
 def plot_state_and_cw(state1, cw1, state1_quat):
-
     # plot the state and corrupted world (which is state + drift)
     fig, axs = plt.subplots(1, 1, figsize=(10, 10))
     axs.plot(np.array(state1)[:, 0], np.array(state1)[:, 1], label='state1')
@@ -431,6 +450,21 @@ def plot_state_and_cw(state1, cw1, state1_quat):
     plt.tight_layout()
     # plt.show()
 
+def get_relative_distance(state1, state2, t_state1, t_state2):
+    # first get synced state1 and state2
+    if len(state1) > len(state2):
+        state1_synced = sync_data(t_state2, state1, t_state1)
+        state2_synced = state2.copy()
+        t_rd_plot = t_state2.copy()
+    else:
+        state2_synced = sync_data(t_state1, state2, t_state2)
+        state1_synced = state1.copy()
+        t_rd_plot = t_state1.copy()
+    relative_distance = []
+    for i in range(len(t_rd_plot)):
+        relative_distance.append(np.linalg.norm(np.array(state1_synced[i])[:3] - np.array(state2_synced[i])[:3]))
+    return relative_distance, t_rd_plot
+
 def main():
 
     # data extraction from bag file
@@ -453,16 +487,20 @@ def main():
     folders.sort()
     folders = [folder for folder in folders if os.path.isdir(folder)]
 
+    # go through each folder
     for folder in folders:
-
         print("Processing folder: {}".format(folder))
 
-        for subfolder in os.listdir(folder):
+        if not folder.__contains__("random-linear-puma"):
+            continue
 
+        # go through each subfolder
+        for subfolder in os.listdir(folder):
+            
             # if subfolder is not a directory, then skip
             if not os.path.isdir(os.path.join(folder, subfolder)):
                 continue
-
+            
             print("Processing subfolder: {}".format(subfolder))
 
             # get bags from input directory
@@ -480,22 +518,13 @@ def main():
                 # open the bag
                 bag = rosbag.Bag(bag_text, "r")
 
-                # get permutations of veh_names
-                # veh_name_permutations = permutations(VEH_NAMES)
-
-                # get combinations of veh_names
-                # veh_name_combinations = combinations(VEH_NAMES,2)
-
                 # get transformation_matrix_frame_align and t_frame_align
-                transformation_matrix_frame_align = []
-                t_frame_align = []
-                # for veh_pair in veh_name_combinations:
-                transformation_matrix_frame_align, t_frame_align, t_clipper_start = get_transformation(bag, ["SQ01s", "SQ02s"])
+                transformation_matrix_frame_align, t_frame_align = [], []
+                transformation_matrix_frame_align, t_frame_align, t_clipper_start = get_transformation(bag, VEH_NAMES)
 
                 # get euler_estimate and offsets_estimate that is synced with t_frame_align
-                euler_estimate = []
-                offsets_estimate = []
-                euler_estimate, offsets_estimate, t_estimate = get_estimate_euler_and_offset(bag, ["SQ01s", "SQ02s"], transformation_matrix_frame_align, t_frame_align, t_clipper_start)
+                euler_estimate, offsets_estimate = [], []
+                euler_estimate, offsets_estimate, t_estimate = get_estimate_euler_and_offset(bag, VEH_NAMES, transformation_matrix_frame_align, t_frame_align, t_clipper_start)
                 
                 # wrap euler_estimate
                 euler_estimate[:,0] = wrap_angle(euler_estimate[:,0])
@@ -504,32 +533,25 @@ def main():
 
                 # get drift
                 drift, t_plot = get_drift(bag, VEH_NAMES[0])
+
                 # get euler_actual_drift and offsets_actual_drift
-                euler_actual_drift_roll = []
-                euler_actual_drift_pitch = []
-                euler_actual_drift_yaw = []
-                offsets_actual_drift_x = []
-                offsets_actual_drift_y = []
+                euler_actual_drift_roll, euler_actual_drift_pitch, euler_actual_drift_yaw, offsets_actual_drift_x, offsets_actual_drift_y = [], [], [], [], []
                 for i in range(len(drift)):
-                    euler_actual_drift_roll.append(drift[i].drift_euler[0])
-                    euler_actual_drift_pitch.append(drift[i].drift_euler[1])
+                    # euler_actual_drift_roll.append(drift[i].drift_euler[0])
+                    # euler_actual_drift_pitch.append(drift[i].drift_euler[1])
                     euler_actual_drift_yaw.append(drift[i].drift_euler[2])
                     offsets_actual_drift_x.append(drift[i].drift_pos[0])
                     offsets_actual_drift_y.append(drift[i].drift_pos[1])
 
                 # wrap euler_actual_drift
-                euler_actual_drift_roll = wrap_angle(euler_actual_drift_roll)
-                euler_actual_drift_pitch = wrap_angle(euler_actual_drift_pitch)
+                # euler_actual_drift_roll = wrap_angle(euler_actual_drift_roll)
+                # euler_actual_drift_pitch = wrap_angle(euler_actual_drift_pitch)
                 euler_actual_drift_yaw = wrap_angle(euler_actual_drift_yaw)
 
                 # get state (or world)
                 tpn_state1 = f'/{VEH_NAMES[0]}/state'
                 tpn_state2 = f'/{VEH_NAMES[1]}/state'
-                state1 = []
-                state1_quat = []
-                t_state1 = []
-                state2 = []
-                t_state2 = []
+                state1, state1_quat, t_state1, state2, t_state2 = [], [], [], [], []
                 for topic, msg, t in bag.read_messages(topics=[tpn_state1, tpn_state2]):
                     if topic == tpn_state1:
                         state1.append([msg.pos.x, msg.pos.y, msg.pos.z, msg.quat.x, msg.quat.y, msg.quat.z, msg.quat.w])
@@ -539,23 +561,23 @@ def main():
                         state2.append([msg.pos.x, msg.pos.y, msg.pos.z])
                         t_state2.append(msg.header.stamp.to_sec())
                 
-                # # get corrupted world (debug)
-                tpn_cw1 = f'/{VEH_NAMES[0]}/corrupted_world'
-                tpn_cw2 = f'/{VEH_NAMES[1]}/corrupted_world'
-                cw1 = []
-                t_cw1 = []
-                cw2 = []
-                t_cw2 = []
-                for topic, msg, t in bag.read_messages(topics=[tpn_cw1, tpn_cw2]):
-                    if topic == tpn_cw1:
-                        cw1.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-                        t_cw1.append(msg.header.stamp.to_sec())
-                    if topic == tpn_cw2:
-                        cw2.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
-                        t_cw2.append(msg.header.stamp.to_sec())
+                # get corrupted world (debug)
+                if PLOT_TYPE != "tracking":
+                    tpn_cw1, tpn_cw2 = f'/{VEH_NAMES[0]}/corrupted_world', f'/{VEH_NAMES[1]}/corrupted_world'
+                    cw1, cw2, t_cw1, t_cw2 = [], [], [], []
+                    for topic, msg, t in bag.read_messages(topics=[tpn_cw1, tpn_cw2]):
+                        if topic == tpn_cw1:
+                            cw1.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
+                            t_cw1.append(msg.header.stamp.to_sec())
+                        if topic == tpn_cw2:
+                            cw2.append([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w])
+                            t_cw2.append(msg.header.stamp.to_sec())
                         
                 # close the bag
                 bag.close()
+
+                ### plot the data
+                print("plot_type: ", PLOT_TYPE)
                 
                 # font
                 font = font_manager.FontProperties()
@@ -564,58 +586,36 @@ def main():
                 plt.rcParams["font.family"] = "Times New Roman"
                 font.set_size(80)
 
-                ### plot the data
-                print("plot_type: ", PLOT_TYPE)
                 if PLOT_TYPE == "state_and_cw":
-                    ## (0) plot state and corrupted world
+                    ## plot state and corrupted world
                     plot_state_and_cw(state1, cw1, state1_quat)
-                elif PLOT_TYPE == "both":
-                    ## get relative distance
-                    # first get synced state1 and state2
-                    if len(state1) > len(state2):
-                        state1_synced = sync_data(t_state2, state1, t_state1)
-                        state2_synced = state2.copy()
-                        t_rd_plot = t_state2.copy()
-                    else:
-                        state2_synced = sync_data(t_state1, state2, t_state2)
-                        state1_synced = state1.copy()
-                        t_rd_plot = t_state1.copy()
-                    relative_distance = []
-                    for i in range(len(t_rd_plot)):
-                        relative_distance.append(np.linalg.norm(np.array(state1_synced[i])[:3] - np.array(state2_synced[i])[:3]))
-
-                    ## (1) plot relative position, euler angles, and offsets
-                    plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
-                                offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
-                    
-                    ## (2) plot ground truth position and estimate position in 3D
-                    # the estimate traj's red color means the error is big and if it's small is should be green 
-                    plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_estimate, t_estimate, font, folder, subfolder, bag_text)
 
                 elif PLOT_TYPE == "tracking":
 
                     ## get relative distance
-                    # first get synced state1 and state2
-                    if len(state1) > len(state2):
-                        state1_synced = sync_data(t_state2, state1, t_state1)
-                        state2_synced = state2.copy()
-                        t_rd_plot = t_state2.copy()
-                    else:
-                        state2_synced = sync_data(t_state1, state2, t_state2)
-                        state1_synced = state1.copy()
-                        t_rd_plot = t_state1.copy()
-                    relative_distance = []
-                    for i in range(len(t_rd_plot)):
-                        relative_distance.append(np.linalg.norm(np.array(state1_synced[i])[:3] - np.array(state2_synced[i])[:3]))
+                    # relative_distance, t_rd_plot = get_relative_distance(state1, state2, t_state1, t_state2)
                     
                     ## (1) plot relative position, euler angles, and offsets
-                    plot_estimate_and_gt(t_rd_plot, relative_distance, font, t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
+                    plot_estimate_and_gt(t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
                                 offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
                     
                 elif PLOT_TYPE == "3d":
                     ## (2) plot ground truth position and estimate position in 3D
                     # the estimate traj's red color means the error is big and if it's small is should be green 
                     plot_3d_traj_with_error_color_map(state1,t_state1, cw1, t_cw1, offsets_estimate, euler_estimate, t_estimate, font, folder, subfolder, bag_text)
+                
+                elif PLOT_TYPE == "both": # both tracking and 3d
+
+                    ## get relative distance
+                    # relative_distance, t_rd_plot = get_relative_distance(state1, state2, t_state1, t_state2)
+
+                    ## (1) plot relative position, euler angles, and offsets
+                    plot_estimate_and_gt(t_estimate, euler_estimate, t_plot, euler_actual_drift_yaw, \
+                                offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text)
+                    
+                    ## (2) plot ground truth position and estimate position in 3D
+                    # the estimate traj's red color means the error is big and if it's small is should be green 
+                    plot_3d_traj_with_error_color_map(state1, t_state1, cw1, t_cw1, offsets_estimate, euler_estimate, t_estimate, font, folder, subfolder, bag_text)
 
 if __name__ == '__main__':
     main()

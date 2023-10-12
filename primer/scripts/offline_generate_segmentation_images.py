@@ -32,6 +32,16 @@ MIN_BLOB_SIZE = 0.0
 
 def main():    
 
+    # parse command line arguments
+    parser = argparse.ArgumentParser(description='Offline generate segmentation images')
+    parser.add_argument("-d", "--input_dir", help="Input ROS bag directory.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
+    parser.add_argument("-v", "--veh_name", help="Name of vehicle.", default="SQ01s")
+    parser.add_argument("-s", "--sim_or_hw", help="Simulation or hardware.", default="sim")
+    args = parser.parse_args()
+
+    # if sim then use raw images, if hw then use undistorted images
+    source_img_folder = "raw_images" if args.sim_or_hw == "sim" else "undistorted_images"
+
     # convert img to cv2_img
     bridge = CvBridge()
 
@@ -39,39 +49,80 @@ def main():
     # undistorted_img = cv2.imread("/media/kota/T7/frame/pngs-csvs/ones_used_in_pipeline_diagram/test3-partial/pngs/undistorted_images/frame001500_undistorted.png")
     # undistorted_img = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2RGB)
 
-    # load undistorted image using np.asarray
-    undistorted_img = np.asarray(Image.open("/media/kota/T7/frame/pngs-csvs/ones_used_in_pipeline_diagram/test3-partial/pngs/undistorted_images/frame001500_undistorted.png"))
-    undistorted_img = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2BGR)
+    # list all the undistorted images
+    test_folders = os.listdir(args.input_dir)
+    test_folders.sort()
+    
+    for test_folder in test_folders:
 
-    # get grayscale image for visualization (segmented images)
-    # Let's also make a 1-channel grayscale image
-    image_gray = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2GRAY)
-    image_gray_rgb = np.stack((image_gray,)*3, axis=-1)
-    # image_gray_rgb = np.stack((undistorted_img,)*3, axis=-1)
+        print("test_folder: ", test_folder)
 
-    # cv2.imshow("image_gray_rgb", image_gray_rgb)
-    # cv2.waitKey(0)
+        if test_folder.__contains__("pads-const-xy-circle"):
+            continue
 
-    # run FastSAM on cv2_img
-    rospack = rospkg.RosPack()
-    path_to_fastsam = rospack.get_path('primer') + '/scripts/models/FastSAM-x.pt'
-    print("path_to_fastsam: ", path_to_fastsam)
-    fastSamModel = FastSAM(path_to_fastsam)
-    everything_results = fastSamModel(undistorted_img, device=DEVICE, retina_masks=True, imgsz=1024, conf=conf, iou=iou,)
-    prompt_process = FastSAMPrompt(undistorted_img, everything_results, device=DEVICE)
-    segmask = prompt_process.everything_prompt()
+        # if it's not directory, skip
+        if not os.path.isdir(os.path.join(args.input_dir, test_folder)):
+            continue
+    
+        case_subfolders = os.listdir(os.path.join(args.input_dir, test_folder))
+        case_subfolders.sort()
 
-    # get centroid of segmask (filtered)
-    get_blob_means(segmask, image_gray_rgb, filtered=True)
+        for case_subfolder in case_subfolders:
 
-    # get centroid of segmask (unfiltered)
-    get_blob_means(segmask, image_gray_rgb, filtered=False)
+            # if it's not directory, skip
+            if not os.path.isdir(os.path.join(args.input_dir, test_folder, case_subfolder)):
+                continue
 
-    # get centroid of segmask (unfiltered + without plotting blobs)
-    get_blob_means(segmask, image_gray_rgb, filtered=False, plot_blobs=False)
+            # create a directory to save the segmented images
+            if not os.path.exists(os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/segmented_filtered_images/{args.veh_name}/t265_fisheye1")):
+                os.makedirs(os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/segmented_filtered_images/{args.veh_name}/t265_fisheye1"))
+
+            # Note: in simulation we don't need to undistort images
+            undistorted_imgs = os.listdir(os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/{source_img_folder}/{args.veh_name}/t265_fisheye1"))
+            undistorted_imgs.sort()
+
+            for undistorted_img_text in undistorted_imgs:
+                
+                undistorted_img_text = os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/{source_img_folder}/{args.veh_name}/t265_fisheye1", undistorted_img_text)
+                
+                # if it's not image, skip
+                if not undistorted_img_text.endswith(".png"):
+                    continue
+
+                # load undistorted image using np.asarray
+                undistorted_img = np.asarray(Image.open(undistorted_img_text))
+                undistorted_img = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2BGR)
+
+                # get grayscale image for visualization (segmented images)
+                # Let's also make a 1-channel grayscale image
+                image_gray = cv2.cvtColor(undistorted_img, cv2.COLOR_RGB2GRAY)
+                image_gray_rgb = np.stack((image_gray,)*3, axis=-1)
+
+                # run FastSAM on cv2_img
+                rospack = rospkg.RosPack()
+                path_to_fastsam = rospack.get_path('primer') + '/scripts/models/FastSAM-x.pt'
+                print("path_to_fastsam: ", path_to_fastsam)
+                fastSamModel = FastSAM(path_to_fastsam)
+                # everything_results = fastSamModel(undistorted_img, device=DEVICE, retina_masks=True, imgsz=1024, conf=conf, iou=iou,)
+                everything_results = fastSamModel(undistorted_img, device=DEVICE, retina_masks=True, imgsz=254, conf=conf, iou=iou,)
+                prompt_process = FastSAMPrompt(undistorted_img, everything_results, device=DEVICE)
+                segmask = prompt_process.everything_prompt()
+
+
+                # get centroid of segmask (filtered)
+                # segmented_filtered_img = os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/segmented_filtered_images/{args.veh_name}/t265_fisheye1", undistorted_img_text.split("/")[-1].replace("_undistorted.png", "_segmented_filtered.png"))
+                segmented_filtered_img = os.path.join(args.input_dir, test_folder, case_subfolder, f"data/pngs/segmented_filtered_images/{args.veh_name}/t265_fisheye1", undistorted_img_text.split("/")[-1].replace(".png", "_segmented_filtered.png"))
+                print("segmented_filtered_img: ", segmented_filtered_img)
+                get_blob_means(segmask, image_gray_rgb, filtered=True, image_name=segmented_filtered_img)
+
+                # get centroid of segmask (unfiltered)
+                # get_blob_means(segmask, image_gray_rgb, filtered=False)
+
+                # get centroid of segmask (unfiltered + without plotting blobs)
+                # get_blob_means(segmask, image_gray_rgb, filtered=False, plot_blobs=False)
 
 # get the blob means and covs
-def get_blob_means(segmask, undistorted_img, filtered=True, plot_blobs=True):
+def get_blob_means(segmask, undistorted_img, filtered=True, plot_blobs=True, image_name=None):
     
     # initialize blob means
     blob_means = []
@@ -151,12 +202,14 @@ def get_blob_means(segmask, undistorted_img, filtered=True, plot_blobs=True):
         plt.imshow(original_img, alpha=0.5)
         ax.set_xlim(0, undistorted_img.shape[1])
         ax.set_ylim(undistorted_img.shape[0], 0)
-        if filtered and plot_blobs:
-            fig.savefig(f"/media/kota/T7/frame/pngs-csvs/ones_used_in_pipeline_diagram/test3-partial/pngs/segmented_images/filtered_segmented.png")
-        elif not filtered and plot_blobs:
-            fig.savefig(f"/media/kota/T7/frame/pngs-csvs/ones_used_in_pipeline_diagram/test3-partial/pngs/segmented_images/unfiltered_segmented.png")
-        elif not filtered and not plot_blobs:
-            fig.savefig(f"/media/kota/T7/frame/pngs-csvs/ones_used_in_pipeline_diagram/test3-partial/pngs/segmented_images/unfiltered_segmented_without_blobs.png")
+
+        if image_name is not None:
+            if filtered and plot_blobs:
+                fig.savefig(image_name.replace("_segmented_filtered.png", "_segmented_filtered_blobs.png"))
+            elif not filtered and plot_blobs:
+                fig.savefig(image_name.replace("_segmented_filtered.png", "_segmented_unfiltered_blobs.png"))
+            elif not filtered and not plot_blobs:
+                fig.savefig(image_name.replace("_segmented_filtered.png", "_segmented_unfiltered.png"))
         plt.close(fig)
 
 if __name__ == '__main__':

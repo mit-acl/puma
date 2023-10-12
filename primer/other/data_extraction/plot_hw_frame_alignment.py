@@ -127,8 +127,8 @@ def get_transformation_euler_and_offset(transformation_matrix_frame_align, t_fra
 
         r = R.from_matrix(np.array(transformation_matrix)[:3,:3])
 
-        print(np.array(transformation_matrix)[:3,:3])
-        print(r.as_euler('xyz', degrees=True))
+        # print(np.array(transformation_matrix)[:3,:3])
+        # print(r.as_euler('xyz', degrees=True))
 
         euler_frame_align.append(r.as_euler('xyz', degrees=True))
         offsets_frame_align.append(np.array(transformation_matrix)[:3,3])
@@ -202,9 +202,6 @@ def get_correct_t(t_plot):
 
 def plot_estimate_and_gt(font, t_estimate, euler_estimate, euler_actual_drift_yaw, offsets_estimate, offsets_actual_drift_x, offsets_actual_drift_y, folder, subfolder, bag_text, traj_type):
     
-    # correct t so that it starts at 0
-    t_estimate = np.array(t_estimate) - t_estimate[0]
-
     # make fig and axs
     fig = plt.figure(figsize=(50, 50))
 
@@ -233,6 +230,7 @@ def plot_estimate_and_gt(font, t_estimate, euler_estimate, euler_actual_drift_ya
     min_bound = -10
     max_bound = 10
     ax.set_ylim([min_bound, max_bound])
+    ax.set_xlim([0, 60])
     ax.grid()
     cbar = fig.colorbar(line, ax=ax, location='right')
     cbar.ax.tick_params(labelsize=80)
@@ -268,6 +266,7 @@ def plot_estimate_and_gt(font, t_estimate, euler_estimate, euler_actual_drift_ya
     min_bound = -2.0
     max_bound = 2.0
     ax.set_ylim([min_bound, max_bound])
+    ax.set_xlim([0, 60])
     ax.grid()
 
     ax = fig.add_axes([0.1, 0.05, 0.9, 0.25]) if traj_type == "circle" else fig.add_axes([0.1, 0.05, 0.9, 0.175])
@@ -297,6 +296,7 @@ def plot_estimate_and_gt(font, t_estimate, euler_estimate, euler_actual_drift_ya
     min_bound = -2.0
     max_bound = 2.0
     ax.set_ylim([min_bound, max_bound])
+    ax.set_xlim([0, 60])
     ax.grid()
 
     plt.tight_layout()
@@ -560,6 +560,37 @@ def main():
     offsets_estimate = []
     euler_estimate, offsets_estimate, t_estimate = get_transformation_euler_and_offset(transformation_matrix_frame_align, t_frame_align, t_clipper_start)
     
+    # keep data only between trajectory start and end time
+    traj_start_time = 1694666885.0
+    traj_end_time = traj_start_time + 60.0
+    new_t_estimate = []
+    new_euler_estimate = []
+    new_offsets_estimate = []
+    for idx, t in enumerate(t_estimate):
+        if t >= traj_start_time and t <= traj_end_time:
+            new_t_estimate.append(t)
+            new_euler_estimate.append(euler_estimate[idx])
+            new_offsets_estimate.append(offsets_estimate[idx])
+    t_estimate = np.array(new_t_estimate)
+    euler_estimate = np.array(new_euler_estimate)
+    offsets_estimate = np.array(new_offsets_estimate)
+
+    # data before clipper should be removed
+    new_t_estimate = []
+    new_euler_estimate = []
+    new_offsets_estimate = []
+    for idx, t in enumerate(t_estimate):
+        if t >= t_clipper_start:
+            new_t_estimate.append(t)
+            new_euler_estimate.append(euler_estimate[idx])
+            new_offsets_estimate.append(offsets_estimate[idx])
+    t_estimate = np.array(new_t_estimate)
+    euler_estimate = np.array(new_euler_estimate)
+    offsets_estimate = np.array(new_offsets_estimate)
+
+    # make sure the start time is 0
+    t_estimate = t_estimate - traj_start_time
+
     # wrap euler_estimate
     euler_estimate[:,0] = wrap_angle(euler_estimate[:,0])
     euler_estimate[:,1] = wrap_angle(euler_estimate[:,1])

@@ -35,6 +35,8 @@ def undistort_images_voxl(input_dir, output_dir, K, D):
 
 def undistort_images_rs(input_dir, output_dir, K, D, R, P):
 
+    print("Undistorting images...")
+
     # list images
     img_list = []
     for filename in os.listdir(input_dir):
@@ -98,7 +100,7 @@ def write_csvs(args, t_list_images, bag, pose_topic, test_num, camera="voxl"):
     # write the csvs
     for count, idx in enumerate(pose_index_list):
         msg = msg_list_pose[idx]
-        with open(os.path.join(args.output_dir, f'{test_num}/csvs/{camera}/frame%06i.csv' % count), 'a') as f:
+        with open(os.path.join(args.input_dir, f'{test_num}/csvs/{camera}/frame%06i.csv' % count), 'a') as f:
             f.write(str(msg.pose.position.x) + ',' + str(msg.pose.position.y) + ',' + str(msg.pose.position.z) + ',' + str(msg.pose.orientation.x) + ',' + str(msg.pose.orientation.y) + ',' + str(msg.pose.orientation.z) + ',' + str(msg.pose.orientation.w) + '\n')
 
 def main():
@@ -106,61 +108,69 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-i", "--input_rosbag_dir", help="Input ROS bag directory.")
-    parser.add_argument("-o", "--output_dir", help="Output directory.", default="/media/kota/T71/frame/pngs-csvs/")
-    parser.add_argument("-v", "--veh_name", help="Name of vehicle.", default="NX04")
+    parser.add_argument("-d", "--input_dir", help="Input ROS bag directory.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
+    parser.add_argument("-v", "--veh_name", help="Name of vehicle.", default="SQ01s")
+    parser.add_argument("-c", "--write_csv", help="Write csvs.", default=False)
+    parser.add_argument("-s", "--sim_or_hw", help="Sim or HW.", default="sim")
     args = parser.parse_args()
+
+    # define camera name
+    camera_name = "camera" if args.sim_or_hw == "sim" else "t265"
 
     # get the bags
     bag_files = []
-    for file in os.listdir(args.input_rosbag_dir):
+    for file in os.listdir(args.input_dir):
         if file.endswith(".bag"):
-            bag_files.append(os.path.join(args.input_rosbag_dir, file))
+            bag_files.append(os.path.join(args.input_dir, file))
 
     # loop through the bags
     for bag in bag_files:
 
-        test_num = bag.split('/')[-1].split('_')[0]
-        print("test_num: ", test_num)
+        print("bag: ", bag)
+
+        # test_num = bag.split('/')[-1].split('_')[0]
+        # print("test_num: ", test_num)
+
+        test_num = "data"
 
         # check if output folder exists and create it if not
-        if not os.path.exists(args.output_dir):
-            os.makedirs(args.output_dir)
+        if not os.path.exists(args.input_dir):
+            os.makedirs(args.input_dir)
 
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images/voxl')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images/voxl'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images/t265_fisheye1')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images/t265_fisheye1'))
-        if not os.path.exists(os.path.join(args.output_dir , f'{test_num}/pngs/raw_images/t265_fisheye2')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/raw_images/t265_fisheye2'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images'))
+        # if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images/voxl')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images/voxl'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images/{args.veh_name}/t265_fisheye1')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images/{args.veh_name}/t265_fisheye1'))
+        # if not os.path.exists(os.path.join(args.input_dir , f'{test_num}/pngs/raw_images/t265_fisheye2')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/raw_images/t265_fisheye2'))
         
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/csvs')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/csvs'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/csvs/voxl')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/csvs/voxl'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/csvs/t265_fisheye1')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/csvs/t265_fisheye1'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/csvs/t265_fisheye2')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/csvs/t265_fisheye2'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/csvs')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/csvs'))
+        # if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/csvs/voxl')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/csvs/voxl'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/csvs/{args.veh_name}/t265_fisheye1')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/csvs/{args.veh_name}/t265_fisheye1'))
+        # if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/csvs/t265_fisheye2')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/csvs/t265_fisheye2'))
 
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images/voxl')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images/voxl'))
-        if not os.path.exists(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images/t265_fisheye1')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images/t265_fisheye1'))
-        if not os.path.exists(os.path.join(args.output_dir , f'{test_num}/pngs/undistorted_images/t265_fisheye2')):
-            os.makedirs(os.path.join(args.output_dir, f'{test_num}/pngs/undistorted_images/t265_fisheye2'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images'))
+        # if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images/voxl')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images/voxl'))
+        if not os.path.exists(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images/{args.veh_name}/t265_fisheye1')):
+            os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images/{args.veh_name}/t265_fisheye1'))
+        # if not os.path.exists(os.path.join(args.input_dir , f'{test_num}/pngs/undistorted_images/t265_fisheye2')):
+        #     os.makedirs(os.path.join(args.input_dir, f'{test_num}/pngs/undistorted_images/t265_fisheye2'))
 
         bridge = CvBridge()
         
         # topic name
         # image_topic = f'/{args.veh_name}/qvio_overlay'
         voxl_image_topic = f'/{args.veh_name}/tracking'
-        t265_fisheye1_image_topic = f'/{args.veh_name}/t265/fisheye1/image_raw'
-        t265_fisheye2_image_topic = f'/{args.veh_name}/t265/fisheye2/image_raw'
+        t265_fisheye1_image_topic = f'/{args.veh_name}/{camera_name}/fisheye1/image_raw'
+        t265_fisheye2_image_topic = f'/{args.veh_name}/{camera_name}/fisheye2/image_raw'
         pose_topic = f'/{args.veh_name}/world'
 
         # save images
@@ -175,41 +185,51 @@ def main():
             # save images
             if topic == voxl_image_topic:
                 cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-                cv2.imwrite(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/voxl/frame%06i.png" % voxl_count), cv_img)
+                cv2.imwrite(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/{args.veh_name}/voxl/frame%06i.png" % voxl_count), cv_img)
                 voxl_t_list_images.append(t.to_sec())
                 voxl_count += 1
             elif topic == t265_fisheye1_image_topic:
                 cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-                cv2.imwrite(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/t265_fisheye1/frame%06i.png" % fisheye1_count), cv_img)
+                cv2.imwrite(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/{args.veh_name}/t265_fisheye1/frame%06i.png" % fisheye1_count), cv_img)
                 fisheye1_t_list_images.append(t.to_sec())
                 fisheye1_count += 1
             elif topic == t265_fisheye2_image_topic:
                 cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-                cv2.imwrite(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/t265_fisheye2/frame%06i.png" % fisheye2_count), cv_img)
+                cv2.imwrite(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/{args.veh_name}/t265_fisheye2/frame%06i.png" % fisheye2_count), cv_img)
                 fisheye2_t_list_images.append(t.to_sec())
                 fisheye2_count += 1
 
         # write csvs
-        write_csvs(args, voxl_t_list_images, test_bag, pose_topic, test_num, camera="voxl")
-        write_csvs(args, fisheye1_t_list_images, test_bag, pose_topic, test_num, camera="t265_fisheye1")
-        write_csvs(args, fisheye2_t_list_images, test_bag, pose_topic, test_num, camera="t265_fisheye2")
+        if args.write_csv:
+            write_csvs(args, voxl_t_list_images, test_bag, pose_topic, test_num, camera="voxl")
+            write_csvs(args, fisheye1_t_list_images, test_bag, pose_topic, test_num, camera="t265_fisheye1")
+            write_csvs(args, fisheye2_t_list_images, test_bag, pose_topic, test_num, camera="t265_fisheye2")
 
         # close the test_bag
         test_bag.close()
 
         # undistort images
         # get camera intrinsics
-        K_voxl = np.array([[273.90235382142345, 0.0, 315.12271705027996], [0., 274.07405600616045, 241.28160498854680], [0.0, 0.0, 1.0]])
-        D_voxl = np.array([[6.4603799803546918e-04, 2.0604787401502832e-03, 0., 0. ]])
-        K_fe1, D_fe1, R_fe1, P_fe1 = get_camera_intrinsic(bag, f"/{args.veh_name}/t265/fisheye1/camera_info")
-        K_fe2, D_fe2, R_fe2, P_fe2 = get_camera_intrinsic(bag, f"/{args.veh_name}/t265/fisheye2/camera_info")
+        # K_voxl = np.array([[273.90235382142345, 0.0, 315.12271705027996], [0., 274.07405600616045, 241.28160498854680], [0.0, 0.0, 1.0]])
+        # D_voxl = np.array([[6.4603799803546918e-04, 2.0604787401502832e-03, 0., 0. ]])
 
+        # i forgot to record camera info for my sims so commenting out and hardcoding now
+
+        if args.sim_or_hw == "hw":
+            K_fe1, D_fe1, R_fe1, P_fe1 = get_camera_intrinsic(bag, f"/{args.veh_name}/{camera_name}/fisheye1/camera_info")
+            K_fe2, D_fe2, R_fe2, P_fe2 = get_camera_intrinsic(bag, f"/{args.veh_name}/{camera_name}/fisheye2/camera_info")
+        else: # sim
+            K_fe1 = np.array([399.99853072065713, 0.0, 400.5, 0.0, 399.99853072065713, 424.5, 0.0, 0.0, 1.0]).reshape(3,3)
+            D_fe1 = np.array([0.0, 0.0, 0.0, 0.0])
+            R_fe1 = np.array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]).reshape(3,3)
+            P_fe1 = np.array([399.99853072065713, 0.0, 400.5, -27.999897150446003, 0.0, 399.99853072065713, 424.5, 0.0, 0.0, 0.0, 1.0, 0.0]).reshape(3,4)
+        
         # undistort images
-        undistort_images_voxl(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/voxl"), os.path.join(args.output_dir, f"{test_num}/pngs/undistorted_images/voxl"), K_voxl, D_voxl)
+        # undistort_images_voxl(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/voxl"), os.path.join(args.input_dir, f"{test_num}/pngs/undistorted_images/voxl"), K_voxl, D_voxl)
         if K_fe1 is not None:
-            undistort_images_rs(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/t265_fisheye1"), os.path.join(args.output_dir, f"{test_num}/pngs/undistorted_images/t265_fisheye1"), K_fe1, D_fe1, R_fe1, P_fe1)
-        if K_fe2 is not None:
-            undistort_images_rs(os.path.join(args.output_dir, f"{test_num}/pngs/raw_images/t265_fisheye2"), os.path.join(args.output_dir, f"{test_num}/pngs/undistorted_images/t265_fisheye2"), K_fe2, D_fe2, R_fe2, P_fe2)
+            undistort_images_rs(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/{args.veh_name}/t265_fisheye1"), os.path.join(args.input_dir, f"{test_num}/pngs/undistorted_images/{args.veh_name}/t265_fisheye1"), K_fe1, D_fe1, R_fe1, P_fe1)
+        # if K_fe2 is not None:
+        #     undistort_images_rs(os.path.join(args.input_dir, f"{test_num}/pngs/raw_images/t265_fisheye2"), os.path.join(args.input_dir, f"{test_num}/pngs/undistorted_images/t265_fisheye2"), K_fe2, D_fe2, R_fe2, P_fe2)
 
     return
 
