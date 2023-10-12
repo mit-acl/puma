@@ -7,19 +7,19 @@
 <a target="_blank" href=""><img src="./primer/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
 
-#### TODO: add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
-#### TODO: clean up the branches
-#### TODO: rename all the files (primer to puma)
-#### TODO: list and clean up main files (main.m, fastsam.py, ...)
-#### TODO: clean up the submodules (include clipper, motlee, motlee_ros?)
+TODO: add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
+TODO: clean up the branches
+TODO: rename all the files (primer to puma)
+TODO: list and clean up main files (main.m, fastsam.py, ...)
+TODO: clean up the submodules (include clipper, motlee, motlee_ros?)
 
 ## PUMA Setup 
 
-#### TODO: create a bash script that takes care of all the dependency installment for PUMA
+TODO: create a bash script that takes care of all the dependency installment for PUMA
 
 ## Image Segmentation-based Real-time Frame Alignment Setup
 
-#### TODO: create a `requirements.txt` for python configuration
+TODO: create a `requirements.txt` for python configuration
 
 
 PUMA has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/puma/issues) if you have any problems.
