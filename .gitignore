@@ -10,3 +10,4 @@
 .vscode/*
 build
 primer/matlab/casadi_generated_files copy/*
+primer/scripts/FastSAM
