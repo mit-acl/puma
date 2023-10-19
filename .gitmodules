@@ -37,4 +37,6 @@
 [submodule "submodules/clipper"]
         path = submodules/clipper
         url = https://github.com/mit-acl/clipper.git
-
+[submodule "submodules/FastSAM"]
+		path = submodules/FastSAM
+		url = https://github.com/CASIA-IVA-Lab/FastSAM.git

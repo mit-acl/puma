@@ -1,21 +1,13 @@
-# Create an installations direcotry
-mkdir -p ~/installations && cd $_
+#!/bin/bash
 
-# Create a venv direcotry
-mkdir -p venvs && cd $_
+##
+## Download and install the dependencies of FastSAM (Assume a virtual python environment is already created by install_puma_deps.bash)
+##
 
-# Create a virtual environment
-python3 -m venv fastsam_venv
-
-# Activate the virtual environment and write the activation command to bashrc
-source fastsam_venv/bin/activate
-printf '\nalias activate_fastsam_venv="source ~/installations/venvs/fastsam_venv/bin/activate"' >> ~/.bashrc
-
-# Upgrade pip and install wheel
+# Upgrade pip
 pip install --upgrade pip
-pip install wheel
 
-# Install empy, box, quaternion, termcolor, scikit-image, defusedxml, and PySide2
+# Install empy, box, quaternion, termcolor, scikit-image, defusedxml, PySide2, and wheel
 pip install empy
 pip install python-box
 pip install numpy-quaternion
@@ -23,12 +15,16 @@ pip install termcolor
 pip install -U scikit-image
 pip install defusedxml
 pip install PySide2
+pip install wheel
 
-# Move back into the installations directory
-cd ..
+##
+## Download and install motlee and clipper in the submodules directory
+##
+
+# Go to the submodules directory
+cd submodules
 
 # Clone the FastSAM repository and install it
-git clone https://github.com/CASIA-IVA-Lab/FastSAM.git
 cd FastSAM
 pip install -r requirements.txt
 pip install git+https://github.com/openai/CLIP.git
@@ -36,15 +32,23 @@ pip install -e .
 cd ..
 
 # Install motlee
-git clone https://gitlab.com/mit-acl/dmot/motlee.git
 cd motlee
 pip install -e .
 cd ..
 
 # Install clipper
-git clone https://github.com/mit-acl/clipper.git
 cd clipper
-mkdir build && cd $_
+cd build
 cmake ..
 make
-pip install bindings/python
+python3 -m pip install bindings/python
+cd ../../..
+
+# Create a symlink of FastSAM to the scripts directory
+# Note that "ln -s FastSAM ../../primer/primer/scripts/FastSAM/" creates a broken link (https://mokacoding.com/blog/symliks-in-git/)
+cd primer/scripts
+if [ -d "FastSAM" ]; then
+    echo "FastSAM does exist so remove it and recreate a symlink"
+    rm -rf FastSAM
+fi
+ln -s ../../../primer/submodules/FastSAM/ .
