@@ -15,16 +15,17 @@ TODO: rename all the files (primer to puma)
 
 TODO: list and clean up main files (main.m, fastsam.py, ...)
 
-TODO: clean up the submodules (include clipper, motlee, motlee_ros?)
-
 ## PUMA Setup 
 
-TODO: create a bash script that takes care of all the dependency installment for PUMA
+```
+./install_puma_deps.bash
+```
 
 ## Image Segmentation-based Real-time Frame Alignment Setup
 
-TODO: create a `requirements.txt` for python configuration
-
+```
+./install_fastsam_deps.bash
+```
 
 PUMA has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/puma/issues) if you have any problems.
 
