@@ -31,20 +31,23 @@ PUMA has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may 
 
 ### PUMA
 
+
+
+
 ### Image Image Segmentation-based Real-time Frame Alignment
 
 ```
 roscd primer && cd other/demos
 python3 frame_alignment_demo.py
 ```
-`frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in Rviz.
-If you want to record a bag, pass `True` to `--record_bag` and specify where to save a rosbag in `--output_dir`. 
-If you don't have CUDA on your computer, change `self.DEVICE` in `fastsam.py` to `cpu`.
+* `frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in Rviz.
+* If you want to record a bag, pass `True` to `--record_bag` and specify where to save a rosbag in `--output_dir`. 
+* If you don't have CUDA on your computer, change `self.DEVICE` in `fastsam.py` to `cpu`.
 
 ## Important files
 
-If you want to tune PUMA's cost functions: `main.m`
-If you want to take a look at how we implemented FastSAM: `fastsam.py`.
+* If you want to tune PUMA's cost functions: `main.m`
+* If you want to take a look at how we implemented FastSAM: `fastsam.py`.
 
 
 
