@@ -8,6 +8,7 @@
 *core
 *.o
 .vscode/*
+*.pyc
 build
 primer/matlab/casadi_generated_files copy/*
 primer/scripts/FastSAM
