@@ -72,7 +72,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} perfect_controller:=false x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner:=false")
+    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} perfect_controller:=true x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner:=false")
 
     ## fastsam (triggered by rosservice call /{agent_name}/pose_corrupter/start_drift)
     commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=true")
@@ -107,7 +107,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator onboard.launch quad:={agent_name} circle_start_type:={circle_start_type}")
 
     ## drone marker publisher
-    commands.append(f"sleep "+str(time_traj_gen)+f" && roslaunch --wait primer drone_marker_publisher.launch quad:={agent_name}")
+    # commands.append(f"sleep "+str(time_traj_gen)+f" && roslaunch --wait primer drone_marker_publisher.launch quad:={agent_name}")
 
     ## takeoff
     commands.append(f"sleep "+str(time_takeoff)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
@@ -130,8 +130,9 @@ def main():
     ##
 
     parser = argparse.ArgumentParser(description="Run simulations for frame alignment.")
-    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
-    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=False, type=bool)
+    # parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/kota/T7/frame/sim/benchmarking/ones_used_in_icra_paper/videos")
+    parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="/media/jtorde/T7/frame/test")
+    parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=True, type=bool)
     parser.add_argument("-n", "--num_of_objects", help="Number of objects.", default=10, type=int)
     args = parser.parse_args()
 
@@ -145,7 +146,7 @@ def main():
     # for dicts
     NUM_OF_AGENTS = [2]
     NUM_OF_OBJECTS = [30] # needs to by synced with plot_anmation.py
-    OBJECTS_TYPE = ["pads"]
+    OBJECTS_TYPE = ["pads", "random"]
     TRAJ_TYPE = ["circle", "venn"]
     
     # TODO: there's redandancy in the following two lists, but it's easier to implement this way
@@ -164,12 +165,12 @@ def main():
     # trans linear drift
     # rot linear drift
     # trans and rot linear drift
-    # DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
-    DRIFTS =   [[cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
-                # [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                # [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
-                # [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
-                # [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
+    DRIFTS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False, False], \
+                [cdx, cdy, 0.0, 0.0, 0.0, 0.0, True, False], \
+                [0.0, 0.0, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                [cdx, cdy, cdyaw, 0.0, 0.0, 0.0, True, False], \
+                [0.0, 0.0, 0.0, ldx, ldy, 0.0, False, True], \
+                [0.0, 0.0, 0.0, 0.0, 0.0, ldyaw, False, True], \
                 [0.0, 0.0, 0.0, ldx, ldy, ldyaw, False, True]]
     
     # others

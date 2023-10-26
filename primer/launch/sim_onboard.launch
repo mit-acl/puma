@@ -51,14 +51,16 @@
   <group if="$(arg gazebo)">
 
     <!-- forward facing camera for tracking -->
-    <!-- <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
-        <arg name="name" value="$(arg quad)"/>
-        <arg name="tf_prefix" default="$(optenv ROS_NAMESPACE)"/>
-        <arg name="x" value="$(arg x)"/>
-        <arg name="y" value="$(arg y)"/>
-        <arg name="z" value="$(arg z)"/>
-        <arg name="yaw" default="$(arg yaw)"/>
-    </include> -->
+    <group unless="$(arg use_downward_camera)">
+      <include file="$(find panther_gazebo)/launch/spawn_quadrotor_with_asus.launch">
+          <arg name="name" value="$(arg quad)"/>
+          <arg name="tf_prefix" default="$(optenv ROS_NAMESPACE)"/>
+          <arg name="x" value="$(arg x)"/>
+          <arg name="y" value="$(arg y)"/>
+          <arg name="z" value="$(arg z)"/>
+          <arg name="yaw" default="$(arg yaw)"/>
+      </include>
+    </group>
 
     <!-- downward facing camera for frame alignment-->
     <group if="$(arg use_downward_camera)">

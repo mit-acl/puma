@@ -29,7 +29,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: SQ01s-downward-camera
+    SyncSource: ""
   - Class: rviz/Displays
     Help Height: 0
     Name: Displays
@@ -250,7 +250,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/primer/fov
       Name: SQ02sFOV
       Namespaces:
-        marker_fov: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -378,7 +378,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/primer/best_solution_expert
       Name: SQ02sBestSolutionExp
       Namespaces:
-        SQ02s_best_solution_expert0: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -638,7 +638,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/primer/actual_traj
       Name: SQ02sActualTraj
       Namespaces:
-        ActualTraj_SQ02s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -714,7 +714,7 @@ Visualization Manager:
       Marker Topic: /SQ02s/drone_marker
       Name: MeshSQ02s
       Namespaces:
-        mesh_SQ02s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -777,7 +777,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 24.753719329833984
+      Distance: 35.18985366821289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -785,9 +785,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.9700605869293213
-        Y: 1.9010181427001953
-        Z: 1.3532487154006958
+        X: -1.8438823223114014
+        Y: 2.1073896884918213
+        Z: 1.4918016195297241
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
