@@ -38,10 +38,10 @@ y_min: -15.0  # [m] don't forget the .0
 y_max: 15.0   # [m] don't forget the .0
 z_min: 1.0   #[m] points below this are considered ground
 z_max: 5.0    #[m] 
-ydot_max: 6.28319  # [rd/s] Maximum angular velocity. 0.4 for Hardware
-v_max: [5.0, 5.0, 5.0]   #[m/s]  7.0
-a_max: [7.0, 7.0, 7.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
-j_max: [8.0, 8.0, 8.0]   #[m/s3] 
+ydot_max: 1.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
+v_max: [10.0, 10.0, 10.0]   #[m/s]  7.0
+a_max: [15.0, 15.0, 15.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
+j_max: [20.0, 20.0, 20.0]   #[m/s3] 
 factor_alpha: 1.0 #[-] DeltaT = factor_alpha*States_took_previous_replan
 lower_bound_alpha: 1.0 # [s] when alpha (total time of trajectory) is too small, PARM fails a lot
 max_seconds_keeping_traj: 4.0     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
@@ -65,7 +65,7 @@ is_frame_alignment: true
 # Uncertainty Propagation setting
 #############################################
 
-####uncertainty_aware: true
+uncertainty_aware: true
 
 initial_position_variance_multiplier: 20.0
 initial_velocity_variance_multiplier: 1.0

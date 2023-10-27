@@ -6,12 +6,6 @@
 
 <a target="_blank" href=""><img src="./primer/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
-TODO: add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
-
-TODO: clean up the branches
-
-TODO: rename all the files (primer to puma)
-
 ## Setup
 ### PUMA
 
@@ -29,35 +23,50 @@ TODO: rename all the files (primer to puma)
 
 PUMA has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/puma/issues) if you have any problems.
 
+The python scripts described below use `tmux`, and if you want to see what is going on in the background, use `tmux attach`.
+
 ### PUMA
 
+```
+roscd primer && cd other/demos
+python3 uncertainty_aware_planner_demo.py
+```
+* `uncertainty_aware_planner_demo.py` runs our uncertainty-aware planner with one dynamic obstacle and visualize it in RViz.
+* If you want to change parameters of the planner, you can take a look at `primer.yaml` in the `param` folder.
+* If you want to change the planner's optimization formulation, you can take a look at `main.m` in the `matlab` folder -- the details are provided in <span style="color:red">TODO</span>
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `primer.yaml`.
 
-
-
-### Image Image Segmentation-based Real-time Frame Alignment
+### Image Segmentation-based Real-time Frame Alignment
 
 ```
 roscd primer && cd other/demos
 python3 frame_alignment_demo.py
 ```
-* `frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in Rviz.
+* `frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in RViz.
 * If you want to record a bag, pass `True` to `--record_bag` and specify where to save a rosbag in `--output_dir`. 
 * If you don't have CUDA on your computer, change `self.DEVICE` in `fastsam.py` to `cpu`.
+
+### Multiagent PUMA on Segmentation-based Real-time Frame Alignment
+
+```
+roscd primer && cd other/demos
+python3 uncertaintyaware_planner_on_frame_alignment_demo.py
+```
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `primer.yaml`.
+* Currently, `main.m` supports obstacle tracking and uncertainty propagation for one obstacle/agent; however, Check and DelayCheck in [Robust MADER](https://github.com/mit-acl/rmader)'s trajectory deconfliction checks potential for all the received trajectories so PUMA guarantees safety.
 
 ## Important files
 
 * If you want to tune PUMA's cost functions: `main.m`
+  * Required matlab add-ons: Phased Array System Toolbox, Statistics and Machine Learning Toolbox, Symbolic Math Toolbox
+  * PUMA is develped on MATLAB R2022b -- symvar related error on MATLAB R2023b. 
 * If you want to take a look at how we implemented FastSAM: `fastsam.py`.
 
+## TODOs
 
-
-
-
-
-
-
-
-
+* add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
+* clean up the branches
+* renaming (primer to puma)
 
 The instructions below assume that you have ROS Noetic installed on your Linux machine.
 

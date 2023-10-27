@@ -242,7 +242,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/fov
       Name: SQ01sFOV
       Namespaces:
-        marker_fov: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -370,7 +370,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/best_solution_expert
       Name: SQ01sBestSolutionExp
       Namespaces:
-        SQ01s_best_solution_expert0: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -630,7 +630,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/primer/actual_traj
       Name: SQ01sActualTraj
       Namespaces:
-        ActualTraj_SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -706,7 +706,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/drone_marker
       Name: MeshSQ01s
       Namespaces:
-        mesh_SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker

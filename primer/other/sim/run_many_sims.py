@@ -79,10 +79,10 @@ def get_start_end_state(num_of_agents, circle_radius, INITIAL_POSITIONS_SHAPE) -
 def check_goal_reached():
     try:
         is_goal_reached = subprocess.check_output(['rostopic', 'echo', '/sim_all_agents_goal_reached', '-n', '1'], timeout=2).decode()
-        print("True")
+        print("Goal reached")
         return True 
     except:
-        print("False")
+        print("Checking if goal is reached")
         return False  
 
 if __name__ == '__main__':
