@@ -9,7 +9,7 @@ import math, time, random
 from scipy.spatial import Delaunay
 from scipy.spatial.transform import Rotation as Rot
 
-def primer_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat):
+def puma_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat):
 
     # Define FOV vertices
     p1 = np.array([-delta_y, delta_z, fov_depth])
@@ -56,7 +56,7 @@ def check_obst_is_in_FOV(agent_pos, agent_quat, obst_pos, fov_x_deg, fov_y_deg, 
     delta_y = fov_depth * abs(math.tan((fov_x_deg * math.pi / 180) / 2.0))
     delta_z = fov_depth * abs(math.tan((fov_y_deg * math.pi / 180) / 2.0))
 
-    p0, p1, p2, p3, p4 = primer_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat)
+    p0, p1, p2, p3, p4 = puma_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat)
 
     # Check if the obstacle is in the FOV
     poly = np.array([p0, p1, p2, p3, p4])
@@ -110,7 +110,7 @@ def visualization(agent_pos, agent_quat, obst_pos, fov_x_deg, fov_y_deg, fov_dep
     ax.plot([agent_pos[0], obst_pos[0]], [agent_pos[1], obst_pos[1]], [agent_pos[2], obst_pos[2]], c='b', linestyle='--')
 
     # Compute the FOV vertices
-    p0, p1, p2, p3, p4 = primer_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat)
+    p0, p1, p2, p3, p4 = puma_specific_rotation(p0, delta_y, delta_z, fov_depth, agent_pos, agent_quat)
 
     ax.scatter(p0[0], p0[1], p0[2], c='g', marker='o')
     ax.scatter(p1[0], p1[1], p1[2], c='g', marker='o')

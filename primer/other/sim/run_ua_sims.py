@@ -90,13 +90,13 @@ def main():
     SIM_DURATION = 300 # in seconds
     OUTPUT_DIR = args.output_dir
     RECORD_NODE_NAME = "bag_recorder"
-    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
-    TOPICS_TO_RECORD = "/{}/primer/alpha /{}/goal /{}/state /tf /tf_static /{}/primer/fov /obstacles_mesh /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values /{}/primer/moving_direction_uncertainty_times"
+    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f puma & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
+    TOPICS_TO_RECORD = "/{}/puma/alpha /{}/goal /{}/state /tf /tf_static /{}/puma/fov /obstacles_mesh /{}/puma/pause_sim /{}/puma/best_solution_expert /{}/puma/best_solution_student /{}/term_goal /{}/puma/actual_traj /clock /trajs /sim_all_agents_goal_reached /{}/puma/is_ready /{}/puma/log /{}/puma/obstacle_uncertainty /{}/puma/obstacle_uncertainty_values /{}/puma/obstacle_sigma_values /{}/puma/obstacle_uncertainty_times /{}/puma/moving_direction_uncertainty_values /{}/puma/moving_direction_sigma_values /{}/puma/moving_direction_uncertainty_times"
     USE_RVIZ = args.use_rviz
-    AGENTS_TYPES = ["primer"]
+    AGENTS_TYPES = ["puma"]
     TRAJ_NUM_PER_REPLAN_LIST = [10]
     DEFAULT_NUM_MAX_OF_OBST = 1 #TODO: hard-coded
-    PRIMER_NUM_MAX_OF_OBST = 1
+    PUMA_NUM_MAX_OF_OBST = 1
     
     ##
     ## make sure ROS (and related stuff) is not running
@@ -105,10 +105,10 @@ def main():
     os.system(KILL_ALL)
 
     ##
-    ## comment out some parameters in primer.yaml to overwrite them
+    ## comment out some parameters in puma.yaml to overwrite them
     ##
 
-    os.system("sed -i '/uncertainty_aware:/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/uncertainty_aware:/s/^/#/g' $(rospack find puma)/param/puma.yaml")
 
     ##
     ## simulation loop
@@ -145,20 +145,20 @@ def main():
             commands.append("roscore")
 
             ## sim_basestation
-            commands.append(f"roslaunch --wait primer sim_base_station.launch num_of_obs:={NUM_OBS} rviz:={USE_RVIZ} gui_mission:=false")
+            commands.append(f"roslaunch --wait puma sim_base_station.launch num_of_obs:={NUM_OBS} rviz:={USE_RVIZ} gui_mission:=false")
             
             ## set up parameters depending on agent types
             agent_name = "SQ01s"
             if agent_type == "parm_star":
-                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware false")
-            elif agent_type == "primer":
-                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware true")
+                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware false")
+            elif agent_type == "puma":
+                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware true")
 
             ## sim_onboard
             x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state()
             for i, (x, y, z, yaw) in enumerate(zip(x_start_list, y_start_list, z_start_list, yaw_start_list)):
                 agent_name = "SQ01s"
-                commands.append(f"sleep 5.0 && roslaunch --wait primer sim_onboard.launch quad:={agent_name} use_downward_camera:=false perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+                commands.append(f"sleep 5.0 && roslaunch --wait puma sim_onboard.launch quad:={agent_name} use_downward_camera:=false perfect_controller:={USE_PERFECT_CONTROLLER} perfect_prediction:={USE_PERFECT_PREDICTION} x:={x} y:={y} z:={z} yaw:={yaw} 2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
 
             ## rosbag record
             # agent_bag_recorders = []
@@ -179,10 +179,10 @@ def main():
             # commands.append(f'sleep {time_sleep} && cd {folder_bags} && rosbag record -a -x "/SQ01s/camera/(.*)" -o {sim_name}')
             
             ## goal checker
-            commands.append(f"sleep {time_sleep} && roslaunch --wait primer goal_reached_checker_ua.launch num_of_agents:={1}")
+            commands.append(f"sleep {time_sleep} && roslaunch --wait puma goal_reached_checker_ua.launch num_of_agents:={1}")
 
             ## publish goal
-            commands.append(f"sleep "+str(time_sleep_goal)+f" && roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
+            commands.append(f"sleep "+str(time_sleep_goal)+f" && roslaunch --wait puma pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
 
             ##
             ## tmux & sending commands
@@ -242,7 +242,7 @@ def main():
     ##
 
     proc_commands = []
-    proc_commands.append("python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/single-sims/bags -s true")
+    proc_commands.append("python ~/Research/puma_ws/src/puma/puma/other/data_extraction/process_ua_planner.py -d /media/kota/T7/ua-planner/single-sims/bags -s true")
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)
@@ -256,7 +256,7 @@ def main():
 
     print("proc_commands sent")
 
-    os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find primer)/param/primer.yaml")    
+    os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find puma)/param/puma.yaml")    
 
 if __name__ == '__main__':
     main()

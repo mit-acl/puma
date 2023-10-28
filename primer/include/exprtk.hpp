@@ -36824,7 +36824,7 @@ namespace exprtk
    };
 
    template <typename T>
-   inline bool pgo_primer()
+   inline bool pgo_puma()
    {
       static const std::string expression_list[]
                                         = {

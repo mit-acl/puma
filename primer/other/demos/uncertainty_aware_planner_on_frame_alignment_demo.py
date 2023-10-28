@@ -73,10 +73,10 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=3 yaw:={yaw_start} perfect_controller:=true rviz:=false use_planner:=true  2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
+    commands.append(f"roslaunch --wait puma sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} x:={x_start} y:={y_start} z:=3 yaw:={yaw_start} perfect_controller:=true rviz:=false use_planner:=true  2> >(grep -v -e TF_REPEATED_DATA -e buffer)")
 
     ## fastsam (triggered by rosservice call /{agent_name}/fast_sam/start_drift)
-    commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} fastsam_cb_frequency:={fastsam_cb_frequency} is_sim:=true")
+    commands.append(f"roslaunch --wait puma fastsam.launch quad:={agent_name} fastsam_cb_frequency:={fastsam_cb_frequency} is_sim:=true")
 
     ## mot
     commands.append(f"roslaunch --wait motlee_ros mapper.launch quad:={agent_name} kappa:={kappa_mot}")
@@ -95,7 +95,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
         is_constant_drift = False
         is_linear_drift = False
 
-    commands.append(f"roslaunch --wait primer pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
+    commands.append(f"roslaunch --wait puma pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
         constant_drift_y:={constant_drift_y} constant_drift_z:={constant_drift_z} constant_drift_roll:={constant_drift_roll} constant_drift_pitch:={constant_drift_pitch} \
         constant_drift_yaw:={constant_drift_yaw} is_linear_drift:={is_linear_drift} linear_drift_rate_x:={linear_drift_rate_x} linear_drift_rate_y:={linear_drift_rate_y} \
         linear_drift_rate_z:={linear_drift_rate_z} linear_drift_rate_roll:={linear_drift_rate_roll} linear_drift_rate_pitch:={linear_drift_rate_pitch} \
@@ -167,7 +167,7 @@ def main():
     # others
     NUM_OF_SIMS = 1
     SIM_DURATION = 100  # seconds
-    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
+    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f puma & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
     FASTSAM_CB_FREQUENCY = 1.0 # [Hz]
 
     ##
@@ -213,17 +213,17 @@ def main():
     ##             c_total_time
     ##
 
-    os.system("sed -i '/replanning_trigger_time_expert/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/initial_position_variance_multiplier/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_variance/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_variance_for_moving_direction/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/num_of_trajs_per_replan/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_num_of_initial_guesses/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_runtime_octopus_search/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_yaw_smooth/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_fov/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_final_pos/s/^/#/g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_total_time/s/^/#/g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/replanning_trigger_time_expert/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/initial_position_variance_multiplier/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_variance/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_variance_for_moving_direction/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/num_of_trajs_per_replan/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_num_of_initial_guesses/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_runtime_octopus_search/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_yaw_smooth/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_fov/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_final_pos/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_total_time/s/^/#/g' $(rospack find puma)/param/puma.yaml")
 
     ##
     ## change some of the 
@@ -295,7 +295,7 @@ def main():
                 AGENTS_NAMES.append(f"SQ0{i}s")
 
             ## sim_base_station
-            commands.append(f"roslaunch --wait primer sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
+            commands.append(f"roslaunch --wait puma sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
             
             x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state(d['num_of_agents'], CIRCLE_RADIUS, INITIAL_POSITIONS_SHAPE)
 
@@ -310,26 +310,26 @@ def main():
                                                     KAPPA_MOT, TIME_START_DRIFT, d["drifts"], x_start, y_start, yaw_start, z_start, FASTSAM_CB_FREQUENCY)
                 # add topics to record
                 TOPIC_TO_RECORD = TOPIC_TO_RECORD + """/{}/drone_marker /{}/camera/fisheye1/image_raw /{}/goal /{}/world /{}/detections /{}/map/poses_only /{}/frame_align /{}/corrupted_world /{}/drift /{}/state \
-                /{}/primer/fov /{}/primer/pause_sim /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal \
-                /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/obstacle_uncertainty /{}/primer/obstacle_uncertainty_values \
-                /{}/primer/obstacle_sigma_values /{}/primer/obstacle_uncertainty_times /{}/primer/moving_direction_uncertainty_values /{}/primer/moving_direction_sigma_values \
-                /{}/primer/moving_direction_uncertainty_times /{}/primer/alpha """.format(*[agent_name]*26)
+                /{}/puma/fov /{}/puma/pause_sim /{}/puma/best_solution_expert /{}/puma/best_solution_student /{}/term_goal \
+                /{}/puma/actual_traj /{}/puma/is_ready /{}/puma/log /{}/puma/obstacle_uncertainty /{}/puma/obstacle_uncertainty_values \
+                /{}/puma/obstacle_sigma_values /{}/puma/obstacle_uncertainty_times /{}/puma/moving_direction_uncertainty_values /{}/puma/moving_direction_sigma_values \
+                /{}/puma/moving_direction_uncertainty_times /{}/puma/alpha """.format(*[agent_name]*26)
 
-                ## always use puma(primer)
-                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/primer/uncertainty_aware true")
+                ## always use puma(puma)
+                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware true")
 
                 ## set parameters for this simulation
-                commands.append(f"""sleep 2.0 && rosparam set /{agent_name}/primer/replanning_trigger_time_expert 1.5 \
-                && rosparam set /{agent_name}/primer/initial_position_variance_multiplier 10.0 \
-                && rosparam set /{agent_name}/primer/max_variance "[10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]" \
-                && rosparam set /{agent_name}/primer/max_variance_for_moving_direction "[10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]" \
-                && rosparam set /{agent_name}/primer/num_of_trajs_per_replan 5 \
-                && rosparam set /{agent_name}/primer/max_num_of_initial_guesses 5 \
-                && rosparam set /{agent_name}/primer/max_runtime_octopus_search 3.0 \
-                && rosparam set /{agent_name}/primer/c_yaw_smooth 0.00 \
-                && rosparam set /{agent_name}/primer/c_fov 0.0 \
-                && rosparam set /{agent_name}/primer/c_final_pos 100.0 \
-                && rosparam set /{agent_name}/primer/c_total_time 0.001""")
+                commands.append(f"""sleep 2.0 && rosparam set /{agent_name}/puma/replanning_trigger_time_expert 1.5 \
+                && rosparam set /{agent_name}/puma/initial_position_variance_multiplier 10.0 \
+                && rosparam set /{agent_name}/puma/max_variance "[10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]" \
+                && rosparam set /{agent_name}/puma/max_variance_for_moving_direction "[10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]" \
+                && rosparam set /{agent_name}/puma/num_of_trajs_per_replan 5 \
+                && rosparam set /{agent_name}/puma/max_num_of_initial_guesses 5 \
+                && rosparam set /{agent_name}/puma/max_runtime_octopus_search 3.0 \
+                && rosparam set /{agent_name}/puma/c_yaw_smooth 0.00 \
+                && rosparam set /{agent_name}/puma/c_fov 0.0 \
+                && rosparam set /{agent_name}/puma/c_final_pos 100.0 \
+                && rosparam set /{agent_name}/puma/c_total_time 0.001""")
 
             ## rosbag record
             sim_name = f"sim_{str(s).zfill(3)}"
@@ -339,17 +339,17 @@ def main():
                 commands.append(f"sleep "+str(TIME_START)+f" && cd {output_folder} && rosbag record {TOPIC_TO_RECORD} -o {sim_name} __name:={sim_name}")
             
             ## publish goal
-            commands.append(f"sleep "+str(TIME_SEND_GOAL)+f" && roslaunch --wait primer pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
+            commands.append(f"sleep "+str(TIME_SEND_GOAL)+f" && roslaunch --wait puma pub_goal.launch x_goal_list:=\"{x_goal_list}\" y_goal_list:=\"{y_goal_list}\" z_goal_list:=\"{z_goal_list}\"")
             
             ## goal checker
-            # commands.append(f"roslaunch --wait primer goal_reached_checker.launch num_of_agents:={d['num_of_agents']}")
+            # commands.append(f"roslaunch --wait puma goal_reached_checker.launch num_of_agents:={d['num_of_agents']}")
             
             ## time keeper
-            commands.append(f"roslaunch --wait primer time_keeper.launch sim_time:={SIM_DURATION}")
+            commands.append(f"roslaunch --wait puma time_keeper.launch sim_time:={SIM_DURATION}")
 
             ## term_goal_sender (keeps agents moving)
             for idx, agent_name in enumerate(AGENTS_NAMES):
-                commands.append(f"roslaunch --wait primer term_goal_sender.launch quad:={agent_name} mode:={idx} circle_radius:={CIRCLE_RADIUS}")
+                commands.append(f"roslaunch --wait puma term_goal_sender.launch quad:={agent_name} mode:={idx} circle_radius:={CIRCLE_RADIUS}")
 
             ##
             ## tmux & sending commands
@@ -396,17 +396,17 @@ def main():
                 return
 
     ## uncomment params we change
-    os.system("sed -i '/replanning_trigger_time_expert/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/initial_position_variance_multiplier/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_variance/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_variance_for_moving_direction/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/num_of_trajs_per_replan/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_num_of_initial_guesses/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/max_runtime_octopus_search/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_yaw_smooth/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_fov/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_final_pos/s/^#//g' $(rospack find primer)/param/primer.yaml")
-    os.system("sed -i '/c_total_time/s/^#//g' $(rospack find primer)/param/primer.yaml")
+    os.system("sed -i '/replanning_trigger_time_expert/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/initial_position_variance_multiplier/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_variance/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_variance_for_moving_direction/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/num_of_trajs_per_replan/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_num_of_initial_guesses/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/max_runtime_octopus_search/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_yaw_smooth/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_fov/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_final_pos/s/^#//g' $(rospack find puma)/param/puma.yaml")
+    os.system("sed -i '/c_total_time/s/^#//g' $(rospack find puma)/param/puma.yaml")
 
 if __name__ == '__main__':
     main()

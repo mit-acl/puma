@@ -131,5 +131,5 @@ catkin build
 # Insert commands to add PUMA developments files to path and source it
 printf '\n# PUMA' >> ~/.bashrc
 printf '\nsource ~/code/ws/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS
-printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find primer)/../panther_compression"' >> ~/.bashrc 
+printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find puma)/../panther_compression"' >> ~/.bashrc 
 source ~/.bashrc

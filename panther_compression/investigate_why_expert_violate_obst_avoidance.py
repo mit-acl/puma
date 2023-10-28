@@ -80,11 +80,11 @@ ydot0=np.array([[0.0]])
 ## get b-spline
 ##
 
-primer_branch_traj_expert = np.array([[ 
+puma_branch_traj_expert = np.array([[ 
   0.91224966,  0.82266163,  1.32147417,  2.32024804,  1.57076722,  1.9657202,
   3.76792436,  1.23108137,  0.98295584,  5.10536001,  0.12682231, -0.65702177,
   -0.20569983, -0.4017783,  -0.73733611, -0.78718934, -1.0430407,   3.47650815]])
-w_posBS_expert, w_yawBS_expert= venv.am.f_trajAnd_w_State2wBS(primer_branch_traj_expert, State(p0, v0, a0, y0, ydot0))
+w_posBS_expert, w_yawBS_expert= venv.am.f_trajAnd_w_State2wBS(puma_branch_traj_expert, State(p0, v0, a0, y0, ydot0))
 
 f_obs = np.array([[ 
    0.,          0.,          0.,          0.,          0.,          0.,

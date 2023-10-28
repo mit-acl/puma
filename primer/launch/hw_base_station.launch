@@ -5,6 +5,6 @@
     <node pkg="behavior_selector" type="behavior_selector_node.py" name="behavior_selector" output="screen" />
 
     <!-- Start rqt -->
-    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find primer)/rqt_cfgs/demo_interface.perspective"/>    
+    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find puma)/rqt_cfgs/demo_interface.perspective"/>    
 
 </launch>

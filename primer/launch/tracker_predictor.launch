@@ -4,15 +4,15 @@
 	<arg name="quad" default="SQ01s"/>
 	<arg name="cloud_topic" default="camera/depth/color/points"  />   <!--camera/cloud -->
 
-	<node ns="$(arg quad)" name="tracker_predictor_node" pkg="primer" type="tracker_predictor_node" output="screen" clear_params="false" respawn="true"> 
-		<rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi_prediction.yaml" command="load"/>
-		<rosparam file="$(find primer)/param/predictor.yaml" command="load"/>
-		<rosparam file="$(find primer)/param/primer.yaml" command="load"/>
+	<node ns="$(arg quad)" name="tracker_predictor_node" pkg="puma" type="tracker_predictor_node" output="screen" clear_params="false" respawn="true"> 
+		<rosparam file="$(find puma)/matlab/casadi_generated_files/params_casadi_prediction.yaml" command="load"/>
+		<rosparam file="$(find puma)/param/predictor.yaml" command="load"/>
+		<rosparam file="$(find puma)/param/puma.yaml" command="load"/>
 
 		<remap from="~cloud" to="$(arg cloud_topic)"/>
 	</node>
 
-	<!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find primer)/rviz_cfgs/panther.rviz"/> -->
+	<!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find puma)/rviz_cfgs/panther.rviz"/> -->
 
 </launch>
 

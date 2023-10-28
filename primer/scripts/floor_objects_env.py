@@ -110,10 +110,10 @@ class DynCorridor:
         self.scale= [alpha_scale_obst_traj, alpha_scale_obst_traj, alpha_scale_obst_traj+2.0]
         self.slower_min=3.0   #1.2 or 2.3
         self.slower_max=3.0   #1.2 or 2.3
-        PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
+        PANTHER_YAML_PATH = rospkg.RosPack().get_path("puma") + "/param/puma.yaml"
         with open(PANTHER_YAML_PATH) as f:
             PANTHER_YAML_PARAMS = yaml.safe_load(f)
-        self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in primer.yaml
+        self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in puma.yaml
         self.add_noise_to_obst = PANTHER_YAML_PARAMS["add_noise_to_obst"]
         self.percentage_vert=0.0
         self.name_obs="obs_"
@@ -123,16 +123,16 @@ class DynCorridor:
         # get the mesh for objects
         self.objects_type=objects_type
         if self.objects_type == "pads":
-            self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/model3.dae"]
+            self.available_meshes_static=["package://puma/meshes/ConcreteDamage01b/model3.dae"]
             self.bbox_static=[0.3, 0.3, 0.05]
         elif self.objects_type == "random":
             objects_list = ["flashlight", "table", "microwave", "fireextinguisher", "notebook", "notebook", "fireextinguisher", "flashlight", "microwave", "table"]
             objects_name = [objects_list[i] for i in np.random.randint(0, len(objects_list), self.num_of_stat_objects)]
-            self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in objects_name]
+            self.available_meshes_static=["package://puma/meshes/ConcreteDamage01b/{}.dae".format(i) for i in objects_name]
             self.bbox_static=[0.2, 0.2, 0.2]
         
         self.static_mesh_counter = 0
-        self.available_meshes_dynamic=["package://primer/meshes/ConcreteDamage01b/model4.dae"]
+        self.available_meshes_dynamic=["package://puma/meshes/ConcreteDamage01b/model4.dae"]
         self.marker_array=MarkerArray()
         self.all_dyn_traj=[]
         self.all_dyn_traj_zhejiang=[]
@@ -211,13 +211,13 @@ class DynCorridor:
                 self.static_mesh_counter=self.static_mesh_counter+1
 
             # change the size of objects becase they are sometimes too big or too small
-            if mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["fireextinguisher"]]:
+            if mesh in ["package://puma/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["fireextinguisher"]]:
                 bbox = [self.bbox_static[i] + 0.5 for i in range(3)]
-            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["flashlight"]]:
+            elif mesh in ["package://puma/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["flashlight"]]:
                 bbox = [self.bbox_static[i] * 0.4 for i in range(3)]
-            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["table"]]:
+            elif mesh in ["package://puma/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["table"]]:
                 bbox = [self.bbox_static[i] + 0.5 for i in range(3)]
-            elif mesh in ["package://primer/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["microwave"]]:
+            elif mesh in ["package://puma/meshes/ConcreteDamage01b/{}.dae".format(i) for i in ["microwave"]]:
                 bbox = [self.bbox_static[i] * 0.8 for i in range(3)]
             else:
                 bbox = self.bbox_static
@@ -374,7 +374,7 @@ class DynCorridor:
     def spawnGazeboObstacle(self, i):
 
             rospack = rospkg.RosPack()
-            path_panther=rospack.get_path('primer')
+            path_panther=rospack.get_path('puma')
             path_file=path_panther+"/meshes/tmp_"+str(i)+".urdf"
 
             f = open(path_file, "w") #TODO: This works, but it'd better not having to create this file

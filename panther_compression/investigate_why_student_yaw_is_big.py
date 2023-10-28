@@ -50,7 +50,7 @@ if __name__ == "__main__":
 	##
 
 	rospack = rospkg.RosPack()
-	path_panther=rospack.get_path('primer')
+	path_panther=rospack.get_path('puma')
 	if use_demo_obs_acts:
 		data = load(path_panther[:-8]+'/panther_compression/evals/tmp_dagger/2/demos/round-000/dagger-demo-20230301_194313_156b74.npz')
 		lst = data.files
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 	##
 
 	rospack = rospkg.RosPack()
-	with open(rospack.get_path('primer')+'/param/primer.yaml', 'rb') as f:
+	with open(rospack.get_path('puma')+'/param/puma.yaml', 'rb') as f:
 	    conf = yaml.safe_load(f.read())    # load the config file
 	yaw_dot_max = conf['ydot_max']
 

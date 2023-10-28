@@ -91,7 +91,7 @@ Visualization Manager:
       Name: SQ01sGTerm
       Queue Size: 10
       Radius: 0.20000000298023224
-      Topic: /SQ01s/primer/point_G_term
+      Topic: /SQ01s/puma/point_G_term
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -102,7 +102,7 @@ Visualization Manager:
       Name: SQ02sGTerm
       Queue Size: 10
       Radius: 0.20000000298023224
-      Topic: /SQ02s/primer/point_G_term
+      Topic: /SQ02s/puma/point_G_term
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -113,7 +113,7 @@ Visualization Manager:
       Name: SQ03sGTerm
       Queue Size: 10
       Radius: 0.20000000298023224
-      Topic: /SQ03s/primer/point_G_term
+      Topic: /SQ03s/puma/point_G_term
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -124,7 +124,7 @@ Visualization Manager:
       Name: SQ04sGTerm
       Queue Size: 10
       Radius: 0.20000000298023224
-      Topic: /SQ04s/primer/point_G_term
+      Topic: /SQ04s/puma/point_G_term
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -135,7 +135,7 @@ Visualization Manager:
       Name: SQ05sGTerm
       Queue Size: 10
       Radius: 0.20000000298023224
-      Topic: /SQ05s/primer/point_G_term
+      Topic: /SQ05s/puma/point_G_term
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -239,7 +239,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ01s/primer/fov
+      Marker Topic: /SQ01s/puma/fov
       Name: SQ01sFOV
       Namespaces:
         {}
@@ -247,7 +247,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ02s/primer/fov
+      Marker Topic: /SQ02s/puma/fov
       Name: SQ02sFOV
       Namespaces:
         {}
@@ -255,7 +255,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ03s/primer/fov
+      Marker Topic: /SQ03s/puma/fov
       Name: SQ03sFOV
       Namespaces:
         {}
@@ -263,7 +263,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ04s/primer/fov
+      Marker Topic: /SQ04s/puma/fov
       Name: SQ04sFOV
       Namespaces:
         {}
@@ -271,7 +271,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ05s/primer/fov
+      Marker Topic: /SQ05s/puma/fov
       Name: SQ05sFOV
       Namespaces:
         {}
@@ -351,7 +351,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Marker
       Enabled: false
-      Marker Topic: /SQ01s/primer/obstacles
+      Marker Topic: /SQ01s/puma/obstacles
       Name: CvxPolyObstacles
       Namespaces:
         {}
@@ -359,7 +359,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ01s/primer/traj_safe_colored
+      Marker Topic: /SQ01s/puma/traj_safe_colored
       Name: Safe_Color
       Namespaces:
         {}
@@ -367,7 +367,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ01s/primer/best_solution_expert
+      Marker Topic: /SQ01s/puma/best_solution_expert
       Name: SQ01sBestSolutionExp
       Namespaces:
         {}
@@ -375,7 +375,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ02s/primer/best_solution_expert
+      Marker Topic: /SQ02s/puma/best_solution_expert
       Name: SQ02sBestSolutionExp
       Namespaces:
         {}
@@ -383,7 +383,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ03s/primer/best_solution_expert
+      Marker Topic: /SQ03s/puma/best_solution_expert
       Name: SQ03sBestSolutionExp
       Namespaces:
         {}
@@ -391,7 +391,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ04s/primer/best_solution_expert
+      Marker Topic: /SQ04s/puma/best_solution_expert
       Name: SQ04sBestSolutionExp
       Namespaces:
         {}
@@ -399,7 +399,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ05s/primer/best_solution_expert
+      Marker Topic: /SQ05s/puma/best_solution_expert
       Name: SQ05sBestSolutionExp
       Namespaces:
         {}
@@ -407,7 +407,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ01s/primer/best_solutions_expert
+      Marker Topic: /SQ01s/puma/best_solutions_expert
       Name: SQ01sBestSolutionsExp
       Namespaces:
         {}
@@ -415,7 +415,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ02s/primer/best_solutions_expert
+      Marker Topic: /SQ02s/puma/best_solutions_expert
       Name: SQ02sBestSolutionsExp
       Namespaces:
         {}
@@ -423,7 +423,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ03s/primer/best_solutions_expert
+      Marker Topic: /SQ03s/puma/best_solutions_expert
       Name: SQ03sBestSolutionsExp
       Namespaces:
         {}
@@ -431,7 +431,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ04s/primer/best_solutions_expert
+      Marker Topic: /SQ04s/puma/best_solutions_expert
       Name: SQ04sBestSolutionsExp
       Namespaces:
         {}
@@ -439,7 +439,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ05s/primer/best_solutions_expert
+      Marker Topic: /SQ05s/puma/best_solutions_expert
       Name: SQ05sBestSolutionsExp
       Namespaces:
         {}
@@ -447,7 +447,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ01s/primer/best_solution_student
+      Marker Topic: /SQ01s/puma/best_solution_student
       Name: SQ01sBestSolutionStu
       Namespaces:
         {}
@@ -455,7 +455,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ02s/primer/best_solution_student
+      Marker Topic: /SQ02s/puma/best_solution_student
       Name: SQ02sBestSolutionStu
       Namespaces:
         {}
@@ -463,7 +463,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ03s/primer/best_solution_student
+      Marker Topic: /SQ03s/puma/best_solution_student
       Name: SQ03sBestSolutionStu
       Namespaces:
         {}
@@ -471,7 +471,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ04s/primer/best_solution_student
+      Marker Topic: /SQ04s/puma/best_solution_student
       Name: SQ04sBestSolutionStu
       Namespaces:
         {}
@@ -479,7 +479,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /SQ05s/primer/best_solution_student
+      Marker Topic: /SQ05s/puma/best_solution_student
       Name: SQ05sBestSolutionStu
       Namespaces:
         {}
@@ -503,7 +503,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ01s/primer/guesses
+      Marker Topic: /SQ01s/puma/guesses
       Name: Guesses
       Namespaces:
         {}
@@ -511,7 +511,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /SQ01s/primer/splines_fitted
+      Marker Topic: /SQ01s/puma/splines_fitted
       Name: SplinesFitted
       Namespaces:
         {}
@@ -611,7 +611,7 @@ Visualization Manager:
       line_width: 0.03999999910593033
     - Class: rviz/Marker
       Enabled: false
-      Marker Topic: /SQ01s/primer/obstacles
+      Marker Topic: /SQ01s/puma/obstacles
       Name: ObsEdgeSQ01s
       Namespaces:
         {}
@@ -619,7 +619,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Marker
       Enabled: false
-      Marker Topic: /SQ02s/primer/obstacles
+      Marker Topic: /SQ02s/puma/obstacles
       Name: ObsEdgeSQ02s
       Namespaces:
         {}
@@ -627,7 +627,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ01s/primer/actual_traj
+      Marker Topic: /SQ01s/puma/actual_traj
       Name: SQ01sActualTraj
       Namespaces:
         {}
@@ -635,7 +635,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ02s/primer/actual_traj
+      Marker Topic: /SQ02s/puma/actual_traj
       Name: SQ02sActualTraj
       Namespaces:
         {}
@@ -643,7 +643,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ03s/primer/actual_traj
+      Marker Topic: /SQ03s/puma/actual_traj
       Name: SQ03sActualTraj
       Namespaces:
         {}
@@ -651,7 +651,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ04s/primer/actual_traj
+      Marker Topic: /SQ04s/puma/actual_traj
       Name: SQ04sActualTraj
       Namespaces:
         {}
@@ -659,7 +659,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /SQ05s/primer/actual_traj
+      Marker Topic: /SQ05s/puma/actual_traj
       Name: SQ05sActualTraj
       Namespaces:
         {}

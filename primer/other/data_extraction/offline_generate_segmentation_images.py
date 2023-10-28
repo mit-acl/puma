@@ -44,7 +44,7 @@ def main():
 
     # run FastSAM on cv2_img
     rospack = rospkg.RosPack()
-    path_to_fastsam = rospack.get_path('primer') + '/scripts/models/FastSAM-x.pt'
+    path_to_fastsam = rospack.get_path('puma') + '/scripts/models/FastSAM-x.pt'
     print("path_to_fastsam: ", path_to_fastsam)
     fastSamModel = FastSAM(path_to_fastsam)
     everything_results = fastSamModel(undistorted_img, device=DEVICE, retina_masks=True, imgsz=256, conf=conf, iou=iou,)

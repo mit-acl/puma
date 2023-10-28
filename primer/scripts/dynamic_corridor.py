@@ -94,11 +94,11 @@ class DynCorridor:
         self.slower_min=3.0   #1.2 or 2.3
         self.slower_max=6.0   #1.2 or 2.3
 
-        PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
+        PANTHER_YAML_PATH = rospkg.RosPack().get_path("puma") + "/param/puma.yaml"
         with open(PANTHER_YAML_PATH) as f:
             PANTHER_YAML_PARAMS = yaml.safe_load(f)
 
-        self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in primer.yaml
+        self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in puma.yaml
         self.add_noise_to_obst = PANTHER_YAML_PARAMS["add_noise_to_obst"]
         self.bbox_static_vert=[0.3, 2.5, 2.5]
         self.bbox_static_horiz=[0.4, 8, 0.4]
@@ -108,8 +108,8 @@ class DynCorridor:
 
         self.type_of_obst_traj=type_of_obst_traj #eightCurve, static, square, epitrochoid
 
-        self.available_meshes_static=["package://primer/meshes/ConcreteDamage01b/model3.dae", "package://primer/meshes/ConcreteDamage01b/model2.dae"]
-        self.available_meshes_dynamic=["package://primer/meshes/ConcreteDamage01b/model4.dae"]
+        self.available_meshes_static=["package://puma/meshes/ConcreteDamage01b/model3.dae", "package://puma/meshes/ConcreteDamage01b/model2.dae"]
+        self.available_meshes_dynamic=["package://puma/meshes/ConcreteDamage01b/model4.dae"]
 
         self.marker_array=MarkerArray()
         self.all_dyn_traj=[]
@@ -356,7 +356,7 @@ class DynCorridor:
     def spawnGazeboObstacle(self, i):
 
             rospack = rospkg.RosPack()
-            path_panther=rospack.get_path('primer')
+            path_panther=rospack.get_path('puma')
             path_file=path_panther+"/meshes/tmp_"+str(i)+".urdf"
 
             f = open(path_file, "w") #TODO: This works, but it'd better not having to create this file

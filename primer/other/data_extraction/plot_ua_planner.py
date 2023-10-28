@@ -519,7 +519,7 @@ def main():
     # data extraction from bag file
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Extract images from a ROS bag.")
-    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/used_in_icra_paper/primer")
+    parser.add_argument("-d", "--sim_dir", help="Input directory.", default="/media/kota/T7/ua-planner/single-sims/used_in_icra_paper/puma")
     parser.add_argument("-p", "--plot_type", help="Plot type.", default="3d")
     args = parser.parse_args()
 
@@ -572,13 +572,13 @@ def main():
                         t_state1.append(msg.header.stamp.to_sec())
                 
                 # get uncertainty_related values
-                tpn_mv_sigma = f'/{VEH_NAME}/primer/moving_direction_sigma_values'
-                tpn_mv_uncertainty = f'/{VEH_NAME}/primer/moving_direction_uncertainty_values'
-                tpn_mv_times = f'/{VEH_NAME}/primer/moving_direction_uncertainty_times'
-                tpn_obs_sigma = f'/{VEH_NAME}/primer/obstacle_sigma_values'
-                tpn_obs_uncertainty = f'/{VEH_NAME}/primer/obstacle_uncertainty_values'
-                tpn_obs_times = f'/{VEH_NAME}/primer/obstacle_uncertainty_times'
-                tpn_alpha = f'/{VEH_NAME}/primer/alpha'
+                tpn_mv_sigma = f'/{VEH_NAME}/puma/moving_direction_sigma_values'
+                tpn_mv_uncertainty = f'/{VEH_NAME}/puma/moving_direction_uncertainty_values'
+                tpn_mv_times = f'/{VEH_NAME}/puma/moving_direction_uncertainty_times'
+                tpn_obs_sigma = f'/{VEH_NAME}/puma/obstacle_sigma_values'
+                tpn_obs_uncertainty = f'/{VEH_NAME}/puma/obstacle_uncertainty_values'
+                tpn_obs_times = f'/{VEH_NAME}/puma/obstacle_uncertainty_times'
+                tpn_alpha = f'/{VEH_NAME}/puma/alpha'
                 mv_sigma = []; mv_uncertainty = []; mv_times = []
                 obs_sigma = []; obs_uncertainty = []; obs_times = []
                 replan_start_time = []

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>primer</name>
+  <name>puma</name>
   <version>0.0.0</version>
-  <description>The primer package</description>
+  <description>The puma package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <maintainer email="kkondo@mit.edu">Kota Kondo</maintainer>

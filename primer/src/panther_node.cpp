@@ -12,7 +12,7 @@
 int main(int argc, char **argv)
 {
   // ros::init(argc, argv, "panther");
-  ros::init(argc, argv, "primer");
+  ros::init(argc, argv, "puma");
 
   ros::NodeHandle nh1("~");
   ros::NodeHandle nh2("~");

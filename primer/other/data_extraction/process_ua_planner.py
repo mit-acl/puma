@@ -60,8 +60,8 @@ def main():
 
     INPUT_DIR = args.input_dir
     TOPICS_TO_UNPACK = "/tf /tf_static /obstacles_mesh /clock /trajs /sim_all_agents_goal_reached"
-    TOPICS_TO_UNPACK_AGENT = "/{}/goal /{}/state /{}/primer/fov /{}/primer/best_solution_expert /{}/primer/best_solution_student /{}/term_goal /{}/primer/actual_traj /{}/primer/is_ready /{}/primer/log /{}/primer/pause_sim"
-    PANTHER_YAML_PATH = rospkg.RosPack().get_path("primer") + "/param/primer.yaml"
+    TOPICS_TO_UNPACK_AGENT = "/{}/goal /{}/state /{}/puma/fov /{}/puma/best_solution_expert /{}/puma/best_solution_student /{}/term_goal /{}/puma/actual_traj /{}/puma/is_ready /{}/puma/log /{}/puma/pause_sim"
+    PANTHER_YAML_PATH = rospkg.RosPack().get_path("puma") + "/param/puma.yaml"
     with open(PANTHER_YAML_PATH) as f:
         PANTHER_YAML_PARAMS = yaml.safe_load(f)
     AGENT_BBOX = np.array(PANTHER_YAML_PARAMS["drone_bbox"]) 
@@ -230,7 +230,7 @@ def main():
                 ## not sure why, but when you record rosbag using tmux, it won't stop recording when it's paused so add pause_sim topic to indicate the pause
                 ## and according to the topic get total paused time for each agent
                 for topic, msg, t in bag.read_messages(topics=topics):
-                    if topic in [f"/{agent_name}/primer/pause_sim" for agent_name in agent_names]:
+                    if topic in [f"/{agent_name}/puma/pause_sim" for agent_name in agent_names]:
                         if msg.data and not is_paused[agent_name]:
                             sim_tmp_pause_times[agent_name] = t.to_sec()
                             is_paused[agent_name] = True
@@ -259,7 +259,7 @@ def main():
                 computation_times = []
 
                 for topic, msg, t in bag.read_messages(topics=topics):
-                    if topic in [f"/{agent_name}/primer/log" for agent_name in agent_names]:
+                    if topic in [f"/{agent_name}/puma/log" for agent_name in agent_names]:
                         if msg.success_replanning:
                             computation_times.append(msg.ms_opt)
 

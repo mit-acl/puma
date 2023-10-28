@@ -2,9 +2,9 @@
 
 #### **Submitted to 2024 IEEE International Conference on Robotics and Automation (ICRA)**
 
-<a target="_blank" href=""><img src="./primer/imgs/pads-const-xy-circle-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, circle, constant drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/pads-linear-venn-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, partically overlapping circle, linear drfits)"></a>  
+<a target="_blank" href=""><img src="./puma/imgs/pads-const-xy-circle-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, circle, constant drifts)"></a>  <a target="_blank" href=""><img src="./puma/imgs/pads-linear-venn-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, partically overlapping circle, linear drfits)"></a>  
 
-<a target="_blank" href=""><img src="./primer/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./primer/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
+<a target="_blank" href=""><img src="./puma/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./puma/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
 ## Setup
 ### PUMA
@@ -28,18 +28,18 @@ The python scripts described below use `tmux`, and if you want to see what is go
 ### PUMA
 
 ```
-roscd primer && cd other/demos
+roscd puma && cd other/demos
 python3 uncertainty_aware_planner_demo.py
 ```
 * `uncertainty_aware_planner_demo.py` runs our uncertainty-aware planner with one dynamic obstacle and visualize it in RViz.
-* If you want to change parameters of the planner, you can take a look at `primer.yaml` in the `param` folder.
+* If you want to change parameters of the planner, you can take a look at `puma.yaml` in the `param` folder.
 * If you want to change the planner's optimization formulation, you can take a look at `main.m` in the `matlab` folder -- the details are provided in <span style="color:red">TODO</span>
-* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `primer.yaml`.
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
 
 ### Image Segmentation-based Real-time Frame Alignment
 
 ```
-roscd primer && cd other/demos
+roscd puma && cd other/demos
 python3 frame_alignment_demo.py
 ```
 * `frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in RViz.
@@ -49,10 +49,10 @@ python3 frame_alignment_demo.py
 ### Multiagent PUMA on Segmentation-based Real-time Frame Alignment
 
 ```
-roscd primer && cd other/demos
+roscd puma && cd other/demos
 python3 uncertaintyaware_planner_on_frame_alignment_demo.py
 ```
-* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `primer.yaml`.
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
 * Currently, `main.m` supports obstacle tracking and uncertainty propagation for one obstacle/agent; however, Check and DelayCheck in [Robust MADER](https://github.com/mit-acl/rmader)'s trajectory deconfliction checks potential for all the received trajectories so PUMA guarantees safety.
 
 ## Important files
@@ -66,7 +66,7 @@ python3 uncertaintyaware_planner_on_frame_alignment_demo.py
 
 * add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
 * clean up the branches
-* renaming (primer to puma)
+* renaming (puma to puma)
 
 The instructions below assume that you have ROS Noetic installed on your Linux machine.
 
@@ -137,7 +137,7 @@ sudo apt-get install ros-"${ROS_DISTRO}"-rviz-visual-tools ros-"${ROS_DISTRO}"-p
 cd ~/Desktop/ws/
 catkin build
 printf '\nsource PATH_TO_YOUR_WS/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS
-printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find primer)/../panther_compression"' >> ~/.bashrc 
+printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find puma)/../panther_compression"' >> ~/.bashrc 
 source ~/.bashrc
 ```
 
@@ -156,7 +156,7 @@ You can also use policies trained using a static obstacle. Simply change the fie
 
 If you want to...
 
-* **Use the expert:** You first need to install a linear solver (see instructions below). Then, you can use the expert by simply setting `use_expert: true`, `use_student: false` , and `pause_time_when_replanning:true` in `primer.yaml` and running `roslaunch panther simulation.launch`. 
+* **Use the expert:** You first need to install a linear solver (see instructions below). Then, you can use the expert by simply setting `use_expert: true`, `use_student: false` , and `pause_time_when_replanning:true` in `puma.yaml` and running `roslaunch panther simulation.launch`. 
 
 * **Modify the optimization problem:**, You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
 

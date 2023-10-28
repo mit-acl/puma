@@ -49,7 +49,7 @@ from pylab import *
 def plot_bar(y_axis_label, fig_name, data1, data2):
 
     # constants
-    LABELS = ["PARM", "PARM*", "PRIMER"]
+    LABELS = ["PARM", "PARM*", "PUMA"]
     X_AXIS_STEP = 0.5
     x_axis = np.arange(0, X_AXIS_STEP*len(LABELS), X_AXIS_STEP) 
 
@@ -136,7 +136,7 @@ def sort_for_plot_box_1_traj_6_traj(data):
             list.append(folder)
     
     for folder in data:
-        if "/6_traj/primer/" in folder:
+        if "/6_traj/puma/" in folder:
             list.append(folder)
     
     return list
@@ -170,7 +170,7 @@ def setBoxColors(bp):
 ##
 
 # function for setting the colors of the box plots pairs (https://stackoverflow.com/questions/16592222/matplotlib-group-boxplots)
-def setBoxColors_for_primer(bp):
+def setBoxColors_for_puma(bp):
     setp(bp['boxes'][0], color='red')
     setp(bp['caps'][0], color='red')
     setp(bp['caps'][1], color='red')
@@ -190,13 +190,13 @@ def plot_box_1_traj_6_traj(y_axis_label, fig_name, data1, data2):
     plot the data in a box plot 
     
     data1: 1 agent with 2 obstacles
-        ex. [[[1-traj-parm], [6-traj-parm]], [[1-traj-parm-star, 6-traj-parm-star]], [6-traj-primer]]
+        ex. [[[1-traj-parm], [6-traj-parm]], [[1-traj-parm-star, 6-traj-parm-star]], [6-traj-puma]]
     data2: 3 agents with 2 obstacles
-        ex. [[[1-traj-parm], [6-traj-parm]], [[1-traj-parm-star, 6-traj-parm-star]], [6-traj-primer]]
+        ex. [[[1-traj-parm], [6-traj-parm]], [[1-traj-parm-star, 6-traj-parm-star]], [6-traj-puma]]
     """
 
     # constants
-    LABELS = ["PARM", "PARM*", "PRIMER"]
+    LABELS = ["PARM", "PARM*", "PUMA"]
 
     # get rid of the top and right frame
     mpl.rcParams['axes.spines.right'] = False
@@ -217,16 +217,16 @@ def plot_box_1_traj_6_traj(y_axis_label, fig_name, data1, data2):
     # parm*
     bp_parm_star_1 = ax1.boxplot(data1[1], positions=[2.5,3], widths=0.3, showfliers=False)
     bp_parm_star_2 = ax2.boxplot(data2[1], positions=[2.5,3], widths=0.3, showfliers=False)
-    # primer
-    bp_primer_1 = ax1.boxplot(data1[2], positions=[4], widths=0.3, showfliers=False)
-    bp_primer_2 = ax2.boxplot(data2[2], positions=[4], widths=0.3, showfliers=False)
+    # puma
+    bp_puma_1 = ax1.boxplot(data1[2], positions=[4], widths=0.3, showfliers=False)
+    bp_puma_2 = ax2.boxplot(data2[2], positions=[4], widths=0.3, showfliers=False)
     # set colors
     setBoxColors(bp_parm_1)
     setBoxColors(bp_parm_2)
     setBoxColors(bp_parm_star_1)
     setBoxColors(bp_parm_star_2)
-    setBoxColors_for_primer(bp_primer_1)
-    setBoxColors_for_primer(bp_primer_2)
+    setBoxColors_for_puma(bp_puma_1)
+    setBoxColors_for_puma(bp_puma_2)
     # vertical line
     ax1.axvline(x=2, color='black', linestyle='--')
     ax1.axvline(x=3.5, color='black', linestyle='--')
@@ -264,7 +264,7 @@ def plot_box_1_traj_6_traj(y_axis_label, fig_name, data1, data2):
 def plot_box(y_axis_label, fig_name, data1, data2):
 
     # constants
-    LABELS = ["PARM", "PARM*", "PRIMER"]
+    LABELS = ["PARM", "PARM*", "PUMA"]
     X_AXIS_STEP = 1
     x_axis = np.arange(1, X_AXIS_STEP*len(LABELS)+1, X_AXIS_STEP) 
 

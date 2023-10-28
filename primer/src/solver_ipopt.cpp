@@ -115,7 +115,7 @@ casadi::DM eigenXd2CasadiMatrix(const Eigen::Matrix<double, Eigen::Dynamic, 1> &
 
 Fitter::Fitter(const int fitter_num_samples)
 {
-  std::string folder = ros::package::getPath("primer") + "/matlab/casadi_generated_files/";
+  std::string folder = ros::package::getPath("puma") + "/matlab/casadi_generated_files/";
   cf_fit3d_ = casadi::Function::load(folder + "fit3d.casadi");
   fitter_num_samples_ = fitter_num_samples;
 }
@@ -140,7 +140,7 @@ std::vector<Eigen::Vector3d> Fitter::fit(std::vector<Eigen::Vector3d> &samples)
 
 ClosedFormYawSolver::ClosedFormYawSolver()
 {
-  std::string folder = ros::package::getPath("primer") + "/matlab/casadi_generated_files/";
+  std::string folder = ros::package::getPath("puma") + "/matlab/casadi_generated_files/";
   cf_ = casadi::Function::load(folder + "get_optimal_yaw_for_fixed_pos.casadi");
 }
 
@@ -239,7 +239,7 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
   octopusSolver_ptr_ =
       std::unique_ptr<OctopusSearch>(new OctopusSearch(par_.basis, par_.num_seg, par_.deg_pos, par_.alpha_shrink));
   std::cout << bold << "SolverIpopt, reading .casadi files..." << reset << std::endl;
-  std::string folder = ros::package::getPath("primer") + "/matlab/casadi_generated_files/";
+  std::string folder = ros::package::getPath("puma") + "/matlab/casadi_generated_files/";
 
 
   if (par_.use_panther_star)

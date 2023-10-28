@@ -13,7 +13,7 @@
   <arg name="beta_faster_obst_traj" default="0.666666666666666666666"/>   
  <!--  <arg name="mode" default="panther" />  --><!--  noPA (no_perception_aware), py (first_pos_then_yaw), panther (panther) ysweep (noPA but with sweep in yaw) -->
   <arg name="num_of_obs" default="1" />  <!--  Only one obstacle is supported right now -->
-  <arg name="student_policy_path" default="$(find primer)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" /> 
+  <arg name="student_policy_path" default="$(find puma)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" /> 
 <!--   <arg name="student_policy_path" default="/home/jtorde/Dropbox (MIT)/Research/Planning_project/Deep_PANTHER/static_results/results_policies_and_MSE/Hung_epsilon_0.05.pt" />  -->
   <arg name="static_planning" default="false" />  <!-- #If true, it will always plan from the same initial condition -->
 
@@ -24,10 +24,10 @@
   <arg name="z" default="1.0" />
   <arg name="yaw" default="0.0" />
 
-  <node ns="$(arg quad)" name="commands" pkg="primer" type="commands.py" output="screen"/>
+  <node ns="$(arg quad)" name="commands" pkg="puma" type="commands.py" output="screen"/>
 
   <group unless="$(arg perfect_prediction)">
-    <include file="$(find primer)/launch/tracker_predictor.launch">
+    <include file="$(find puma)/launch/tracker_predictor.launch">
         <arg name="quad" value="$(arg quad)"/>
      </include> 
   </group>
@@ -43,16 +43,16 @@
             <arg name="yaw" default="$(arg yaw)"/>
         </include>
 
-        <node ns="$(arg quad)" name="publish_in_gazebo" pkg="primer" type="publish_in_gazebo.py" output="screen">
+        <node ns="$(arg quad)" name="publish_in_gazebo" pkg="puma" type="publish_in_gazebo.py" output="screen">
         </node>
 
     </group>
 
-    <include file="$(find primer)/launch/static_transforms.launch">
+    <include file="$(find puma)/launch/static_transforms.launch">
     </include> 
 
     <group if="$(arg perfect_controller)">
-      <node ns="$(arg quad)" name="perfect_controller" pkg="primer" type="perfect_controller.py" output="screen">
+      <node ns="$(arg quad)" name="perfect_controller" pkg="puma" type="perfect_controller.py" output="screen">
             <param name="x" value="$(arg x)"/>
             <param name="y" value="$(arg y)"/>
             <param name="z" value="$(arg z)"/>
@@ -75,23 +75,23 @@
 
   <group if="$(arg gazebo)">
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-      <arg name="world_name" value="$(find primer)/meshes/empty.world"/>
+      <arg name="world_name" value="$(find puma)/meshes/empty.world"/>
       <arg name="gui" value="$(arg gzclient)"/> <!-- Set to false if you only want gzserver (and NOT gzclient) -->
     </include>
   </group>
 
   <!-- Disable, for instance, for ssh connections -->
   <group if="$(arg rviz)">
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find primer)/rviz_cfgs/panther.rviz"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find puma)/rviz_cfgs/panther.rviz"/>
   </group>
 
   <!-- Disable, for instance, for ssh connections -->
   <group if="$(arg gui_mission)"> 
-    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find primer)/rqt_cfgs/demo_interface.perspective"/>
+    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" args="--perspective-file $(find puma)/rqt_cfgs/demo_interface.perspective"/>
   </group>
 
   <!-- <group if="$(arg environment)"> -->
-    <node name="dynamic_corridor" pkg="primer" type="dynamic_corridor.py" output="screen" args="--num_of_obs $(arg num_of_obs) --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj)"/> 
+    <node name="dynamic_corridor" pkg="puma" type="dynamic_corridor.py" output="screen" args="--num_of_obs $(arg num_of_obs) --gazebo $(arg gazebo) --type_of_obst_traj $(arg type_of_obst_traj) --alpha_scale_obst_traj $(arg alpha_scale_obst_traj) --beta_faster_obst_traj $(arg beta_faster_obst_traj)"/> 
   <!-- </group>   -->
 
   <!-- ///////////////////////////////////////////////// -->
@@ -101,11 +101,11 @@
   <!-- ///////////////////////////////////////////////// -->
   <!-- ///////  PANTHER launch   //////////// -->
 
-  <node ns="$(arg quad)" name="panther" pkg="primer" type="primer_node" output="screen" clear_params="false"> 
+  <node ns="$(arg quad)" name="panther" pkg="puma" type="puma_node" output="screen" clear_params="false"> 
 
     <!-- Parameters -->
-      <rosparam file="$(find primer)/param/primer.yaml" command="load"/>
-      <rosparam file="$(find primer)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
+      <rosparam file="$(find puma)/param/puma.yaml" command="load"/>
+      <rosparam file="$(find puma)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
       <param name="gui_mission" value="$(arg gui_mission)" /> 
       <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
       <param name="student_policy_path" value="$(arg student_policy_path)" /> 

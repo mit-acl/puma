@@ -41,7 +41,7 @@ class FastSAM_ROS:
             # t265 camera
             self.camera_name_topic = "camera/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
-            self.world_name_topic = "goal" # if you use perfect_tracker in primer, "world" won't be published.
+            self.world_name_topic = "goal" # if you use perfect_tracker in puma, "world" won't be published.
         else:
             self.camera_name_topic = "t265/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
@@ -52,7 +52,7 @@ class FastSAM_ROS:
         
         # set up FastSAM
         rospack = rospkg.RosPack()
-        path_to_fastsam = rospack.get_path('primer') + '/scripts/models/FastSAM-x.pt'
+        path_to_fastsam = rospack.get_path('puma') + '/scripts/models/FastSAM-x.pt'
         print("path_to_fastsam: ", path_to_fastsam)
         self.fastSamModel = FastSAM(path_to_fastsam)
         

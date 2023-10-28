@@ -45,10 +45,10 @@ python3 -m pip install bindings/python
 cd ../../..
 
 # Create a symlink of FastSAM to the scripts directory
-# Note that "ln -s FastSAM ../../primer/primer/scripts/FastSAM/" creates a broken link (https://mokacoding.com/blog/symliks-in-git/)
-cd primer/scripts
+# Note that "ln -s FastSAM ../../puma/puma/scripts/FastSAM/" creates a broken link (https://mokacoding.com/blog/symliks-in-git/)
+cd puma/scripts
 if [ -d "FastSAM" ]; then
     echo "FastSAM does exist so remove it and recreate a symlink"
     rm -rf FastSAM
 fi
-ln -s ../../../primer/submodules/FastSAM/ .
+ln -s ../../../puma/submodules/FastSAM/ .

@@ -70,7 +70,7 @@ fov_x_deg: 76.0 #[deg] \in (0,180] ,  angle between two faces of the tetrahedron
 fov_y_deg: 47.0 #[deg] \in (0,180] ,  angle between two faces of the tetrahedron. Vertical FOV
 fov_depth: 6.0 #[m] # this value is hard-coded in main.m. So please make sure to change fov_depth in main.m as well
 
-# Primer Setting
+# PUMA Setting
 #############################################
 use_mesh_network: false
 use_delaycheck: true

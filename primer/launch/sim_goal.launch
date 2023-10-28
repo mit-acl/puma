@@ -5,6 +5,6 @@
 	<arg name="mode"/>
 
 	<!-- Start random_goal -->
-	<node ns="$(arg quad)" name="position_exchange" pkg="primer" type="position_exchange.py" output="screen"/>
+	<node ns="$(arg quad)" name="position_exchange" pkg="puma" type="position_exchange.py" output="screen"/>
 		<param name="$(arg quad)/mode" value="$(arg mode)"/>
 </launch>

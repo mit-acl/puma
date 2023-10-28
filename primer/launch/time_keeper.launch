@@ -3,7 +3,7 @@
 
     <arg name="sim_time" default="100.0"/>
 
-	<node name="time_keeper" pkg="primer" type="time_keeper.py" output="screen">
+	<node name="time_keeper" pkg="puma" type="time_keeper.py" output="screen">
         <param name="sim_time" value="$(arg sim_time)"/>
 	</node>
 

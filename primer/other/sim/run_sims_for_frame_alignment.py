@@ -72,10 +72,10 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     """ Add topics that are agent dependent to commands """
 
     ## sim_onboard
-    commands.append(f"roslaunch --wait primer sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} perfect_controller:=true x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner:=false")
+    commands.append(f"roslaunch --wait puma sim_onboard.launch quad:={agent_name} veh:={agent_name[:2]} num:={agent_name[2:4]} perfect_controller:=true x:={0.0} y:={0.0} z:=0.0 rviz:=false use_planner:=false")
 
     ## fastsam (triggered by rosservice call /{agent_name}/pose_corrupter/start_drift)
-    commands.append(f"roslaunch --wait primer fastsam.launch quad:={agent_name} is_sim:=true")
+    commands.append(f"roslaunch --wait puma fastsam.launch quad:={agent_name} is_sim:=true")
 
     ## mot
     commands.append(f"roslaunch --wait motlee_ros mapper.launch quad:={agent_name} kappa:={kappa_mot}")
@@ -97,7 +97,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
         circle_start_type = 2
 
 
-    commands.append(f"roslaunch --wait primer pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
+    commands.append(f"roslaunch --wait puma pose_corrupter.launch quad:={agent_name} is_constant_drift:={is_constant_drift} constant_drift_x:={constant_drift_x} \
         constant_drift_y:={constant_drift_y} constant_drift_z:={constant_drift_z} constant_drift_roll:={constant_drift_roll} constant_drift_pitch:={constant_drift_pitch} \
         constant_drift_yaw:={constant_drift_yaw} is_linear_drift:={is_linear_drift} linear_drift_rate_x:={linear_drift_rate_x} linear_drift_rate_y:={linear_drift_rate_y} \
         linear_drift_rate_z:={linear_drift_rate_z} linear_drift_rate_roll:={linear_drift_rate_roll} linear_drift_rate_pitch:={linear_drift_rate_pitch} \
@@ -107,7 +107,7 @@ def agent_dependent_topics(commands, agent_name, other_agent_names, kappa_mot, t
     commands.append(f"sleep "+str(time_traj_gen)+f" &&roslaunch --wait trajectory_generator onboard.launch quad:={agent_name} circle_start_type:={circle_start_type}")
 
     ## drone marker publisher
-    # commands.append(f"sleep "+str(time_traj_gen)+f" && roslaunch --wait primer drone_marker_publisher.launch quad:={agent_name}")
+    # commands.append(f"sleep "+str(time_traj_gen)+f" && roslaunch --wait puma drone_marker_publisher.launch quad:={agent_name}")
 
     ## takeoff
     commands.append(f"sleep "+str(time_takeoff)+f" && rostopic pub -1 /{agent_name}/globalflightmode snapstack_msgs/QuadFlightMode '"+"{header: auto, mode: 4}'")
@@ -176,7 +176,7 @@ def main():
     # others
     NUM_OF_SIMS = 1
     SIM_DURATION = 100  # seconds
-    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f primer & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
+    KILL_ALL = "killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f puma & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill rmader_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f rmader_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"
     CIRCLE_CENTER = [[0.0, 0.0], [0.0, 0.0]] # [m]
     VEN_DIAG_CENTER = [[1.0, 0.0], [-1.0, 0.0]] # [m]
 
@@ -272,7 +272,7 @@ def main():
                 commands.append(f"sleep 3.0 && rosparam set /{agent_name}/trajectory_generator/center_y {int(center[idx][1])}")
 
             ## sim_base_station
-            commands.append(f"roslaunch --wait primer sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
+            commands.append(f"roslaunch --wait puma sim_base_station_fastsam.launch rviz:={USE_RVIZ} num_of_obs:={d['num_of_objects']} gui_mission:=false objects_type:={d['objects_type']}")
             
             ## for each agent we add topics for onboard fastsam/mot/trajectory_generator
             topics_to_record = ""
@@ -334,9 +334,9 @@ def main():
     ##
 
     proc_commands = []
-    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/process_frame_alignment.py -d {args.output_dir}")
-    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_frame_alignment.py -d {args.output_dir}")
-    proc_commands.append(f"python ~/Research/primer_ws/src/primer/primer/other/data_extraction/plot_animation.py -d {args.output_dir}")
+    proc_commands.append(f"python ~/Research/puma_ws/src/puma/puma/other/data_extraction/process_frame_alignment.py -d {args.output_dir}")
+    proc_commands.append(f"python ~/Research/puma_ws/src/puma/puma/other/data_extraction/plot_frame_alignment.py -d {args.output_dir}")
+    proc_commands.append(f"python ~/Research/puma_ws/src/puma/puma/other/data_extraction/plot_animation.py -d {args.output_dir}")
 
     session_name="processing"
     os.system("tmux kill-session -t" + session_name)

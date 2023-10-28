@@ -176,18 +176,18 @@ sleep 5
 # agent1
 tmux send-keys -t $SESSION:$w.1 "fly" C-m
 tmux send-keys -t $SESSION:$w.2 "cd && roslaunch --wait trajectory_generator onboard.launch quad:=${agent1_quad}" C-m
-tmux send-keys -t $SESSION:$w.3 "cd && roslaunch --wait primer fastsam.launch quad:=${agent1_quad} is_sim:=false" C-m
+tmux send-keys -t $SESSION:$w.3 "cd && roslaunch --wait puma fastsam.launch quad:=${agent1_quad} is_sim:=false" C-m
 tmux send-keys -t $SESSION:$w.4 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent1_quad} kappa:=${kappa_mot}" C-m
 tmux send-keys -t $SESSION:$w.5 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:=${agent1_quad} quad2:=[${agent2_quad}]" C-m
-tmux send-keys -t $SESSION:$w.6 "cd && roslaunch --wait primer t265.launch quad:=${agent1_quad}" C-m
+tmux send-keys -t $SESSION:$w.6 "cd && roslaunch --wait puma t265.launch quad:=${agent1_quad}" C-m
 
 # agent2
 tmux send-keys -t $SESSION:$w.8 "fly" C-m
 tmux send-keys -t $SESSION:$w.9 "cd && roslaunch --wait trajectory_generator onboard.launch quad:=${agent2_quad}" C-m
-tmux send-keys -t $SESSION:$w.10 "cd && roslaunch --wait primer fastsam.launch quad:=${agent2_quad} is_sim:=false" C-m
+tmux send-keys -t $SESSION:$w.10 "cd && roslaunch --wait puma fastsam.launch quad:=${agent2_quad} is_sim:=false" C-m
 tmux send-keys -t $SESSION:$w.11 "cd && roslaunch --wait motlee_ros mapper.launch quad:=${agent2_quad} kappa:=${kappa_mot}" C-m
 tmux send-keys -t $SESSION:$w.12 "cd && roslaunch --wait motlee_ros frame_aligner.launch quad1:=${agent2_quad} quad2:=[${agent1_quad}]" C-m
-tmux send-keys -t $SESSION:$w.13 "cd && roslaunch --wait primer t265.launch quad:=${agent2_quad}" C-m
+tmux send-keys -t $SESSION:$w.13 "cd && roslaunch --wait puma t265.launch quad:=${agent2_quad}" C-m
 
 # attach to the session
 tmux -2 attach-session -t $SESSION

@@ -111,7 +111,7 @@ def startNode(x_goal_list, y_goal_list, z_goal_list):
     assert len(x_goal_list) == len(y_goal_list) == len(z_goal_list)
     for i in range(len(x_goal_list)):
         call_back_function = getattr(c, "SQ%02ds_is_readyCB" % (i+1))
-        rospy.Subscriber("/SQ%02ds/primer/is_ready" % (i+1), IsReady, call_back_function)
+        rospy.Subscriber("/SQ%02ds/puma/is_ready" % (i+1), IsReady, call_back_function)
     
     rospy.Timer(rospy.Duration(1.0), c.is_ready_checker)
     rospy.spin()

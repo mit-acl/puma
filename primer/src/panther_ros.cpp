@@ -474,7 +474,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
       std::cout << "agent name initialized" << agent << std::endl;
       if (myns != agent)
       {  // if my namespace is the same as the agent, then it's you
-        sub_traj_list_.push_back(nh1_.subscribe(agent + "/primer/trajs", 3, &PantherRos::trajCB,
+        sub_traj_list_.push_back(nh1_.subscribe(agent + "/puma/trajs", 3, &PantherRos::trajCB,
                                                 this));  // The number is the queue size
       }
     }

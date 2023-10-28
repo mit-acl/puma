@@ -96,7 +96,7 @@ TrackerPredictor::TrackerPredictor(ros::NodeHandle nh) : nh_(nh)
 
   for (int i = min_size_sliding_window_; i <= max_size_sliding_window_; i++)
   {
-    std::string folder = ros::package::getPath("primer") + "/matlab/casadi_generated_files/";
+    std::string folder = ros::package::getPath("puma") + "/matlab/casadi_generated_files/";
 
     cf_get_mean_variance_pred_[i] =
         casadi::Function::load(folder + "get_mean_variance_pred_" + std::to_string(i) + ".casadi");
