@@ -2,9 +2,20 @@
 if output=$(rosversion -d); then
     if [[ "$output" != "noetic" ]]; then
         echo "ROS Noetic not installed! Please install the full version of ROS Noetic before preceding (http://wiki.ros.org/noetic/Installation/Ubuntu)."
+        exit
     fi
 else
     echo "No ROS installed! Please install the full version of ROS Noetic before preceding (http://wiki.ros.org/noetic/Installation/Ubuntu)."
+    exit
+fi
+
+# Get the directory the script is running in
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Check that the repo was cloned into the correct directory
+if [[ $SCRIPT_DIR != *"/ws/src/puma" ]]; then
+  echo "PUMA was not cloned into /ws/src! Please move the repo and try again."
+  exit
 fi
 
 # Install IPOPT (optionally with HSL solvers)
@@ -103,13 +114,8 @@ activate_puma_venv
 # Setup git lfs
 sudo apt-get install git-lfs ccache 
 
-# Setup the workspace folders
-mkdir -p ~/code && cd ~/code
-mkdir -p ws && cd ws && mkdir -p src && cd src
-
-# Clone the repo
-git clone https://github.com/mit-acl/puma.git
-cd puma
+# Move into the PUMA directory
+cd $SCRIPT_DIR
 
 # Install git lfs
 git lfs install
@@ -125,7 +131,7 @@ sudo apt-get install python3-catkin-tools #To use catkin build
 sudo apt-get install ros-"${ROS_DISTRO}"-rviz-visual-tools ros-"${ROS_DISTRO}"-pybind11-catkin ros-"${ROS_DISTRO}"-tf2-sensor-msgs ros-"${ROS_DISTRO}"-jsk-rviz-plugins
 
 # Go back into the workspace and buidl puma
-cd ~/code/ws
+cd $SCRIPT_DIR/../..
 catkin build
 
 # Insert commands to add PUMA developments files to path and source it
