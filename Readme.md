@@ -6,15 +6,28 @@
 
 <a target="_blank" href=""><img src="./puma/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./puma/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
-## Setup
-### PUMA
+## YouTube Video
+[https://www.youtube.com/watch?v=W73p42XRcaQ](https://www.youtube.com/watch?v=W73p42XRcaQ)
 
+## Citation
+
+(ICRA24 Paper) [PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment]() ([pdf]()):
+
+```bibtex
+
+```
+
+## Setup
+PUMA has been tested with Ubuntu 20.04/ROS Noetic.
+
+### PUMA
+To set up an environment for PUMA, run the following script.
 ```
 ./install_puma_deps.bash
 ```
 
 ### Image Segmentation-based Real-time Frame Alignment
-
+To set up an environment for the frame alignment pipeline, run the following script.
 ```
 ./install_fastsam_deps.bash
 ```
@@ -33,7 +46,7 @@ python3 uncertainty_aware_planner_demo.py
 ```
 * `uncertainty_aware_planner_demo.py` runs our uncertainty-aware planner with one dynamic obstacle and visualize it in RViz.
 * If you want to change parameters of the planner, you can take a look at `puma.yaml` in the `param` folder.
-* If you want to change the planner's optimization formulation, you can take a look at `main.m` in the `matlab` folder -- the details are provided in <span style="color:red">TODO</span>
+* If you want to change the planner's optimization formulation, you can take a look at `main.m` in the `matlab` folder.
 * Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
 
 ### Image Segmentation-based Real-time Frame Alignment
