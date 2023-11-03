@@ -1,157 +1,84 @@
 # PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment #
 
-## General Setup
+#### **Submitted to 2024 IEEE International Conference on Robotics and Automation (ICRA)**
 
-Deep-PANTHER has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/panther/issues) if you have any problems.
+<a target="_blank" href=""><img src="./puma/imgs/pads-const-xy-circle-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, circle, constant drifts)"></a>  <a target="_blank" href=""><img src="./puma/imgs/pads-linear-venn-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline (pads, partically overlapping circle, linear drfits)"></a>  
 
-The instructions below assume that you have ROS Noetic installed on your Linux machine.
+<a target="_blank" href=""><img src="./puma/imgs/random-linear-puma-gif.gif" width="400" height="221" alt="Image segmentation-based real-time frame alignment pipeline with PUMA (random objects, linear drifts)"></a>  <a target="_blank" href=""><img src="./puma/imgs/hw-gif.gif" width="400" height="221" style="margin:20px 20px" alt="Hardware experiments: image segmentation-based real-time frame alignment pipeline (pads, circle)"></a>  
 
-### <ins>Dependencies<ins>
+## YouTube Video
+[https://www.youtube.com/watch?v=W73p42XRcaQ](https://www.youtube.com/watch?v=W73p42XRcaQ)
 
-> Note: the instructions below are partly taken from [here](https://github.com/casadi/casadi/wiki/InstallationLinux#installation-on-linux)
+## Citation
 
-#### IPOPT
-Install IPOPT and CoinHSL solvers as described [here](https://github.com/ami-iit/ami-commons/blob/master/doc/casadi-ipopt-hsl.md). Skip the casdai instllations and put this in your `~/.bashrc` insteade of what is listed.
-```bash
-export IPOPT_DIR=~/robot-code/CoinIpopt/install
-export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${IPOPT_DIR}/lib/pkgconfig
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${IPOPT_DIR}/lib
-export PATH=${PATH}:${IPOPT_DIR}/lib
-```
+(ICRA24 Paper) [PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment]() ([pdf]()):
 
-#### CasADi
-```bash
-sudo apt-get remove swig swig3.0 swig4.0 #If you don't do this, the compilation of casadi may fail with the error "swig error : Unrecognized option -matlab"
-mkdir ~/installations && cd ~/installations
-git clone https://github.com/jaeandersson/swig
-cd swig
-git checkout -b matlab-customdoc origin/matlab-customdoc        
-sh autogen.sh
-sudo apt-get install gcc-7 g++-7 bison byacc
-./configure CXX=g++-7 CC=gcc-7            
-make
-sudo make install
-
-
-cd ~/installations && mkdir casadi && cd casadi
-git clone https://github.com/casadi/casadi
-cd casadi
-git checkout 3.5.5
-#cd build && make clean && cd .. && rm -rf build #Only if you want to clean any previous installation/compilation 
-mkdir build && cd build
-cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_IPOPT=ON -DWITH_MATLAB=OFF -DWITH_PYTHON=ON -DWITH_DEEPBIND=ON ..
-#You may need to run the command above twice until the output says that `Ipopt` has been detected (although `IPOPT` is also being detected when you run it for the first time)
-make -j20
-sudo make install
-```
-#### Virtual Python environment
-```bash
-sudo apt-get install python3-venv
-cd ~/installations && mkdir venvs_python && cd venvs_python 
-python3 -m venv ./my_venv
-printf '\nalias activate_my_venv="source ~/installations/venvs_python/my_venv/bin/activate"' >> ~/.bashrc
-source ~/.bashrc
-activate_my_venv
-```
-
-### <ins>Compilation<ins>
-And finally download the repo and compile it:
-
-```bash
-sudo apt-get install git-lfs ccache 
-cd ~/Desktop/
-mkdir ws && cd ws && mkdir src && cd src
-git clone https://github.com/mit-acl/deep_panther
-cd deep_panther
-git lfs install
-git submodule init && git submodule update
-cd panther_compression/imitation
-pip install numpy Cython wheel seals rospkg defusedxml empy pyquaternion pytest
-pip install -e .
-sudo apt-get install python3-catkin-tools #To use catkin build
-sudo apt-get install ros-"${ROS_DISTRO}"-rviz-visual-tools ros-"${ROS_DISTRO}"-pybind11-catkin ros-"${ROS_DISTRO}"-tf2-sensor-msgs ros-"${ROS_DISTRO}"-jsk-rviz-plugins
-cd ~/Desktop/ws/
-catkin build
-printf '\nsource PATH_TO_YOUR_WS/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS
-printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find primer)/../panther_compression"' >> ~/.bashrc 
-source ~/.bashrc
-```
-
-## Usage
-
-Simply use:
-```bash
-roslaunch panther simulation.launch
+```bibtex
 
 ```
 
-Wait until the terminal says `Planner initialized`. Then, you can press G (or click the option 2D Nav Goal on the top bar of RVIZ) and click any goal for the drone. By default, `simulation.launch` will use the policy Hung_dynamic_obstacles.pt (which was trained with trefoil-knot trajectories). You can change the trajectory followed by the obstacle during testing using the `type_of_obst_traj` field of the launch file.
+## Setup
+PUMA has been tested with Ubuntu 20.04/ROS Noetic.
 
-You can also use policies trained using a static obstacle. Simply change the field `student_policy_path` of `simulation.launch`. The available policies have the format `A_epsilon_B.pt`, where `A` is the algorithm used: Hungarian (i.e., LSA), RWTAc, or RWTAr. `B` is the epsilon used. Note that this epsilon is irrelevant for the LSA algorithm. Check the paper for further details. 
+### PUMA
+To set up an environment for PUMA, run the following script.
+```
+./install_puma_deps.bash
+```
 
+### Image Segmentation-based Real-time Frame Alignment
+To set up an environment for the frame alignment pipeline, run the following script.
+```
+./install_fastsam_deps.bash
+```
+
+## Demos
+
+PUMA has been tested with Ubuntu 20.04/ROS Noetic. Other Ubuntu/ROS version may need some minor modifications, feel free to [create an issue](https://github.com/mit-acl/puma/issues) if you have any problems.
+
+The python scripts described below use `tmux`, and if you want to see what is going on in the background, use `tmux attach`.
+
+### PUMA
+
+```
+roscd puma && cd other/demos
+python3 uncertainty_aware_planner_demo.py
+```
+* `uncertainty_aware_planner_demo.py` runs our uncertainty-aware planner with one dynamic obstacle and visualize it in RViz.
+* If you want to change parameters of the planner, you can take a look at `puma.yaml` in the `param` folder.
+* If you want to change the planner's optimization formulation, you can take a look at `main.m` in the `matlab` folder.
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
+
+### Image Segmentation-based Real-time Frame Alignment
+
+```
+roscd puma && cd other/demos
+python3 frame_alignment_demo.py
+```
+* `frame_alignment_demo.py` runs our frame alignment algorithm and visualize it in RViz.
+* If you want to record a bag, pass `True` to `--record_bag` and specify where to save a rosbag in `--output_dir`. 
+* If you don't have CUDA on your computer, change `self.DEVICE` in `fastsam.py` to `cpu`.
+
+### Multiagent PUMA on Segmentation-based Real-time Frame Alignment
+
+```
+roscd puma && cd other/demos
+python3 uncertaintyaware_planner_on_frame_alignment_demo.py
+```
+* Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
+* Currently, `main.m` supports obstacle tracking and uncertainty propagation for one obstacle/agent; however, Check and DelayCheck in [Robust MADER](https://github.com/mit-acl/rmader)'s trajectory deconfliction checks potential for all the received trajectories so PUMA guarantees safety.
+
+## Important files
 
 If you want to...
 
-* **Use the expert:** You first need to install a linear solver (see instructions below). Then, you can use the expert by simply setting `use_expert: true`, `use_student: false` , and `pause_time_when_replanning:true` in `primer.yaml` and running `roslaunch panther simulation.launch`. 
-
+* **Tune PUMA's cost functions:** `main.m`
+  * Required matlab add-ons: Phased Array System Toolbox, Statistics and Machine Learning Toolbox, Symbolic Math Toolbox
+  * PUMA is develped on MATLAB R2022b -- symvar related error on MATLAB R2023b. 
+* **Take a look at how we implemented FastSAM:** `fastsam.py`.
 * **Modify the optimization problem:**, You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
 
-* **Train the policy:** You first need to install a linear solver (see instructions below). Then, you can train a new policy but simply running `python3 policy_compression_train.py` inside the `panther_compression` folder. 
+## TODOs
 
-Debug...
-
-undefined reference to `PyFrame_GetBack' -> (unofficial solution) build in master first and then move to uncertainty-aware-predictor branch)
-
-
-
-<details>
-  <summary> <b>MATLAB (optional dependency)</b></summary>
-
-First, when installing CasADi following the instructions above, you need to use `-DWITH_MATLAB=ON` instead of `-DWITH_MATLAB=OFF`. Then do the following:
-
-```bash
-#Open MATLAB, and type this:
-edit(fullfile(userpath,'startup.m'))
-#And in that file, add this line line 
-addpath(genpath('/usr/local/matlab/'))
-```
-
-Now, you can restart Matlab (or run the file `startup.m`), and make sure this works:
-
-```bash
-import casadi.*
-x = MX.sym('x')
-disp(jacobian(sin(x),x))
-```
-
-</details>
-
-<details>
-  <summary> <b>Linear Solver (optional dependency)</b></summary>
-
-Go to [http://www.hsl.rl.ac.uk/ipopt/](http://www.hsl.rl.ac.uk/ipopt/), click on `Personal Licence, Source` to install the solver `MA27` (free for everyone), and fill and submit the form. Once you receive the corresponding email, download the compressed file, uncompress it, and place it in the folder `~/installations` (for example). Then execute the following commands:
-
-> Note: the instructions below follow [this](https://github.com/casadi/casadi/wiki/Obtaining-HSL) closely
-
-```bash
-cd ~/installations/coinhsl-2015.06.23
-wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz #This is the metis version used in the configure file of coinhsl
-tar xvzf metis-4.0.3.tar.gz
-#sudo make uninstall && sudo make clean #Only needed if you have installed it before
-./configure LIBS="-llapack" --with-blas="-L/usr/lib -lblas" CXXFLAGS="-g -O3 -fopenmp" FCFLAGS="-g -O3 -fopenmp" CFLAGS="-g -O3 -fopenmp" #the output should say `checking for metis to compile... yes`
-sudo make install #(the files will go to /usr/local/lib)
-cd /usr/local/lib
-sudo ln -s libcoinhsl.so libhsl.so #(This creates a symbolic link `libhsl.so` pointing to `libcoinhsl.so`). See https://github.com/casadi/casadi/issues/1437
-echo "export LD_LIBRARY_PATH='\${LD_LIBRARY_PATH}:/usr/local/lib'" >> ~/.bashrc
-```
-
-<details>
-  <summary> <b>Note</b></summary>
-
-We recommend to use `MA27`. Alternatively, you can install both `MA27` and `MA57` by clicking on `Coin-HSL Full (Stable) Source` (free for academia) in [http://www.hsl.rl.ac.uk/ipopt/](http://www.hsl.rl.ac.uk/ipopt/) and then following the instructions above. Other alternative is to use the default `mumps` solver (no additional installation required), but its much slower than `MA27` or `MA57` You can change the linear solver used by changing the name of `linear_solver_name` in the file `main.m` and run that file.
-
-Moreover, when using a linear solver different from `mumps`, you may need to start Matlab from the terminal (typing `matlab`). More info [in this issue](https://github.com/casadi/casadi/issues/2032). 
-
-</details>
-
-</details>
+* add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
+* clean up the branches

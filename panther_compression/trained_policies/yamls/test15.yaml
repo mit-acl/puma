@@ -58,7 +58,7 @@ fov_x_deg: 76.0 #[deg] \in (0,180] ,  angle between two faces of the tetrahedron
 fov_y_deg: 47.0 #[deg] \in (0,180] ,  angle between two faces of the tetrahedron. Vertical FOV
 fov_depth: 5.0 #[m]
 
-# Primer Setting
+# PUMA Setting
 #############################################
 is_multiagent: false
 use_delaycheck: false
