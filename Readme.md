@@ -76,9 +76,4 @@ If you want to...
   * Required matlab add-ons: Phased Array System Toolbox, Statistics and Machine Learning Toolbox, Symbolic Math Toolbox
   * PUMA is develped on MATLAB R2022b -- symvar related error on MATLAB R2023b. 
 * **Take a look at how we implemented FastSAM:** `fastsam.py`.
-* **Modify the optimization problem:**, You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
-
-## TODOs
-
-* add arXiv link (in readme and the "about" section on the top right), Youtube link, citation template
-* clean up the branches
+* **Modify the optimization problem:** You will need to have MATLAB installed (especifically, you will need the `Symbolic Math Toolbox` and the `Phased Array System Toolbox` installed), and follow the steps detailed in the MATLAB section below. You can then make any modification in the optimization problem by modifying the file `main.m`, and then running it. This will generate all the necessary `.casadi` files in the `casadi_generated_files` folder, which will be read by the C++ code.
