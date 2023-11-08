@@ -11,10 +11,15 @@
 
 ## Citation
 
-(ICRA24 Paper) [PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment]() ([pdf]()):
+(ICRA24 Paper) [PUMA: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment](https://arxiv.org/abs/2311.03655):
 
 ```bibtex
-
+@article{kondo2023puma,
+  title={{PUMA}: Fully Decentralized Uncertainty-aware Multiagent Trajectory Planner with Real-time Image Segmentation-based Frame Alignment},
+  author={Kondo, Kota and Tewari T. Claudius and Peterson, B. Mason and Thomas, Annika and Kinnari, Jouko and Tagliabue, Andrea and How, Jonathan P},
+  journal={arXiv preprint arXiv:2311.03655},
+  year={2023}
+}
 ```
 
 ## Setup
