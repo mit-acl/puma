@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <arg name="num_of_agents" default="1"/>
+
+	<node name="goal_reached_checker" pkg="puma" type="goal_reached_checker.py" output="screen">
+        <param name="num_of_agents" value="$(arg num_of_agents)"/>
+	</node>
+
+</launch>

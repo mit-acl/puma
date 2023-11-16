@@ -8,4 +8,7 @@
 *core
 *.o
 .vscode/*
+*.pyc
 build
+puma/matlab/casadi_generated_files copy/*
+puma/scripts/FastSAM

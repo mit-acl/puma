@@ -1,156 +1,240 @@
+import math
+import os
+from tempfile import TemporaryDirectory
+from typing import Tuple
+
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import TensorDataset, DataLoader
+from torch import nn, Tensor
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from torch.utils.data import dataset
+
+from torchtext.datasets import WikiText2
+from torchtext.data.utils import get_tokenizer
+from torchtext.vocab import build_vocab_from_iterator
+
+import time
 
 
-class Net(nn.Module):
-    def __init__(self, transformer_input_size, agent_state_size, transformer_hidden_state_size, fc1_output_size, fc2_output_size):
-        super(Net, self).__init__()
-        
-        self.transformer = nn.Transformer(d_model=transformer_input_size)
-        self.fc1 = nn.Linear(transformer_input_size+agent_state_size, fc1_output_size)  # +1 because we are adding one more input to the second layer
-        self.fc2 = nn.Linear(fc1_output_size, fc2_output_size)  
-    
-    def forward(self, sa, so):
-        # so is input to the transformer layer, y is the input to the second fully connected layer
-        transformer_out, (h_n, c_n) = self.transformer(so)
-        last_h = transformer_out[-1] # get the last output from the transformer layer
-        fc1_input = torch.cat([last_h, sa]) # concatenate the output from fc1 and the extra input
-        fc2_input = self.fc1(fc1_input)
-        output = self.fc2(fc2_input)
+##
+## Transformer model
+##
+
+class TransformerModel(nn.Module):
+
+    def __init__(self, ntoken: int, d_model: int, nhead: int, d_hid: int,
+                 nlayers: int, dropout: float = 0.5):
+        super().__init__()
+        self.model_type = 'Transformer'
+        self.pos_encoder = PositionalEncoding(d_model, dropout)
+        encoder_layers = TransformerEncoderLayer(d_model, nhead, d_hid, dropout)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.embedding = nn.Embedding(ntoken, d_model)
+        self.d_model = d_model
+        self.linear = nn.Linear(d_model, ntoken)
+
+        self.init_weights()
+
+    def init_weights(self) -> None:
+        initrange = 0.1
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+        self.linear.bias.data.zero_()
+        self.linear.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, src: Tensor, src_mask: Tensor = None) -> Tensor:
+        """
+        Arguments:
+            src: Tensor, shape ``[seq_len, batch_size]``
+            src_mask: Tensor, shape ``[seq_len, seq_len]``
+
+        Returns:
+            output Tensor of shape ``[seq_len, batch_size, ntoken]``
+        """
+        src = self.embedding(src) * math.sqrt(self.d_model)
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src, src_mask)
+        output = self.linear(output)
         return output
-
-# ref: https://discuss.pytorch.org/t/extract-features-from-layer-of-submodule-of-a-model/20181/12
-activation = {}
-def get_activation(name):
-    def hook(model, input, output):
-        activation[name] = output[0].detach().numpy()
-        # activation[name] = output.detach()
-    return hook
-
+    
 ##
-## initilization
+## Positional encoding
 ##
 
-##
-## define the net
-##
+class PositionalEncoding(nn.Module):
 
-m = 300 # total number of samples
-transformer_input_size = 10
-num_of_recurrent_input = 3 # this will the total number of obstacles in the env (transformer should be able to handle it when it changes) 
-agent_state_size = 1 # each sample has n_agent inputs
-transformer_hidden_state_size = 5 # hidden state size (= the size of h vector (output of transformer))
-fc1_output_size = 10
-fc2_output_size = 5
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
 
-model = Net(transformer_input_size, agent_state_size, transformer_hidden_state_size, fc1_output_size, fc2_output_size)
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
 
-##
-## data set
-##
-
-state_agent = torch.randn(m, agent_state_size) 
-state_obst = torch.randn(m, num_of_recurrent_input, transformer_input_size)
-target_tensor = torch.randn(m, fc2_output_size)
-
-dataset = TensorDataset(state_agent, state_obst, target_tensor)
-# dataloader = DataLoader(dataset, batch_size=100, shuffle=True)
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Arguments:
+            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """
+        x = x + self.pe[:x.size(0)]
+        return self.dropout(x)
 
 ##
-## define a loss function and optimier
+## Data processing
+##
+
+train_iter = WikiText2(split='train')
+tokenizer = get_tokenizer('basic_english')
+vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>'])
+vocab.set_default_index(vocab['<unk>'])
+
+def data_process(raw_text_iter: dataset.IterableDataset) -> Tensor:
+    """Converts raw text into a flat Tensor."""
+    data = [torch.tensor(vocab(tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
+    return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
+
+# ``train_iter`` was "consumed" by the process of building the vocab,
+# so we have to create it again
+train_iter, val_iter, test_iter = WikiText2()
+train_data = data_process(train_iter)
+val_data = data_process(val_iter)
+test_data = data_process(test_iter)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+def batchify(data: Tensor, bsz: int) -> Tensor:
+    """Divides the data into ``bsz`` separate sequences, removing extra elements
+    that wouldn't cleanly fit.
+
+    Arguments:
+        data: Tensor, shape ``[N]``
+        bsz: int, batch size
+
+    Returns:
+        Tensor of shape ``[N // bsz, bsz]``
+    """
+    seq_len = data.size(0) // bsz
+    data = data[:seq_len * bsz]
+    data = data.view(bsz, seq_len).t().contiguous()
+    return data.to(device)
+
+batch_size = 20
+eval_batch_size = 10
+train_data = batchify(train_data, batch_size)  # shape ``[seq_len, batch_size]``
+val_data = batchify(val_data, eval_batch_size)
+test_data = batchify(test_data, eval_batch_size)
+
+bptt = 35
+def get_batch(source: Tensor, i: int) -> Tuple[Tensor, Tensor]:
+    """
+    Args:
+        source: Tensor, shape ``[full_seq_len, batch_size]``
+        i: int
+
+    Returns:
+        tuple (data, target), where data has shape ``[seq_len, batch_size]`` and
+        target has shape ``[seq_len * batch_size]``
+    """
+    seq_len = min(bptt, len(source) - 1 - i)
+    data = source[i:i+seq_len]
+    target = source[i+1:i+1+seq_len].reshape(-1)
+    return data, target
+
+##
+## Initilization
+##
+
+ntokens = len(vocab)  # size of vocabulary
+emsize = 200  # embedding dimension
+d_hid = 200  # dimension of the feedforward network model in ``nn.TransformerEncoder``
+nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
+nhead = 2  # number of heads in ``nn.MultiheadAttention``
+dropout = 0.2  # dropout probability
+model = TransformerModel(ntokens, emsize, nhead, d_hid, nlayers, dropout).to(device)
+
+##
+## Run the model
 ##
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+lr = 5.0  # learning rate
+optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
 
-##
-## training
-##
+def train(model: nn.Module) -> None:
+    model.train()  # turn on train mode
+    total_loss = 0.
+    log_interval = 200
+    start_time = time.time()
 
-num_epochs = 10
-model.transformer.register_forward_hook(get_activation('transformer'))
-for epoch in range(num_epochs):
-    running_loss = 0.0
-    for i, data in enumerate(dataset):
-        sa, so, y = data  # Assuming your training data is in the format (input sequence, additional input, target output)
+    num_batches = len(train_data) // bptt
+    for batch, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
+        data, targets = get_batch(train_data, i)
+        output = model(data)
+        output_flat = output.view(-1, ntokens)
+        loss = criterion(output_flat, targets)
+
         optimizer.zero_grad()
-        output = model(sa, so)
-        print(activation['transformer'])
-        
-        loss = criterion(output, y)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
         optimizer.step()
 
-        # Print statistics
-        running_loss += loss.item()
-        if i % 100 == 99:    # Print every 100 batches
-            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-            running_loss = 0.0
+        total_loss += loss.item()
+        if batch % log_interval == 0 and batch > 0:
+            lr = scheduler.get_last_lr()[0]
+            ms_per_batch = (time.time() - start_time) * 1000 / log_interval
+            cur_loss = total_loss / log_interval
+            ppl = math.exp(cur_loss)
+            print(f'| epoch {epoch:3d} | {batch:5d}/{num_batches:5d} batches | '
+                  f'lr {lr:02.2f} | ms/batch {ms_per_batch:5.2f} | '
+                  f'loss {cur_loss:5.2f} | ppl {ppl:8.2f}')
+            total_loss = 0
+            start_time = time.time()
 
-# class Net(nn.Module):
-#     def __init__(self, transformer_input_size):
-#         super(Net, self).__init__()
-#         self.transformer = nn.Transformer() #d_model=20)
-#         self.fc1 = nn.Linear(11, 11)  # +1 because we are adding one more input to the second layer
-#         self.fc2 = nn.Linear(11, 5)  
-    
-#     def forward(self, sa, so):
-#         # so is input to the transformer layer, y is the input to the second fully connected layer
-#         transformer_out, _ = self.transformer(so)
-#         # print(transformer_out[-1])
-#         # print(sa)
-#         last_h = transformer_out[-1]
-#         fc1_input = torch.cat([last_h, sa]) # concatenate the output from fc1 and the extra input
-#         fc2_input = self.fc1(fc1_input)
-#         output = self.fc2(fc2_input)
-#         return output
+def evaluate(model: nn.Module, eval_data: Tensor) -> float:
+    model.eval()  # turn on evaluation mode
+    total_loss = 0.
+    with torch.no_grad():
+        for i in range(0, eval_data.size(0) - 1, bptt):
+            data, targets = get_batch(eval_data, i)
+            seq_len = data.size(0)
+            output = model(data)
+            output_flat = output.view(-1, ntokens)
+            total_loss += seq_len * criterion(output_flat, targets).item()
+    return total_loss / (len(eval_data) - 1)
 
-# ##
-# ## initilization
-# ##
+best_val_loss = float('inf')
+epochs = 3
 
-# ##
-# ## define the net
-# ##
+with TemporaryDirectory() as tempdir:
+    best_model_params_path = os.path.join(tempdir, "best_model_params.pt")
 
-# net = Net(transformer_input_size=10)
+    for epoch in range(1, epochs + 1):
+        epoch_start_time = time.time()
+        train(model)
+        val_loss = evaluate(model, val_data)
+        val_ppl = math.exp(val_loss)
+        elapsed = time.time() - epoch_start_time
+        print('-' * 89)
+        print(f'| end of epoch {epoch:3d} | time: {elapsed:5.2f}s | '
+            f'valid loss {val_loss:5.2f} | valid ppl {val_ppl:8.2f}')
+        print('-' * 89)
 
-# ##
-# ## data set
-# ##
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), best_model_params_path)
 
-# sa = torch.randn(300, 1)  # m = 300, input_size = 1
-# so = torch.randn(300, 20, 10)  # m = 300, n = 20, input_size = 10
-# target_tensor = torch.randn(300, 5)  # m = 3, output_size = 1 
+        scheduler.step()
+    model.load_state_dict(torch.load(best_model_params_path)) # load best model states
 
-# dataset = TensorDataset(sa, so, target_tensor)
-# # dataloader = DataLoader(dataset, batch_size=100, shuffle=True)
-# ##
-# ## define a loss function and optimier
-# ##
+##
+## Evaluate the model with the test dataset
+##
 
-# criterion = nn.CrossEntropyLoss()
-# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-# ##
-# ## training
-# ##
-
-# num_epochs = 10
-# for epoch in range(num_epochs):
-#     running_loss = 0.0
-#     for i, data in enumerate(dataset):
-#         sa, so, y = data  # Assuming your training data is in the format (input sequence, additional input, target output)
-#         optimizer.zero_grad()
-#         output = net(sa, so)
-#         loss = criterion(output, y)
-#         loss.backward()
-#         optimizer.step()
-
-#         # Print statistics
-#         running_loss += loss.item()
-#         if i % 100 == 99:    # Print every 100 batches
-#             print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-#             running_loss = 0.0
+test_loss = evaluate(model, test_data)
+test_ppl = math.exp(test_loss)
+print('=' * 89)
+print(f'| End of training | test loss {test_loss:5.2f} | '
+      f'test ppl {test_ppl:8.2f}')
+print('=' * 89)

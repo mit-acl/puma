@@ -22,4 +22,21 @@
 [submodule "panther_compression/imitation"]
 	path = panther_compression/imitation
 	url = https://github.com/kotakondo/imitation.git
-
+[submodule "submodules/motlee_ros"]
+	path = submodules/motlee_ros
+	url = https://gitlab.com/mit-acl/dmot/motlee_ros.git
+[submodule "submodules/trajectory_generator"]
+        path = submodules/trajectory_generator
+        url = https://gitlab.com/mit-acl/fsw/trajectory_generator.git
+[submodule "submodules/motlee"]
+        path = submodules/motlee
+        url = https://gitlab.com/mit-acl/dmot/motlee.git
+[submodule "submodules/motlee_ros"]
+        path = submodules/motlee_ros
+        url = https://gitlab.com/mit-acl/dmot/motlee_ros.git
+[submodule "submodules/clipper"]
+        path = submodules/clipper
+        url = https://github.com/mit-acl/clipper.git
+[submodule "submodules/FastSAM"]
+		path = submodules/FastSAM
+		url = https://github.com/CASIA-IVA-Lab/FastSAM.git
