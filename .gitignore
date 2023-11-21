@@ -12,3 +12,8 @@
 build
 puma/matlab/casadi_generated_files copy/*
 puma/scripts/FastSAM
+/data
+/puma/panther_compression/test_scripts/*.pt
+/puma/panther_compression/test_scripts/*.csv
+/puma/panther_compression/test_scripts/*.npy
+/puma/panther_compression/test_scripts/ml-latest-small
