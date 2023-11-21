@@ -14,7 +14,3 @@
 /matlab/figures
 /other/sim/1_traj
 /other/sim/6_traj
-/data
-/panther_compression/test_scripts/*.pt
-/panther_compression/test_scripts/*.csv
-/panther_compression/test_scripts/*.npy
