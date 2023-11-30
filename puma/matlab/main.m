@@ -102,7 +102,7 @@ for i=1:num_max_of_obst
     fitter.uncertainty_ctrl_pts{i}=opti.parameter(fitter.dim_pos,fitter_num_of_cps); %This comes from C++
     fitter.uncertainty_bs_casadi{i}=MyCasadiClampedUniformSpline(0,1,fitter.deg_pos,fitter.dim_pos,fitter.num_seg,fitter.uncertainty_ctrl_pts{i}, false);
 end
-fitter.bs=       MyClampedUniformSpline(0,1, fitter.deg_pos, fitter.dim_pos, fitter.num_seg, opti);
+fitter.bs=MyClampedUniformSpline(0,1, fitter.deg_pos, fitter.dim_pos, fitter.num_seg, opti);
 %The total time of the fit past obstacle trajectory (horizon length[NOTE: This is also the max horizon length of the drone's trajectory])
 fitter.total_time=4.0; %Time from (time at point d) to end of the fitted spline
 
@@ -356,22 +356,22 @@ end
 t_opt_n_samples=linspace(0,1,sampler.num_samples);
 
 %%
-%% Moving direction uncertainty
+%% Direction of motion uncertainty
 %%
 
 replan_times = linspace(0,1,num_seg);
 
-moving_direction_lookup_horizon = 0.0 / fitter.total_time; %TODO: make this a parameter
+moving_direction_lookup_horizon = tf_n / 10.0; %TODO: make this a parameter (not sure but tf_n / num_seg didn't work)
 moving_direction_uncertainty_list = [];
 moving_direction_sigma_list = [];
 moving_direction_uncertainty_times = [];
 replan_time_index = 1;
 sigma_i = diag(drone_initial_variance);
-for j=1:num_seg
+for j = 0:num_seg-1
     t_n= (1 / num_seg) * j;  %Note that fitter.bs_casadi{i}.knots=[0...1]
         
     % get the look-up pos of trajectory
-    looked_up_pos=sp.getPosT(min(t_n + moving_direction_lookup_horizon, 1.0));
+    looked_up_pos=sp.getPosT( min( t_n + moving_direction_lookup_horizon, tf_n ) );
 
     % Propagate uncertainty
     sigma_p = F * sigma_i * F';
@@ -701,7 +701,7 @@ j_max_value=50*ones(3,1);
 alpha_value=15.0;
 
 sigma_0_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-max_variance_value = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0];
+max_variance_value = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0];
 max_variance_for_moving_direction_value = [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0];
 drone_initial_variance_value = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
 infeasibility_adjust_value = 0.001;
