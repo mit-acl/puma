@@ -425,6 +425,7 @@ bool SolverIpopt::isInCollision(mt::state state, double t)
 
 void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obstacles_for_opt)
 {
+
   obstacles_for_opt_ = obstacles_for_opt;
 
   ////// Set the hulls for use in Octopus Search
@@ -447,12 +448,11 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
     {
       std::vector<double> times =
           linspace(t_init_ + j * deltaT, t_init_ + (j + 1) * deltaT, par_.disc_pts_per_interval_oct_search);
-      VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there are 8 vertexes
+      VertexesInterval vertexes_interval_j(3, 8 * times.size());  // For each sample, there 1 are 8 vertexes
 
       for (int k = 0; k < times.size(); k++)
       {
         mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
-
         Eigen::Vector3d delta;
         if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
           delta = obstacle_i.bbox_inflated / 2.0;
@@ -1153,17 +1153,17 @@ bool SolverIpopt::optimize(bool supress_all_prints)
       ///////////////////////////
 
       // Print the uncertainty vectors and times
-      std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
-      for (auto &tmp : solution.obstacle_uncertainty_list)
-      {
-        std::cout << tmp.transpose() << std::endl;
-      }
+      // std::cout << "solution.obstacle_uncertainty_list= " << std::endl;
+      // for (auto &tmp : solution.obstacle_uncertainty_list)
+      // {
+      //   std::cout << tmp.transpose() << std::endl;
+      // }
 
-      std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
-      for (auto &tmp : solution.obstacle_uncertainty_times)
-      {
-        std::cout << tmp << std::endl;
-      }
+      // std::cout << "solution.obstacle_uncertainty_times= " << std::endl;
+      // for (auto &tmp : solution.obstacle_uncertainty_times)
+      // {
+      //   std::cout << tmp << std::endl;
+      // }
 
       ///////////////////////////
       // solution.fillTraj(par_.dc);

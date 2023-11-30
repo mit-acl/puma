@@ -252,11 +252,10 @@ class MyEnvironment(gym.Env):
     f_observation = self.om.get_fObservationFrom_w_stateAnd_w_gtermAnd_w_obstacles(self.w_state, self.gm.get_w_GTermPos(), self.w_obstacles_and_other_agents)
     f_observation_n = self.om.normalizeObservation(f_observation)
 
-
     ##
     ## Calculate distance
     ##
-
+ 
     dist_current_2gterm=np.linalg.norm(self.w_state.w_pos-self.gm.get_w_GTermPos()) #From the current position to the goal
     dist_endtraj_2gterm=np.linalg.norm(w_posBS.getLastPos()-self.gm.get_w_GTermPos()) #From the end of the current traj to the goal
     self.prev_dist_current2goal = dist_current_2gterm
@@ -322,7 +321,7 @@ class MyEnvironment(gym.Env):
     self.timestep = 0
     self.force_done=False
 
-    p0=np.array([[0.0],[0.0],[1.0]])
+    p0=np.array([[0.0],[0.0],[0.0]])
     v0=np.array([[0.0],[0.0],[0.0]])
     a0=np.array([[0.0],[0.0],[0.0]])
     y0=np.array([[0.0]])

@@ -36,9 +36,9 @@ x_min: -15.0  # [m] don't forget the .0  , be careful with setting these to extr
 x_max: 15.0   # [m] don't forget the .0
 y_min: -15.0  # [m] don't forget the .0
 y_max: 15.0   # [m] don't forget the .0
-z_min: 1.0   #[m] points below this are considered ground
+z_min: -1.0   #[m] points below this are considered ground
 z_max: 5.0    #[m] 
-ydot_max: 1.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
+ydot_max: 5.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
 v_max: [10.0, 10.0, 10.0]   #[m/s]  7.0
 a_max: [15.0, 15.0, 15.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
 j_max: [20.0, 20.0, 20.0]   #[m/s3] 
@@ -96,13 +96,13 @@ max_num_of_initial_guesses: 10 # (n_runs in Table I)
 drone_extra_radius_for_NN: 0.0  #(m) Used for collision checking
 use_closed_form_yaw_student: false #If false, the NN will predict this closed form for the yaw angle
 make_yaw_NN: false
-prob_choose_cross: 0.8 # how much you wanna choose cross obstacle in training [0.1]
+prob_choose_cross: 1.0 # how much you wanna choose cross obstacle in training [0.1]
 # training env space size
-training_env_x_max: 10.0
-training_env_x_min: -10.0
-training_env_y_max: 10.0
-training_env_y_min: -10.0
-training_env_z_max: 2.0 # note that agent initial pos_z = 1.0
+training_env_x_max: 20.0
+training_env_x_min: -20.0
+training_env_y_max: 20.0
+training_env_y_min: -20.0
+training_env_z_max: 2.0 # note that agent initial pos_z = 0.0
 training_env_z_min: -2.0 # it is important to have negative z since planning is in agent frame # note that agent initial pos_z = 1.0
 # used for normalizatoin
 max_dist2goal: 25.0
@@ -116,33 +116,33 @@ margin_a_factor: 1.5 #relaxation factor for training constraints used in Observa
 # because of precision error you will see a very small violation of ydot (eg. 1.0000000002143), so it's nice to keep the margin_ydot_factor a little bit bigger
 margin_ydot_factor: 1.5 #relaxation factor for training constraints used in ObservationManager()
 margin_yaw_factor: 1.5 #relaxation factor for training constraints used in ActionManager()
-training_obst_size: [0.3, 0.3, 0.3] #obstacle size in training env
+training_obst_size: [0.5, 0.5, 0.5] #obstacle size in training env
 training_other_agent_size: [0.05, 0.05, 0.05] #agent size in training env
 use_dynamic_obst_in_training: true
-use_other_agents_in_training: true
+use_other_agents_in_training: false
 use_expert_for_other_agents_in_training: true
 random_num_of_obstacles_in_training: false # need to get rid of this  # if this is True, # of obstacles is [1,num_of_obstacles_in_training]
 # num_of_obstacles_in_training + num_of_other_agents_in_training should not be bigger than num_max_of_obst defined in params_casadi.yaml(main.m)
-num_of_obstacles_in_training: 2
+num_of_obstacles_in_training: 1
 num_of_other_agents_in_training: 1
 use_clipping: false
 use_noised_obst_size: false # (1) observation of obstacles are noised
-goal_seen_radius_training: 1.5 # [m]
+goal_seen_radius_training: 0.5 # [m]
 
 #############################################
 # LSTM
 #############################################
 
 # lstm:
-use_lstm: true # use LSTM?
+use_lstm: false # use LSTM?
 use_bn: false # use batch normalization after LSTM
 lstm_dropout: 0.0
 lstm_output_dim: 64
 lstm_num_layers: 1 # if it's more than 1, it is stacked LSTM
 lstm_bidirectional: false
 
-# lstm_oa:
-use_lstm_oa: true # set up LSTM for oa = other agents?
+# lstm_oa: (other agent)
+use_lstm_oa: false # set up LSTM for oa = other agents?
 use_bn_oa: false # use batch normalization after LSTM
 lstm_dropout_oa: 0.0
 lstm_output_dim_oa: 64

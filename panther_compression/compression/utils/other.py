@@ -306,14 +306,14 @@ class ObstaclesManager():
 		w_pos_obstacle = []
 		center = np.zeros((3,1))
 		for i in range(self.num_obs):
-			radius_obstacle_pos = random.uniform(3-1, 3+1)
+			radius_obstacle_pos = random.uniform(4, 6)
 			std_deg = 30
 			theta_obs = random.uniform(-std_deg*np.pi/180, std_deg*np.pi/180) 
 			height_g_term = random.uniform(self.params["training_env_z_min"], self.params["training_env_z_max"])
 			height_obstacle = height_g_term + random.uniform(-0.25, 0.25)
 			w_pos_obstacle.append(center + np.array([[radius_obstacle_pos*math.cos(theta_obs)],[radius_obstacle_pos*math.sin(theta_obs)],[height_obstacle]]))
 		
-		w_pos_g_term = center + np.array([[random.uniform(5.0, 7.0)], [0.0], [0.0]])
+		w_pos_g_term = center + np.array([[random.uniform(10.0, 12.0)], [0.0], [0.0]])
 		# w_pos_g_term = center + np.array([[10.0], [0.0], [0.0]])
 
 		return w_pos_obstacle, w_pos_g_term
@@ -322,13 +322,11 @@ class ObstaclesManager():
 
 		w_obs=[]
 		for i in range(self.num_obs):
-			w_ctrl_pts_ob=np.array([[],[],[]])
-			for j in range(self.fitter_num_seg + self.fitter_deg_pos):
-				w_ctrl_pts_ob=np.concatenate((w_ctrl_pts_ob, self.random_pos[i]), axis=1)
-				# w_ctrl_pts_ob.append(np.array([[2],[2],[2]]))
+			w_ctrl_pts_ob = self.random_pos[i].copy()
+			for j in range(1, self.fitter_num_seg + self.fitter_deg_pos):
+				w_ctrl_pts_ob=np.concatenate((w_ctrl_pts_ob, self.random_pos[i].copy()), axis=1)
 
-			bbox_inflated= self.bbox_inflated
-			w_obs.append(Obstacle(w_ctrl_pts_ob, bbox_inflated))
+			w_obs.append(Obstacle(w_ctrl_pts_ob, self.bbox_inflated))
 
 		return w_obs
 
@@ -561,7 +559,6 @@ class OtherAgentsManager():
 		"""
 		print("call policy in other agent manager")
 		oaf_action_n = self.policy.predict(oaf_obs_n)
-
 		return oaf_action_n[0]
 
 	def get_oaf_obs_from_w_obs(self, w_obstacles):
@@ -817,6 +814,12 @@ class ObservationManager():
 		margin_a=margin_a_factor * math.sqrt(3) #math.sqrt(3)
 		margin_ydot=margin_ydot_factor
 
+		# initial variance
+		self.initial_position_variance_multiplier = params["initial_position_variance_multiplier"]
+		self.initial_velocity_variance_multiplier = params["initial_velocity_variance_multiplier"]
+		self.initial_acceleration_variance_multiplier = params["initial_acceleration_variance_multiplier"]
+		self.drone_initial_variance = params["drone_initial_variance"]
+
 		# for agent's own state
 		self.normalization_constant=np.concatenate((margin_v*self.v_max.T*ones13, margin_a*self.a_max.T*ones13, margin_ydot*self.ydot_max*np.ones((1,1)), self.Ra*ones13), axis=1)
 		
@@ -1004,7 +1007,19 @@ class ObservationManager():
 			obstacle=py_panther.obstacleForOpt()
 			obstacle.ctrl_pts=ctrl_pts
 			obstacle.bbox_inflated=bbox_inflated
-			obstacles.append(obstacle)
+
+			# Uncertaity parameters for obstacles
+			# TODO: get values from puma.yaml
+			# But if we want to test with dynamic obstacles, we might need to properly porpagate uncertainty.
+			# Note that uncertainty_ctrl_pts are only used in Octopus Search.
+			# Note that sigma_0 is only used in optimization (main.m)
+			obstacle.uncertainty_ctrl_pts = [[0.1*j, 0.1*j, 0.1*j] for j in range(self.obsm.getCPsPerObstacle())]
+
+			initial_pos_variance = self.initial_position_variance_multiplier * np.array(self.drone_initial_variance[:3])
+			initial_vel_variance = self.initial_velocity_variance_multiplier * np.array(self.drone_initial_variance[3:6])
+			initial_accel_variance = self.initial_acceleration_variance_multiplier * np.array(self.drone_initial_variance[6:])
+			obstacle.sigma_0 = np.stack((initial_pos_variance, initial_vel_variance, initial_accel_variance), axis=0).reshape(9,1)
+			obstacles.append(obstacle) # Add obstacle to the list
 		return obstacles
 
 	def getInit_f_StateFromObservation(self, obs):
