@@ -34,7 +34,6 @@ from random import random, shuffle
 from colorama import init, Fore, Back, Style
 import py_panther
 from joblib import Parallel, delayed
-import multiprocessing
 
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.nn import GATConv, to_hetero, HeteroConv, Linear, HGTConv
@@ -360,12 +359,12 @@ def generate_dataset(f_obs_ns, true_trajs, device):
                                                                                         [0],  # idx of target nodes (observation)
                                                                                         ],dtype=th.int64)
         data["goal_state", "dist_to_goal_state", "current_state"].edge_index = th.tensor([
-                                                                                        [],  # idx of source nodes (goal state)
-                                                                                        [],  # idx of target nodes (current state)
+                                                                                        [0],  # idx of source nodes (goal state)
+                                                                                        [0],  # idx of target nodes (current state)
                                                                                         ],dtype=th.int64)
         data["observation", "dist_to_observation", "current_state"].edge_index = th.tensor([
-                                                                                        [],  # idx of source nodes (observation)
-                                                                                        [],  # idx of target nodes (current state)
+                                                                                        [0],  # idx of source nodes (observation)
+                                                                                        [0],  # idx of target nodes (current state)
                                                                                         ],dtype=th.int64)
 
         # add edge weights
@@ -718,13 +717,13 @@ def evaluate_performance(model, data, f_obs_n, true_traj):
 
     exit()
 
-
-
 def get_latest_model(dir_idx):
-    files = os.listdir(f"models/dir-{dir_idx}/")
+    dir = "../evals/tmp_dagger/2/" # f"models/dir-{dir_idx}/"
+    files = os.listdir(dir)
     files = [file for file in files if file.endswith('.pt')]
     files.sort()
-    file = f"models/dir-{dir_idx}/"+files[-1]
+    file = dir+files[-1]
+    print(f"loaded {file}")
     model = th.load(file).to('cpu')
     return model
 
@@ -864,23 +863,29 @@ if __name__ == "__main__":
         " ********************* LOAD DATA ********************* "
 
         # list npz files in the directory
-        dir = "../evals/tmp_dagger/2/demos/round-000/"
-        # dir = "../evals_tmp/tmp_dagger/2/demos/round-000/"
-        files = os.listdir(dir)
-        files = [dir + file for file in files if file.endswith('.npz')]
-
-        # loop over files
+        dirs = "../evals/tmp_dagger/2/demos/"
+        # dirs = "../evals_tmp/tmp_dagger/2/demos/"
+        # loop over dirs
         obs_data = th.tensor([]).to(device)
         traj_data = th.tensor([]).to(device)
-        for idx, file in enumerate(files):
-            
-            data = np.load(file) # load data
-            obs = data['obs'][:-1] # remove the last observation (since it is the observation of the goal state)
-            acts = data['acts'] # actions
+        # list dirs in dirs
+        dirs = subfolders = [ f.path for f in os.scandir(dirs) if f.is_dir() ]
+        for dir in dirs:
 
-            # append to the data
-            obs_data = th.cat((obs_data, th.tensor(obs).to(device)), 0).to(device)
-            traj_data = th.cat((traj_data, th.tensor(acts).to(device)), 0).to(device)
+            print("READING DATA FROM: ", dir, "\n")
+
+            files = os.listdir(dir)
+            files = [dir + '/' + file for file in files if file.endswith('.npz')]
+
+            for idx, file in enumerate(files):
+                
+                data = np.load(file) # load data
+                obs = data['obs'][:-1] # remove the last observation (since it is the observation of the goal state)
+                acts = data['acts'] # actions
+
+                # append to the data
+                obs_data = th.cat((obs_data, th.tensor(obs).to(device)), 0).to(device)
+                traj_data = th.cat((traj_data, th.tensor(acts).to(device)), 0).to(device)
         
         " ********************* LOOP TO COLLECT f_obs_n and true_traj ********************* "
 
@@ -915,12 +920,12 @@ if __name__ == "__main__":
     if IS_TRAIN_MODEL:
 
         # hyper parameters loop
-        hidden_channels_list = [512]
-        num_heads_list = [4]
-        num_layers_list = [4, 8]
+        hidden_channels_list = [64]
+        num_heads_list = [2]
+        num_layers_list = [2]
         group_list = ['sum', 'mean'] # 'mean'
-        num_linear_layers_list = [2, 4]
-        linear_hidden_channels_list = [512]
+        num_linear_layers_list = [2]
+        linear_hidden_channels_list = [128]
         num_of_trajs_per_replan = 10
         num_of_all_the_combinations = len(hidden_channels_list)*len(num_heads_list)*len(num_layers_list)*len(group_list)*len(num_linear_layers_list)*len(linear_hidden_channels_list)
 
@@ -952,13 +957,15 @@ if __name__ == "__main__":
 
     if IS_VISUALIZE_TRAJ:
         print("VISUALIZING TRAJECTORY")
+        dirs = os.listdir("models/")
         for data_idx, data in enumerate(dataset):
-            data = data.to('cpu')
-            true_traj = true_trajs[data_idx].clone().detach().unsqueeze(0).to('cpu')
-            f_obs_n = f_obs_ns[data_idx].clone().detach().unsqueeze(0).to('cpu')
-            # load the latest model (grab the latest .pt file in the models directory)
-            dirs = os.listdir("models/")
+            print("data_idx: ", data_idx)
             for dir_idx in range(len(dirs)-1):
+                print("dir_idx: ", dir_idx)
+                data = data.to('cpu')
+                true_traj = true_trajs[data_idx].clone().detach().unsqueeze(0).to('cpu')
+                f_obs_n = f_obs_ns[data_idx].clone().detach().unsqueeze(0).to('cpu')
+                # load the latest model (grab the latest .pt file in the models directory)
                 visualize_trajectory(get_latest_model(dir_idx), data, f_obs_n, true_traj)
     
     if IS_EVALUATE_PERFORMANCE:
