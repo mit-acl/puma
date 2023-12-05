@@ -110,8 +110,7 @@ def build_dataset(batch_size, device):
     " ********************* LOAD DATA ********************* "
 
     # list npz files in the directory
-    dirs = "../evals/tmp_dagger/2/demos/"
-    # dirs = "../evals_tmp/tmp_dagger/2/demos/"
+    dirs = "evals/tmp_dagger/2/demos/"
     # loop over dirs
     obs_data = th.tensor([]).to(device)
     traj_data = th.tensor([]).to(device)
@@ -443,7 +442,7 @@ def train(config=None):
         # train
         for epoch in range(epochs):
 
-            print(f"\nEpoch: {epoch}/{epochs}")
+            print(f"Epoch: {epoch}/{epochs}")
 
             # Batch loop
             avg_loss = train_epoch(model, train_loader, optimizer)
@@ -454,10 +453,6 @@ def train(config=None):
 
 if __name__ == "__main__":
 
-    # args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--count', type=int, default=100, help='count for wandb sweep')
-    args = parser.parse_args()
 
     device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 
@@ -472,6 +467,28 @@ if __name__ == "__main__":
         'batch_size': 32,
         'epochs': 20,
     }
+
+    # args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--hidden_channels', default=default_config['hidden_channels'], type=int)
+    parser.add_argument('--num_heads', default=default_config['num_heads'], type=int)
+    parser.add_argument('--num_layers', default=default_config['num_layers'], type=int)
+    parser.add_argument('--group', default=default_config['group'], type=str)
+    parser.add_argument('--num_linear_layers', default=default_config['num_linear_layers'], type=int)
+    parser.add_argument('--linear_hidden_channels', default=default_config['linear_hidden_channels'], type=int)
+    parser.add_argument('--batch_size', default=default_config['batch_size'], type=int)
+    parser.add_argument('--epochs', default=default_config['epochs'], type=int)
+    args = parser.parse_args()
+
+    # update default_config
+    default_config['hidden_channels'] = args.hidden_channels
+    default_config['num_heads'] = args.num_heads
+    default_config['num_layers'] = args.num_layers
+    default_config['group'] = args.group
+    default_config['num_linear_layers'] = args.num_linear_layers
+    default_config['linear_hidden_channels'] = args.linear_hidden_channels
+    default_config['batch_size'] = args.batch_size
+    default_config['epochs'] = args.epochs
 
     # wandb
     train(default_config)
