@@ -373,7 +373,7 @@ def calculate_loss(pred_traj, true_traj, traj_size_pos_ctrl_pts, traj_size_yaw_c
 
 " ********************* TRAIN EPOCH ********************* "
 
-def train_epoch(model, loader, optimizer):
+def train_epoch(model, loader, optimizer, yaw_loss_weight):
 
     """
     This function trains the model and return the loss
@@ -387,7 +387,7 @@ def train_epoch(model, loader, optimizer):
         optimizer.zero_grad() # reset the gradient of all variables
         predicted_traj = model(batch.x_dict, batch.edge_index_dict)
 
-        loss, stats_dict = calculate_loss(predicted_traj, batch.true_traj, 15, 6, 1, device)
+        loss, stats_dict = calculate_loss(predicted_traj, batch.true_traj, 15, 6, yaw_loss_weight, device)
         
         # compute the gradient
         loss.backward()
@@ -426,6 +426,7 @@ def train(config=None):
         epochs = config.epochs
         batch_size = config.batch_size
         num_of_trajs_per_replan = 10
+        yaw_loss_weight = config.yaw_loss_weight
 
         # build dataset
         train_loader = build_dataset(batch_size, device)
@@ -445,7 +446,7 @@ def train(config=None):
             print(f"Epoch: {epoch}/{epochs}")
 
             # Batch loop
-            avg_loss = train_epoch(model, train_loader, optimizer)
+            avg_loss = train_epoch(model, train_loader, optimizer, yaw_loss_weight)
             wandb.log({"loss": avg_loss, "epoch": epoch})
 
 " ********************* MAIN  ********************* "
@@ -466,6 +467,7 @@ if __name__ == "__main__":
         'linear_hidden_channels': 64,
         'batch_size': 32,
         'epochs': 20,
+        'yaw_loss_weight': 100.0,
     }
 
     # args
@@ -478,6 +480,7 @@ if __name__ == "__main__":
     parser.add_argument('--linear_hidden_channels', default=default_config['linear_hidden_channels'], type=int)
     parser.add_argument('--batch_size', default=default_config['batch_size'], type=int)
     parser.add_argument('--epochs', default=default_config['epochs'], type=int)
+    parser.add_argument('--yaw_loss_weight', default=default_config['yaw_loss_weight'], type=float)
     args = parser.parse_args()
 
     # update default_config
@@ -489,6 +492,7 @@ if __name__ == "__main__":
     default_config['linear_hidden_channels'] = args.linear_hidden_channels
     default_config['batch_size'] = args.batch_size
     default_config['epochs'] = args.epochs
+    default_config['yaw_loss_weight'] = args.yaw_loss_weight
 
     # wandb
     train(default_config)
