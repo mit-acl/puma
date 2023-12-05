@@ -20,5 +20,5 @@ panther_compression/test_scripts/ml-latest-small
 panther_compression/test_scripts/ml-latest-small.zip
 panther_compression/evals_tmp
 panther_compression/evals_dyn_obst
-panther_compression/evals
 panther_compression/test_scripts/models
+panther_compression/test_scripts/wandb

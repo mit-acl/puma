@@ -13,25 +13,16 @@ import os
 import tempfile
 import time
 import argparse
-import gym
 import numpy as np
-import pprint
-from stable_baselines3.common import on_policy_algorithm
 import torch
 import random
-from tqdm import trange
 import subprocess
-from colorama import init, Fore, Back, Style
-from imitation.policies import serialize
+from colorama import Fore, Style
 from imitation.util import util, logger
 from imitation.algorithms import bc
 from compression.policies.ExpertPolicy import ExpertPolicy
-from compression.utils.train import make_dagger_trainer, make_bc_trainer, make_simple_dagger_trainer
+from compression.utils.train import make_simple_dagger_trainer
 from compression.utils.eval import evaluate_policy
-from compression.utils.other import readPANTHERparams
-from stable_baselines3.common.env_checker import check_env
-from joblib import Parallel, delayed
-import multiprocessing
 from IPython.core import ultratb
 
 
@@ -103,7 +94,7 @@ def preliminary_evaluation(test_venv, expert_policy, LOG_PATH, args, trainer):
 
 
 
-def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, 
+def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group, 
                num_linear_layers, linear_hidden_channels, out_channels, num_of_trajs_per_replan,
                batch_size, N_EPOCHS, use_lr_scheduler, lr, evaluation_data_size, weight_prob,
                reuse_latest_policy, use_one_zero_beta, only_collect_data, record_bag, launch_tensorboard,
@@ -200,7 +191,7 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
                                             expert_policy=expert_policy, type_loss=args.type_loss, only_test_loss=args.only_test_loss, 
                                             epsilon_RWTA=args.epsilon_RWTA, reuse_latest_policy=reuse_latest_policy, 
                                             use_one_zero_beta=use_one_zero_beta,
-                                            gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads, 
+                                            gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads, group=group, 
                                             num_linear_layers=num_linear_layers, linear_hidden_channels=linear_hidden_channels, out_channels=out_channels,
                                             num_of_trajs_per_replan=num_of_trajs_per_replan, train_evaluation_rate=train_evaluation_rate)
 
@@ -210,7 +201,7 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
                                                     evaluation_data_size=evaluation_data_size, weight_prob=weight_prob, expert_policy=expert_policy, 
                                                     type_loss=args.type_loss, only_test_loss=args.only_test_loss, epsilon_RWTA=args.epsilon_RWTA, 
                                                     reuse_latest_policy=reuse_latest_policy, use_one_zero_beta=True,
-                                                    gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads,
+                                                    gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads, group=group,
                                                     num_linear_layers=num_linear_layers, linear_hidden_channels=linear_hidden_channels, out_channels=out_channels,
                                                     num_of_trajs_per_replan=num_of_trajs_per_replan, train_evaluation_rate=train_evaluation_rate)
 
@@ -333,7 +324,7 @@ def main():
 
     parser.add_argument("-t", "--use-test-run-params", default=False, type=str2bool)
     parser.add_argument("--only_test_loss", type=str2bool, default=False)
-    DEFAULT_N_ROUNDS = 100 if not parser.parse_args().use_test_run_params else 1
+    DEFAULT_N_ROUNDS = 100 if not parser.parse_args().use_test_run_params else 100
     DEFAULT_TOTAL_DEMOS_PER_ROUND = 256*5 if not parser.parse_args().use_test_run_params else 10
     only_collect_data = False # when you want to collect data and not train student
 
@@ -354,15 +345,15 @@ def main():
     parser.add_argument("--rampdown_rounds", default=5, type=int) # learning rate rampdown rounds
     parser.add_argument("--train_len_episode_max_steps", default=100, type=int)
     parser.add_argument("--test_len_episode_max_steps", default=50, type=int)
-    parser.add_argument("--n_rounds", default=DEFAULT_N_ROUNDS, type=int) 
-    parser.add_argument("--total_demos_per_round", default=DEFAULT_TOTAL_DEMOS_PER_ROUND, type=int)    
+    parser.add_argument("--n_rounds", default=DEFAULT_N_ROUNDS, type=int)
+    parser.add_argument("--total_demos_per_round", default=DEFAULT_TOTAL_DEMOS_PER_ROUND, type=int)
     parser.add_argument("--train", dest='train', action='store_false')
     parser.add_argument("--eval", dest='eval', action='store_false')
     parser.add_argument("--init_eval", dest='init_eval', action='store_true')
     parser.add_argument("--final_eval", dest='final_eval', action='store_true')
     parser.add_argument("--use_only_last_collected_dataset", dest='use_only_last_coll_ds', action='store_true')
     parser.add_argument("--evaluation_data_collection", dest='evaluation_data_collection', action='store_true')
-    train_only_from_existing_data = False # when you want to train student only from existing data
+    train_only_from_existing_data = True # when you want to train student only from existing data
     reuse_previous_samples = True # use the existing data?
     reuse_latest_policy = False # reuse the latest_policy?
 
@@ -370,34 +361,33 @@ def main():
 
     parser.add_argument("--type_loss", type=str, default="Hung") 
     parser.add_argument("--epsilon_RWTA", type=float, default=0.05)
-    batch_size = 256 if not parser.parse_args().use_test_run_params else 5 # batch size
-    N_EPOCHS = 50 # epoch size
-    use_lr_scheduler = True # use learning rate schedule?
+    batch_size = 128 if not parser.parse_args().use_test_run_params else 5 # batch size
+    N_EPOCHS = 50 if not parser.parse_args().use_test_run_params else 1 # epoch size
+    use_lr_scheduler = False # use learning rate schedule?
     lr = 1e-3 # constant learning rate (if use_lr_scheduler is False)
     weight_prob = 0.005 # probably not used
     num_envs = 10 if parser.parse_args().use_test_run_params else 16  # number of environments
 
     ## Data collection params
-
     record_bag = False # record bags?
     launch_tensorboard = True # use tensorboard?
     verbose_python_errors = False # verbose python errors?
     log_interval = 200 # log stats after every log_interval batches.
-    train_evaluation_rate = 0.9
+    train_evaluation_rate = 1.0 # split the data into train and eval sets (train_evaluation_rate is the percentage of data that goes into the train set)
 
     ## GNN params
 
-    gnn_hidden_channels=512
-    gnn_num_layers=4
-    gnn_num_heads=4
-    num_linear_layers=4
-    linear_hidden_channels=512
-    out_channels=22 # 22 is the number of actions (traj size)
-    num_of_trajs_per_replan=10
+    gnn_hidden_channels = 128 # the size of the hidden layer in GNN
+    gnn_num_layers = 2 # the number of GNN layers
+    gnn_num_heads = 2 # the number of heads in GNN
+    group = 'mean' # 'sum'
+    num_linear_layers = 8 # the number of linear layers following GNN
+    linear_hidden_channels = 128 # the size of the hidden layer in the linear layers following GNN
+    out_channels = 22 # 22 is the number of actions (traj size)
+    num_of_trajs_per_replan = 10 # number of trajectories per replan
 
     ## expose args and params
     args = parser.parse_args()
-    params = readPANTHERparams()
     
     " ********************* Housekeeping *********************"
 
@@ -463,7 +453,7 @@ def main():
     " ********************* main_train ********************* "
 
     thread_count = 0
-    main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, 
+    main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group,
                num_linear_layers, linear_hidden_channels, out_channels, num_of_trajs_per_replan,
                batch_size, N_EPOCHS, use_lr_scheduler, lr, evaluation_data_size, weight_prob,
                reuse_latest_policy, use_one_zero_beta, only_collect_data, record_bag, launch_tensorboard,

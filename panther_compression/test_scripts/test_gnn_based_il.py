@@ -339,6 +339,7 @@ def generate_dataset(f_obs_ns, true_trajs, device):
         feature_vector_for_obs = f_obs_ns[i][10:].clone().detach().unsqueeze(0).to('cpu')
         dist_current_state_goal = th.tensor([np.linalg.norm(feature_vector_for_goal[0][:3])], dtype=th.double).to(device)
         dist_current_state_obs = th.tensor([np.linalg.norm(feature_vector_for_obs[0][:3])], dtype=th.double).to(device)
+        dist_goal_obs = th.tensor([np.linalg.norm(feature_vector_for_goal[0][:3] - feature_vector_for_obs[0][:3])], dtype=th.double).to(device)
 
         " ********************* MAKE A DATA OBJECT FOR HETEROGENEUS GRAPH ********************* "
 
@@ -350,29 +351,39 @@ def generate_dataset(f_obs_ns, true_trajs, device):
         data["observation"].x = feature_vector_for_obs # [number of "observation" nodes, size of feature vector]
 
         # add edges
-        data["current_state", "dist_to_goal_state", "goal_state"].edge_index = th.tensor([
+        data["current_state", "dist_state_to_goal", "goal_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (current state)
                                                                                         [0],  # idx of target nodes (goal state)
                                                                                         ],dtype=th.int64)
-        data["current_state", "dist_to_observation", "observation"].edge_index = th.tensor([
+        data["current_state", "dist_state_to_observation", "observation"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (current state)
                                                                                         [0],  # idx of target nodes (observation)
                                                                                         ],dtype=th.int64)
-        data["goal_state", "dist_to_goal_state", "current_state"].edge_index = th.tensor([
+        data["goal_state", "dist_goal_to_state", "current_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (goal state)
                                                                                         [0],  # idx of target nodes (current state)
                                                                                         ],dtype=th.int64)
-        data["observation", "dist_to_observation", "current_state"].edge_index = th.tensor([
+        data["observation", "dist_observation_to_state", "current_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (observation)
                                                                                         [0],  # idx of target nodes (current state)
                                                                                         ],dtype=th.int64)
+        data["observation", "dist_observation_to_goal", "goal_state"].edge_index = th.tensor([
+                                                                                        [0],  # idx of source nodes (observation)
+                                                                                        [0],  # idx of target nodes (goal state)
+                                                                                        ],dtype=th.int64)
+        data["goal_state", "dist_goal_to_observation", "observation"].edge_index = th.tensor([
+                                                                                        [0],  # idx of source nodes (goal state)
+                                                                                        [0],  # idx of target nodes (observation)
+                                                                                        ],dtype=th.int64)
 
         # add edge weights
-        data["current_state", "dist_to_goal_state", "goal_state"].edge_attr = dist_current_state_goal
-        data["current_state", "dist_to_observation", "observation"].edge_attr = dist_current_state_obs
+        data["current_state", "dist_state_to_goal", "goal_state"].edge_attr = dist_current_state_goal
+        data["current_state", "dist_state_to_observation", "observation"].edge_attr = dist_current_state_obs
+        data["observation", "dist_observation_to_goal", "goal_state"].edge_attr = dist_goal_obs
         # make it undirected
-        data["goal_state", "dist_to_goal_state", "current_state"].edge_attr = dist_current_state_goal
-        data["observation", "dist_to_observation", "current_state"].edge_attr = dist_current_state_obs
+        data["goal_state", "dist_goal_to_state", "current_state"].edge_attr = dist_current_state_goal
+        data["observation", "dist_observation_to_state", "current_state"].edge_attr = dist_current_state_obs
+        data["goal_state", "dist_goal_to_observation", "observation"].edge_attr = dist_goal_obs
 
         # add ground truth trajectory
         if not IS_TRAIN_ONLY_POS:

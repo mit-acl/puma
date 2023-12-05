@@ -12,7 +12,7 @@ from compression.utils.other import ExpertDidntSucceed, ActionManager
 
 def make_simple_dagger_trainer(tmpdir, eval_dir, venv, rampdown_rounds, custom_logger, lr, batch_size, 
                                evaluation_data_size, weight_prob, expert_policy, type_loss, use_one_zero_beta, 
-                               gnn_hidden_channels, gnn_num_layers, gnn_num_heads, num_linear_layers,
+                               gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group, num_linear_layers,
                                linear_hidden_channels, out_channels, num_of_trajs_per_replan,
                                only_test_loss=False, epsilon_RWTA=0.05, reuse_latest_policy=True, use_lr_scheduler=True, train_evaluation_rate=0.9):
 
@@ -33,6 +33,7 @@ def make_simple_dagger_trainer(tmpdir, eval_dir, venv, rampdown_rounds, custom_l
                                     gnn_hidden_channels=gnn_hidden_channels,
                                     gnn_num_layers=gnn_num_layers,
                                     gnn_num_heads=gnn_num_heads,
+                                    group=group,
                                     num_linear_layers=num_linear_layers,
                                     linear_hidden_channels=linear_hidden_channels,
                                     out_channels=out_channels,
