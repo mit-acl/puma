@@ -1,6 +1,6 @@
 name: gnn architecture search 
 description: try different parameters for gnn architecture
-program: puma_wandb.sweeps.py
+program: puma_wandb_sweeps.py
 method: bayes
 metric:
   name: loss
