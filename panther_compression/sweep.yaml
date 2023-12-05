@@ -1,0 +1,24 @@
+name: gnn architecture search 
+description: try different parameters for gnn architecture
+program: puma_wandb.sweeps.py
+method: bayes
+metric:
+  name: loss
+  goal: minimize
+parameters:
+  hidden_channels:
+    values: [32, 64, 128, 256]
+  num_heads:
+    values: [2, 4, 8]
+  num_layers:
+    values: [2, 4, 8]
+  group:
+    values: ['sum', 'mean', 'max']
+  num_linear_layers:
+    values: [2, 4, 8]
+  linear_hidden_channels:
+    values: [32, 64, 128, 256, 512]
+  batch_size:
+    values: [32, 64, 128, 256]
+  epochs:
+    values: [20, 40]
