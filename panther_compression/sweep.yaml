@@ -7,20 +7,20 @@ metric:
   goal: minimize
 parameters:
   hidden_channels:
-    values: [32, 64, 128]
+    values: [64, 128]
   num_heads:
     values: [2, 4, 8]
   num_layers:
     values: [2, 4]
   group:
-    values: ['sum', 'mean', 'max']
+    values: ['mean', 'max']
   num_linear_layers:
     values: [2, 4, 8]
   linear_hidden_channels:
-    values: [256, 512, 1024]
+    values: [512, 1024]
   batch_size:
-    values: [32, 64]
+    values: [64, 128, 256]
   epochs:
-    values: [40, 60]
+    values: [60, 80, 100]
   yaw_loss_weight:
-    values: [70, 100, 150]
+    values: [150, 200, 300, 400, 500]
