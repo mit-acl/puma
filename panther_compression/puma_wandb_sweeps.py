@@ -145,7 +145,7 @@ def build_dataset(batch_size, device):
     true_trajs = traj_data[0].clone().detach().unsqueeze(0).to(device)
 
     # dataset_size = obs_data.shape[0]
-    dataset_size = 1000
+    dataset_size = 3000
     for i in range(1, dataset_size):
 
         print(f"\rdata index: {i+1}/{obs_data.shape[0]}", end="")
