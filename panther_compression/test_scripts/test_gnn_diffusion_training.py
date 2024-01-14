@@ -1,0 +1,1 @@
+/home/jtorde/Research/diffusion_policy/test_gnn_diffusion_training.py

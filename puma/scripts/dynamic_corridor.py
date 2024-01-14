@@ -81,8 +81,8 @@ class DynCorridor:
         self.name = name[1:-1]
 
         self.total_num_obs=total_num_obs
-        self.num_of_dyn_objects = 1
-        self.num_of_stat_objects = total_num_obs-self.num_of_dyn_objects; 
+        self.num_of_dyn_objects = total_num_obs
+        self.num_of_stat_objects = 0
         self.x_min= 1.0 
         self.x_max= 3.0
         self.y_min= 1.0 
@@ -165,9 +165,9 @@ class DynCorridor:
         z=random.uniform(self.z_min, self.z_max)
         offset=random.uniform(-2*math.pi, 2*math.pi)
 
-        x = 0
-        y = 0
-        z = 3
+        # x = 0
+        # y = 0
+        # z = 3
 
         slower=random.uniform(self.slower_min, self.slower_max)
         s=self.scale
@@ -177,10 +177,7 @@ class DynCorridor:
             mesh=random.choice(self.available_meshes_dynamic)
             bbox=self.bbox_dynamic; 
             if(self.type_of_obst_traj=="trefoil"):
-                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-                if i==1:
-                    [x_string, y_string, z_string] = self.trefoil(12,1,3, self.scale[0] * 0.01,self.scale[1] * 0.01,self.scale[2] * 0.01, offset, slower)
-                    bbox=self.bbox_static_vert; 
+                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower) 
             elif(self.type_of_obst_traj=="eightCurve"):
                 [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
             elif(self.type_of_obst_traj=="square"):
@@ -189,7 +186,6 @@ class DynCorridor:
                 [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
             elif(self.type_of_obst_traj=="static"):
                 [x_string, y_string, z_string] = self.static(8,1.0,3.0)
-
             else:
                 print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
                 exit();         
@@ -206,7 +202,6 @@ class DynCorridor:
                 [x_string, y_string, z_string] = self.static(12,-1.0,3.0)
             elif i == 3:
                 [x_string, y_string, z_string] = self.static(12,1,3.0)
-
 
             # [x_string, y_string, z_string] = self.wave_in_z(x, y, z, self.scale[2], offset, 1.0)
         return [x_string, y_string, z_string, x, y, z, mesh, bbox]

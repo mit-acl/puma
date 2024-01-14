@@ -262,19 +262,21 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
     }
     else
     {
-      std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
-      myfile >> index_instruction_;
-      cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
-      cf_op_ = casadi::Function::load(folder + "op.casadi");
-      cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
-      cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
-      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
-                                                                                    "violation.casadi");
-      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
-                                                                                                  "yaw_"
-                                                                                                  "dyn_limits_"
-                                                                                                  "constraints_"
-                                                                                                  "violation.casadi");
+
+      std::cout << " non uncertainty aware is not supported right now" << std::endl; // if you uncomment the below, you can enable it
+      // std::fstream myfile(folder + "index_instruction.txt", std::ios_base::in);
+      // myfile >> index_instruction_;
+      // cf_compute_cost_ = casadi::Function::load(folder + "compute_cost.casadi");
+      // cf_op_ = casadi::Function::load(folder + "op.casadi");
+      // cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw.casadi");
+      // cf_visibility_ = casadi::Function::load(folder + "visibility.casadi");
+      // cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
+      //                                                                               "violation.casadi");
+      // cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
+      //                                                                                             "yaw_"
+      //                                                                                             "dyn_limits_"
+      //                                                                                             "constraints_"
+      //                                                                                             "violation.casadi");
     }
   }
   else
@@ -454,13 +456,14 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
       {
         mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
         Eigen::Vector3d delta;
-        if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
-          delta = obstacle_i.bbox_inflated / 2.0;
-        }
-        else{ // if it is an obstacle, then we need to use the uncertainty
-          mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
-          delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
-        }
+        delta = obstacle_i.bbox_inflated / 2.0;
+        // if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
+        //   delta = obstacle_i.bbox_inflated / 2.0;
+        // }
+        // else{ // if it is an obstacle, then we need to use the uncertainty
+        //   mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
+        //   delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
+        // }
 
         // std::cout << "times[" << k << "]= " << times[k] << std::endl;
         // std::cout << "state.pos= " << state.pos.transpose() << std::endl;

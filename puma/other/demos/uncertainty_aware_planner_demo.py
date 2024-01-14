@@ -42,12 +42,12 @@ def get_start_end_state():
     z_goal_list = []
 
     for i in range(1):
-        x_start_list.append(-10)
+        x_start_list.append(-5)
         y_start_list.append(0)
         z_start_list.append(3)
         yaw_start_list.append(0)
 
-        x_goal_list.append(5)
+        x_goal_list.append(8)
         y_goal_list.append(0)
         z_goal_list.append(3)
 
@@ -73,10 +73,11 @@ def main():
     parser.add_argument("-b", "--record_bag", help="Whether to record bags.", default=False, type=bool)
     parser.add_argument("-o", "--output_dir", help="Directory to save bags.", default="./data/bags")
     parser.add_argument("-v", "--use_rviz", help="Whether to use rviz.", default=True, type=bool)
+    parser.add_argument("-no", "--num_of_obstacles", help="Number of obstacles.", default=1, type=int)
     args = parser.parse_args()
 
     NUM_OF_SIMS = 1
-    NUM_OBS = 1
+    NUM_OBS = args.num_of_obstacles
     USE_PERFECT_CONTROLLER = "true"
     USE_PERFECT_PREDICTION = "true"
     SIM_DURATION = 100 # in seconds
@@ -96,7 +97,7 @@ def main():
     ## comment out some parameters in puma.yaml to overwrite them
     ##
 
-    os.system("sed -i '/uncertainty_aware:/s/^/#/g' $(rospack find puma)/param/puma.yaml")
+    # os.system("sed -i '/uncertainty_aware:/s/^/#/g' $(rospack find puma)/param/puma.yaml")
 
     ##
     ## simulation loop
@@ -138,10 +139,7 @@ def main():
             
             ## set up parameters depending on agent types
             agent_name = "SQ01s"
-            if agent_type == "parm_star":
-                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware false")
-            elif agent_type == "puma":
-                commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware true")
+            # commands.append(f"sleep 2.0 && rosparam set /{agent_name}/puma/uncertainty_aware true")
 
             ## sim_onboard
             x_start_list, y_start_list, z_start_list, yaw_start_list, x_goal_list, y_goal_list, z_goal_list = get_start_end_state()
@@ -237,7 +235,7 @@ def main():
 
     print("proc_commands sent")
 
-    os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find puma)/param/puma.yaml")    
+    # os.system("sed -i '/uncertainty_aware:/s/^#//g' $(rospack find puma)/param/puma.yaml")   
 
 if __name__ == '__main__':
     main()

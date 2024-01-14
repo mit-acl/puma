@@ -130,7 +130,7 @@ class GNNStudentPolicy(BasePolicy):
         # Normalize the output
         self.tanh = nn.Tanh()
 
-        self.double() # convert all the parameters to doublew
+        self.double() # convert all the parameters to double
 
     # def _get_data(self) -> Dict[str, Any]:
     #     data = super()._get_data()
@@ -152,13 +152,14 @@ class GNNStudentPolicy(BasePolicy):
         for node_type, x in x_dict.items():
             x_dict[node_type] = self.lin_dict[node_type](x).relu_()
 
-
         for conv in self.convs:
-
             x_dict = conv(x_dict, edge_index_dict)
     
         # extract the global embedding
-        latent = th.cat([x for _, x in sorted(x_dict.items())], dim=-1)
+        # latent = th.cat([x for _, x in sorted(x_dict.items())], dim=-1)
+
+        # extract the latent vector
+        latent = x_dict["current_state"]
 
         # add linear layers
         for lin in self.lins:
@@ -203,28 +204,76 @@ class GNNStudentPolicy(BasePolicy):
         # 2. observation
         # In the current setting f_obs is a realative state from the current state so we pass f_v, f_z, yaw_dot to the current state node
 
+        # get num of obst
+        num_of_obst = int(len(f_obs_n[0, 0, 10:])/33)
+        print("num_of_obst in GNNStudentPolicy.py: ", num_of_obst)
+
         if type(f_obs_n) is np.ndarray:
             warnings.warn("f_obs_n is a numpy array - converting it to a torch tensor")
             f_obs_n = th.tensor(f_obs_n, dtype=th.double).to(device)
+
+        # print("f_obs_n.shape in GNNStduentPolicy.py: ", f_obs_n.shape)
 
         feature_vector_for_current_state = f_obs_n[0,0,0:7].clone().detach().unsqueeze(0).to('cpu')
         feature_vector_for_goal = f_obs_n[0,0,7:10].clone().detach().unsqueeze(0).to('cpu')
         feature_vector_for_obs = f_obs_n[0,0,10:].clone().detach().unsqueeze(0).to('cpu')
 
-        dist_current_state_goal = th.tensor([np.linalg.norm(feature_vector_for_goal[0, :3])], dtype=th.double).to(device)
-        dist_current_state_obs = th.tensor([np.linalg.norm(feature_vector_for_obs[0, :3])], dtype=th.double).to(device)
-        dist_goal_obs = th.tensor([np.linalg.norm(feature_vector_for_goal[0,:3]-feature_vector_for_obs[0,:3])], dtype=th.double).to(device)
-        
+        dist_current_state_goal = th.tensor([np.linalg.norm(feature_vector_for_goal[0][:3])], dtype=th.double).to(device)
+
+        dist_current_state_obs = []
+        dist_goal_obs = []
+        for j in range(num_of_obst):
+            dist_current_state_obs.append(np.linalg.norm(feature_vector_for_obs[0][33*j:33*j+3]))
+            dist_goal_obs.append(np.linalg.norm(feature_vector_for_goal[0][:3] - feature_vector_for_obs[0][33*j:33*j+3]))
+
+        dist_current_state_obs = th.tensor(dist_current_state_obs, dtype=th.double).to(device)
+        dist_goal_obs = th.tensor(dist_goal_obs, dtype=th.double).to(device)
+
+        dist_obst_to_obst = []
+        for j in range(num_of_obst):
+            for k in range(num_of_obst):
+                if j != k:
+                    dist_obst_to_obst.append(np.linalg.norm(feature_vector_for_obs[0][33*j:33*j+3] - feature_vector_for_obs[0][33*k:33*k+3]))
+
+        dist_obst_to_obst = th.tensor(dist_obst_to_obst, dtype=th.double).to(device)
+
         " ********************* MAKE A DATA OBJECT FOR HETEROGENEUS GRAPH ********************* "
 
         data = HeteroData()
 
         # add nodes
-        data["current_state"].x = feature_vector_for_current_state.double() # [number of "current_state" nodes, size of feature vector]
-        data["goal_state"].x = feature_vector_for_goal.double() # [number of "goal_state" nodes, size of feature vector]
-        data["observation"].x = feature_vector_for_obs.double() # [number of "observation" nodes, size of feature vector]
+        data["current_state"].x = feature_vector_for_current_state.to(device).double()
+        data["goal_state"].x = feature_vector_for_goal.to(device).double()
+        
+        # to double type
+        data["observation"].x = th.stack([feature_vector_for_obs[0][33*j:33*(j+1)] for j in range(num_of_obst)], dim=0).to(device).double()
 
         # add edges
+        # data["current_state", "dist_current_state_to_goal_state", "goal_state"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (current state)
+        #                                                                                 [0],  # idx of target nodes (goal state)
+        #                                                                                 ],dtype=th.int64)
+        # data["current_state", "dist_current_state_to_observation", "observation"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (current state)
+        #                                                                                 [0],  # idx of target nodes (observation)
+        #                                                                                 ],dtype=th.int64)
+        # data["observation", "dist_obs_to_goal", "goal_state"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (observation)
+        #                                                                                 [0, 1],  # idx of target nodes (goal state)
+        #                                                                                 ],dtype=th.int64)
+        # data["observation", "dist_observation_to_current_state", "current_state"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (observation)
+        #                                                                                 [0, 1],  # idx of target nodes (current state)
+        #                                                                                 ],dtype=th.int64)
+        # data["goal_state", "dist_goal_state_to_current_state", "current_state"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (goal state)
+        #                                                                                 [0],  # idx of target nodes (current state)
+        #                                                                                 ],dtype=th.int64)
+        # data["goal_state", "dist_to_obs", "observation"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (goal state)
+        #                                                                                 [0, 1],  # idx of target nodes (observation)
+        #                                                                                 ],dtype=th.int64)
+
         data["current_state", "dist_current_state_to_goal_state", "goal_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (current state)
                                                                                         [0],  # idx of target nodes (goal state)

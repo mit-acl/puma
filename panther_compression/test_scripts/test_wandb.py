@@ -89,7 +89,7 @@ class HGT(th.nn.Module):
         # latent = th.cat([x for _, x in sorted(x_dict.items())], dim=-1)
 
         # get current state node
-        latent = x_dict["current_state"]
+        latent = x_dict["current_state"].x
 
         # add linear layers
         for lin in self.lins:
@@ -449,11 +449,14 @@ def train(config=None):
             avg_loss = train_epoch(model, train_loader, optimizer)
             wandb.log({"loss": avg_loss, "epoch": epoch})
 
+" ********************* MAIN (if you wanna start agent on this script) ********************* "
+" ********************* If you wanna run sweeps on multiple codes you should run puma_wandb_sweeps.py ********************* "
+# REF: https://www.google.com/search?q=how+to+run+same+sweep+on+multiple+machine+weights+%26+biases&oq=how+to+run+same+sweep+on+multiple+machine+weights+%26+biases&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCTE2NTgzajBqN6gCALACAA&sourceid=chrome&ie=UTF-8#fpstate=ive&vld=cid:d9189e0a,vid:WZvG6hwxUEw,st:0
 if __name__ == "__main__":
 
     # args
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--count', type=int, default=50, help='count for wandb sweep')
+    parser.add_argument('-c', '--count', type=int, default=100, help='count for wandb sweep')
     args = parser.parse_args()
 
     device = th.device('cuda' if th.cuda.is_available() else 'cpu')
@@ -523,6 +526,5 @@ if __name__ == "__main__":
 
     print("TRAINING AND TESTING")
 
-
     # wandb
-    wandb.agent(sweep_id, train, count=10)
+    wandb.agent(sweep_id, train, count=args.count)

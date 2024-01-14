@@ -307,14 +307,13 @@ class ObstaclesManager():
 		center = np.zeros((3,1))
 		for i in range(self.num_obs):
 			radius_obstacle_pos = random.uniform(4, 6)
-			std_deg = 30
+			std_deg = 20
 			theta_obs = random.uniform(-std_deg*np.pi/180, std_deg*np.pi/180) 
 			height_g_term = random.uniform(self.params["training_env_z_min"], self.params["training_env_z_max"])
 			height_obstacle = height_g_term + random.uniform(-0.25, 0.25)
 			w_pos_obstacle.append(center + np.array([[radius_obstacle_pos*math.cos(theta_obs)],[radius_obstacle_pos*math.sin(theta_obs)],[height_obstacle]]))
 		
-		w_pos_g_term = center + np.array([[random.uniform(10.0, 12.0)], [0.0], [0.0]])
-		# w_pos_g_term = center + np.array([[10.0], [0.0], [0.0]])
+		w_pos_g_term = center + np.array([[random.uniform(10.0, 12.0)], [0.0], [height_g_term]])
 
 		return w_pos_obstacle, w_pos_g_term
 	
@@ -786,6 +785,7 @@ def wrapInmPiPi(data): #https://stackoverflow.com/a/15927914
 
 class ObservationManager():
 	def __init__(self):
+
 		self.obsm=ObstaclesManager()
 		
 		#Observation = [f_v, f_a, yaw_dot, f_g,  [f_ctrl_pts_o0], bbox_o0, [f_ctrl_pts_o1], bbox_o1 ,...]
@@ -1089,7 +1089,6 @@ class ObservationManager():
 
 	def getObservationShape(self):
 		return (1,self.observation_size)
-
 
 	def getRandomObservation(self):
 		random_observation=self.denormalizeObservation(self.getRandomNormalizedObservation())
@@ -1665,6 +1664,7 @@ class CostsAndViolationsOfAction():
 ##
 
 class CostComputer():
+
 	"""
     The reason to create this here (instead of in the constructor) is that C++ objects created with pybind11 cannot be pickled by default (pickled is needed when parallelizing)
     See https://stackoverflow.com/a/68672/6057617
@@ -1679,7 +1679,6 @@ class CostComputer():
 	obsm=ObstaclesManager()
 
 	def __init__(self):
-		# self.par=getPANTHERparamsAsCppStruct();
 		self.num_obstacles=CostComputer.obsm.getNumObs()
 
 	def setUpSolverIpoptAndGetppSolOrGuess(self, f_obs_n, f_traj_n):
@@ -1704,90 +1703,82 @@ class CostComputer():
 
 	def computeObstAvoidanceConstraintsViolation(self, f_obs_n, f_traj_n):
 
-		##
-		## Denormalize observation and action
-		##
-
 		assert all( (traj >= -1 and traj <= 1) for traj in f_traj_n[0])
-		# assert CostComputer.om.obsIsNormalized(f_obs_n)
 
+		# Denormalize observation and action
 		f_obs = CostComputer.om.denormalizeObservation(f_obs_n)
 		f_traj = CostComputer.am.denormalizeTraj(f_traj_n)
 
-		##
-		## total_time
-		##
-
+		# total_time
 		total_time=CostComputer.am.getTotalTimeTraj(f_traj)
 
-		##
-		## Debugging
-		##
-
+		# Debugging
 		if(total_time<1e-5):
-			# print(f"total_time={total_time}")
-			# print(f"f_traj_n={f_traj_n}")
-			# print(f"f_traj={f_traj}")
 			return 1e8 # if total_time is small, then this trajectory is not legit
 		
-		##
-		## loop over obstacles
-		##
-
+		# get f_posBS and f_yawBS
 		f_state = CostComputer.om.get_f_StateFromf_obs(f_obs)
 		f_posBS, f_yawBS = CostComputer.am.f_trajAnd_f_State2fBS(f_traj, f_state, no_deriv=True)
-		violation = 0.0
+		
+		# initialize collision_violation
+		collision_violation = 0.0
 
+		# iterate through obstacles
 		for i in range(self.om.calculateObstacleNumber(f_obs)):
+
+			# get f_posObs_ctrl_pts and inflated_bbox
 			f_posObs_ctrl_pts = listOf3dVectors2numpy3Xmatrix(CostComputer.om.getCtrlPtsObstacleI(f_obs, i))
 			inflated_bbox = CostComputer.om.getBboxInflatedObstacleI(f_obs, i)
 			f_posObstBS = MyClampedUniformBSpline(0.0, CostComputer.par.fitter_total_time, CostComputer.par.fitter_deg_pos, 3, CostComputer.par.fitter_num_seg, f_posObs_ctrl_pts, True) 
 
+			# get min_total_time
 			min_total_time = min(total_time, CostComputer.par.fitter_total_time)
 
+			# iterate through time
 			for t in np.linspace(start=0.0, stop=min_total_time, num=15).tolist(): #TODO: move num to a parameter
 				obs = f_posObstBS.getPosT(t)
 				drone = f_posBS.getPosT(t)
 				obs_drone = drone - obs #position of the drone wrt the obstacle
 
-				##
-				## check collisions
-				##
-
+				# check collisions
 				if abs(obs_drone[0,0]) < inflated_bbox[0,0]/2 and \
 					abs(obs_drone[1,0]) < inflated_bbox[1,0]/2 and \
 					abs(obs_drone[2,0]) < inflated_bbox[2,0]/2:
 
+					# compute collision_violation
 					for i in range(3):
 						obs_dronecoord = obs_drone[i,0]
 						tmp = inflated_bbox[i,0]/2
-						violation += min(abs(tmp - obs_dronecoord), abs(obs_dronecoord - (-tmp)) )
+						collision_violation += min(abs(tmp - obs_dronecoord), abs(obs_dronecoord - (-tmp)) )
 					
-		return violation
+		return collision_violation
 
 	def computeDynLimitsConstraintsViolation(self, f_obs_n, f_traj_n):
-
 		f_ppSolOrGuess=self.setUpSolverIpoptAndGetppSolOrGuess(f_obs_n, f_traj_n)
-		violation=CostComputer.my_SolverIpopt.computeDynLimitsConstraintsViolation(f_ppSolOrGuess) 
-
-		# #Debugging (when called using the traj from the expert)
-		# if(violation>1e-5):
-		# 	print("THERE IS VIOLATION in dyn lim")
-		# 	exit()
-
+		violation=CostComputer.my_SolverIpopt.computeDynLimitsConstraintsViolation(f_ppSolOrGuess)
 		return violation   
 
 	def computeCost_AndObsAvoidViolation_AndDynLimViolation_AndAugmentedCost(self, f_obs_n, f_traj_n):
+
+		# get trajectory cost
 		cost = self.computeCost(f_obs_n, f_traj_n)		
+		
+		# get obstacle avoidance violation cost
 		obst_avoidance_violation = self.computeObstAvoidanceConstraintsViolation(f_obs_n, f_traj_n)
+
+		# get dynamic limits violation cost
 		dyn_lim_violation = self.computeDynLimitsConstraintsViolation(f_obs_n, f_traj_n)
+
+		# get augmented cost
 		augmented_cost = self.computeAugmentedCost(cost, obst_avoidance_violation, dyn_lim_violation)
+
 		return cost, obst_avoidance_violation, dyn_lim_violation, augmented_cost
 
 	def computeCost(self, f_obs_n, f_traj_n): 
+
 		f_ppSolOrGuess=self.setUpSolverIpoptAndGetppSolOrGuess(f_obs_n, f_traj_n)
-		tmp=CostComputer.my_SolverIpopt.computeCost(f_ppSolOrGuess) 
-		return tmp
+
+		return CostComputer.my_SolverIpopt.computeCost(f_ppSolOrGuess) 
 
 	def computeAugmentedCost(self, cost, obst_avoidance_violation, dyn_lim_violation):
 		return cost + CostComputer.par.lambda_obst_avoidance_violation*obst_avoidance_violation + CostComputer.par.lambda_dyn_lim_violation*dyn_lim_violation
@@ -1800,6 +1791,7 @@ class CostComputer():
 			return None
 
 		return tmp.index_best_traj
+	
 		# smallest_augmented_cost = float('inf')
 		# index_smallest_augmented_cost = 0
 		# for i in range(f_action_n.shape[0]):

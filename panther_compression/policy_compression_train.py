@@ -308,7 +308,11 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
 
 def main():
 
+
+
     " ********************* Parse args *********************"
+
+
 
     parser = argparse.ArgumentParser()
 
@@ -326,7 +330,7 @@ def main():
     parser.add_argument("--only_test_loss", type=str2bool, default=False)
     DEFAULT_N_ROUNDS = 100 if not parser.parse_args().use_test_run_params else 100
     DEFAULT_TOTAL_DEMOS_PER_ROUND = 256*5 if not parser.parse_args().use_test_run_params else 10
-    only_collect_data = False # when you want to collect data and not train student
+    only_collect_data = True # when you want to collect data and not train student
 
     ## Evaluation params
 
@@ -340,9 +344,9 @@ def main():
 
     ## Training params
 
-    parser.set_defaults(use_dagger=True) # Default will be to use DAgger
+    parser.set_defaults(use_dagger=True)    # Default will be to use DAgger
     parser.add_argument("--seed", type=int, default=2)
-    parser.add_argument("--rampdown_rounds", default=5, type=int) # learning rate rampdown rounds
+    parser.add_argument("--rampdown_rounds", default=5, type=int)   # learning rate rampdown rounds
     parser.add_argument("--train_len_episode_max_steps", default=100, type=int)
     parser.add_argument("--test_len_episode_max_steps", default=50, type=int)
     parser.add_argument("--n_rounds", default=DEFAULT_N_ROUNDS, type=int)
@@ -353,16 +357,14 @@ def main():
     parser.add_argument("--final_eval", dest='final_eval', action='store_true')
     parser.add_argument("--use_only_last_collected_dataset", dest='use_only_last_coll_ds', action='store_true')
     parser.add_argument("--evaluation_data_collection", dest='evaluation_data_collection', action='store_true')
-    train_only_from_existing_data = True # when you want to train student only from existing data
-    reuse_previous_samples = True # use the existing data?
-    reuse_latest_policy = False # reuse the latest_policy?
+    train_only_from_existing_data = False    # when you want to train student only from existing data
+    reuse_previous_samples = True           # use the existing data?
+    reuse_latest_policy = False             # reuse the latest_policy?
 
     ## NN hyperparams
 
-    parser.add_argument("--type_loss", type=str, default="Hung") 
+    parser.add_argument("--type_loss", type=str, default="Hung")
     parser.add_argument("--epsilon_RWTA", type=float, default=0.05)
-    batch_size = 128 if not parser.parse_args().use_test_run_params else 5 # batch size
-    N_EPOCHS = 50 if not parser.parse_args().use_test_run_params else 1 # epoch size
     use_lr_scheduler = False # use learning rate schedule?
     lr = 1e-3 # constant learning rate (if use_lr_scheduler is False)
     weight_prob = 0.005 # probably not used
@@ -376,13 +378,14 @@ def main():
     train_evaluation_rate = 1.0 # split the data into train and eval sets (train_evaluation_rate is the percentage of data that goes into the train set)
 
     ## GNN params
-
+    batch_size = 64 if not parser.parse_args().use_test_run_params else 5 # batch size
+    N_EPOCHS = 200 if not parser.parse_args().use_test_run_params else 1 # epoch size
+    group = 'max' # 'sum'
     gnn_hidden_channels = 128 # the size of the hidden layer in GNN
-    gnn_num_layers = 2 # the number of GNN layers
-    gnn_num_heads = 2 # the number of heads in GNN
-    group = 'mean' # 'sum'
-    num_linear_layers = 8 # the number of linear layers following GNN
-    linear_hidden_channels = 128 # the size of the hidden layer in the linear layers following GNN
+    linear_hidden_channels = 2048 # the size of the hidden layer in the linear layers following GNN
+    gnn_num_heads = 8 # the number of heads in GNN
+    gnn_num_layers = 4  # the number of GNN layers
+    num_linear_layers = 2 # the number of linear layers following GNN
     out_channels = 22 # 22 is the number of actions (traj size)
     num_of_trajs_per_replan = 10 # number of trajectories per replan
 

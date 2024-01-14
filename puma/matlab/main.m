@@ -337,9 +337,9 @@ for i=1:num_max_of_obst
             all_centers=[all_centers pos_center_obs];
 
             if uncertainty_aware
-                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty, 3)];
             else
-                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}) ];
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}, 3)];
             end
 
             obstacle_uncertainty_list = [obstacle_uncertainty_list uncertainty];
@@ -794,7 +794,8 @@ par_and_init_guess= [ {createStruct('thetax_FOV_deg', thetax_FOV_deg, thetax_FOV
               {createStruct('all_nd', all_nd, all_nd_value)},...
               {createStruct('pCPs', pCPs, tmp1)},...
               {createStruct('yCPs', yCPs, tmp2)},...
-              createCellArrayofStructsForObstacles(fitter)];   
+              createCellArrayofStructsForObstacles(fitter)];
+
               
 [par_and_init_guess_exprs, par_and_init_guess_names, names_value]=toExprsNamesAndNamesValue(par_and_init_guess);
 
@@ -807,7 +808,7 @@ opts.ipopt.linear_solver=linear_solver_name;
 opts.jit=jit;%If true, when I call solve(), Matlab will automatically generate a .c file, convert it to a .mex and then solve the problem using that compiled code
 opts.compiler='shell';
 opts.jit_options.flags='-Ofast';  %Takes ~15 seconds to generate if O0 (much more if O1,...,O3)
-opts.jit_options.verbose=true;  %See example in shallow_water.cpp
+opts.jit_options.verbose=false;  %See example in shallow_water.cpp
 opts.ipopt.acceptable_constr_viol_tol=1e-20;
 opti.solver('ipopt',opts); %{"ipopt.hessian_approximation":"limited-memory"} 
 
@@ -824,9 +825,6 @@ results_names={'pCPs','yCPs','all_nd','total_cost', 'yaw_smooth_cost', 'pos_smoo
 %% compute cost
 %%
 
-%%
-%% compute cost
-%%
 
 compute_cost = Function('compute_cost', par_and_init_guess_exprs ,{total_cost},...
                                         par_and_init_guess_names ,{'total_cost'});
@@ -1256,8 +1254,8 @@ plot(all_t_n,full(result.all_yaw_corrected),'o')
 function result=createCellArrayofStructsForObstacles(fitter)
          
     num_obs=size(fitter.bbox_inflated,2);
+    % num_obs = num_max_of_obst
     disp(['num_obs=', num2str(num_obs)])
-    % num_obs = max_num_obst
     result=[];
      
     for i=1:num_obs
@@ -1273,7 +1271,7 @@ function result=createCellArrayofStructsForObstacles(fitter)
                 {createStruct(name_bbox_inflated, fitter.bbox_inflated{i} ,  [1;1;1]  )},...
                 {createStruct(name_sigma_0, fitter.sigma_0{i} , ones(9, 1) )}];
     end
-         
+
 end
 
 %%

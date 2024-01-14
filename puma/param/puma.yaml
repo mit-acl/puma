@@ -24,8 +24,8 @@ use_obstacle_shareCB: false # if it's False and use_obstacle_share is True, then
 add_noise_to_obst: false
 agents_ids: ["01", "02", "03"]
 use_ff: true # use feedforward #Needs to be true if you are using perfect_tracker (because the perfect_tracker needs accel)
-goal_radius: 0.5   #(m) Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
-goal_seen_radius: 10.0 #(m) no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
+goal_radius: 0.3   #(m) Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
+goal_seen_radius: 5.0 #(m) no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
 Ra: 30.0           # [m] Radius of my planning sphere (planning horizon)
 drone_bbox: [0.05, 0.05, 0.05]  #(m) Used for collision checking
 obstacle_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
@@ -40,8 +40,8 @@ z_min: -1.0   #[m] points below this are considered ground
 z_max: 3.0    #[m] 
 ydot_max: 5.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
 v_max: [10.0, 10.0, 10.0]   #[m/s]  7.0
-a_max: [15.0, 15.0, 15.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
-j_max: [20.0, 20.0, 20.0]   #[m/s3] 
+a_max: [20.0, 20.0, 20.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
+j_max: [30.0, 30.0, 30.0]   #[m/s3] 
 factor_alpha: 1.0 #[-] DeltaT = factor_alpha*States_took_previous_replan
 lower_bound_alpha: 1.0 # [s] when alpha (total time of trajectory) is too small, PARM fails a lot
 max_seconds_keeping_traj: 4.0     #% If a trajectory has been kept for this long (since its last update was received), it is deleted
@@ -65,9 +65,9 @@ is_frame_alignment: true
 # Uncertainty Propagation setting
 #############################################
 
-#uncertainty_aware: true
+uncertainty_aware: true
 
-initial_position_variance_multiplier: 20.0
+initial_position_variance_multiplier: 10.0
 initial_velocity_variance_multiplier: 1.0
 initial_acceleration_variance_multiplier: 1.0
 
@@ -79,7 +79,7 @@ initial_position_variance_for_agents: 0.1
 initial_velocity_variance_for_agents: 0.1
 initial_acceleration_variance_for_agents: 0.01
 
-max_variance: [1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0]
+max_variance: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
 max_variance_for_moving_direction: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 drone_initial_variance: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 infeasibility_adjust: 0.001
@@ -104,13 +104,13 @@ training_env_y_max: 20.0
 training_env_y_min: -20.0
 training_env_z_max: 2.0 # note that agent initial pos_z = 0.0
 training_env_z_min: -2.0 # it is important to have negative z since planning is in agent frame # note that agent initial pos_z = 1.0
-# used for normalizatoin
+# used for normalization
 max_dist2goal: 25.0
 max_dist2obs: 25.0
 max_side_bbox_obs: 3.0
 max_dist2BSPoscPoint: 25.0
 training_dt: 0.2 #Training timestep in seconds (how much you proceed as a step in an episode)
-yaw_loss_weight: 70.0
+yaw_loss_weight: 1.0
 margin_v_factor: 1.5 #relaxation factor for training constraints used in ObservationManager()
 margin_a_factor: 1.5 #relaxation factor for training constraints used in ObservationManager()
 # because of precision error you will see a very small violation of ydot (eg. 1.0000000002143), so it's nice to keep the margin_ydot_factor a little bit bigger
@@ -199,14 +199,14 @@ z_goal_when_using_rviz: 1.0 #[meters]
 c_smooth_yaw_search: 0.0      #weight for the yaw search
 c_visibility_yaw_search: 0.0  #weight for the yaw search
 c_maxydot_yaw_search: 0.0     #weight for the yaw search
-c_pos_smooth: 0.0          #weight for the optimization
+c_pos_smooth: 10.0          #weight for the optimization
 c_yaw_smooth: 0.0001          #weight for the optimization
 c_fov: 0.0                 #weight for the optimization
-c_final_pos: 10000.0           #weight for the optimization
+c_final_pos: 100000.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
-c_total_time: 0.0           #weight for the optimization
-lambda_obst_avoidance_violation: 100.0   #To compute the augmented cost
-lambda_dyn_lim_violation: 100.0          #To compute the augmented cost
+c_total_time: 0.0001           #weight for the optimization
+lambda_obst_avoidance_violation: 1.0   #To compute the augmented cost
+lambda_dyn_lim_violation: 1.0          #To compute the augmented cost
 num_of_intervals: 7                       #nlopt/num_pol in rmader.yaml (TODO: could be the same as num_seg in params_casadi.yaml)
 use_yaw_guess_for_opt: false
 

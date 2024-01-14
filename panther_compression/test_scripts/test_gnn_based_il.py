@@ -91,38 +91,6 @@ if IS_EVALUATE_PERFORMANCE:
 
 " ********************* CLASS DEFINITION ********************* "
 
-# class HGT(th.nn.Module):
-
-#     def __init__(self, hidden_channels, out_channels, num_heads, num_layers, data):
-#         super().__init__()
-
-#         self.lin_dict = th.nn.ModuleDict()
-#         for node_type in data.node_types:
-#             self.lin_dict[node_type] = Linear(-1, hidden_channels)
-
-#         self.convs = th.nn.ModuleList()
-#         for _ in range(num_layers):
-#             conv = HGTConv(hidden_channels, hidden_channels, data.metadata(),
-#                            num_heads, group='sum')
-#             self.convs.append(conv)
-
-#         self.lin = Linear(-1, out_channels)
-
-#         self.double() # convert all the parameters to double
-
-#     def forward(self, x_dict, edge_index_dict):
-#         for node_type, x in x_dict.items():
-#             x_dict[node_type] = self.lin_dict[node_type](x).relu_()
-
-#         for conv in self.convs:
-#             x_dict = conv(x_dict, edge_index_dict)
-    
-#         # extract the global embedding
-#         x = th.cat([x for _, x in sorted(x_dict.items())], dim=-1)
-#         x = self.lin(x)
-
-#         return x
-
 class HGT(th.nn.Module):
 
     def __init__(self, hidden_channels, out_channels, num_heads, num_layers, group, num_linear_layers, linear_hidden_channels, num_of_trajs_per_replan, data):
@@ -150,15 +118,15 @@ class HGT(th.nn.Module):
         self.double() # convert all the parameters to doublew
 
     def forward(self, x_dict, edge_index_dict):
+
         for node_type, x in x_dict.items():
             x_dict[node_type] = self.lin_dict[node_type](x).relu_()
 
         for conv in self.convs:
-
             x_dict = conv(x_dict, edge_index_dict)
     
         # extract the global embedding
-        latent = th.cat([x for _, x in sorted(x_dict.items())], dim=-1)
+        latent = x_dict["current_state"]
 
         # add linear layers
         for lin in self.lins:
@@ -334,56 +302,103 @@ def generate_dataset(f_obs_ns, true_trajs, device):
         # 2. observation
         # In the current setting f_obs is a realative state from the current state so we pass f_v, f_z, yaw_dot to the current state node
 
+        # get num of obst
+        num_of_obst = int(len(f_obs_ns[i][10:])/33)
+        print("num_of_obst: ", num_of_obst)
+
         feature_vector_for_current_state = f_obs_ns[i][0:7].clone().detach().unsqueeze(0).to('cpu')
         feature_vector_for_goal = f_obs_ns[i][7:10].clone().detach().unsqueeze(0).to('cpu')
         feature_vector_for_obs = f_obs_ns[i][10:].clone().detach().unsqueeze(0).to('cpu')
+
         dist_current_state_goal = th.tensor([np.linalg.norm(feature_vector_for_goal[0][:3])], dtype=th.double).to(device)
-        dist_current_state_obs = th.tensor([np.linalg.norm(feature_vector_for_obs[0][:3])], dtype=th.double).to(device)
-        dist_goal_obs = th.tensor([np.linalg.norm(feature_vector_for_goal[0][:3] - feature_vector_for_obs[0][:3])], dtype=th.double).to(device)
+
+        dist_current_state_obs = []
+        dist_goal_obs = []
+        for j in range(num_of_obst):
+            dist_current_state_obs.append(np.linalg.norm(feature_vector_for_obs[0][33*j:33*j+3]))
+            dist_goal_obs.append(np.linalg.norm(feature_vector_for_goal[0][:3] - feature_vector_for_obs[0][33*j:33*j+3]))
+
+        dist_current_state_obs = th.tensor(dist_current_state_obs, dtype=th.double).to(device)
+        dist_goal_obs = th.tensor(dist_goal_obs, dtype=th.double).to(device)
+
+        dist_obst_to_obst = []
+        for j in range(num_of_obst):
+            for k in range(num_of_obst):
+                if j != k:
+                    dist_obst_to_obst.append(np.linalg.norm(feature_vector_for_obs[0][33*j:33*j+3] - feature_vector_for_obs[0][33*k:33*k+3]))
+
+        dist_obst_to_obst = th.tensor(dist_obst_to_obst, dtype=th.double).to(device)
 
         " ********************* MAKE A DATA OBJECT FOR HETEROGENEUS GRAPH ********************* "
 
         data = HeteroData()
 
         # add nodes
-        data["current_state"].x = feature_vector_for_current_state # [number of "current_state" nodes, size of feature vector]
-        data["goal_state"].x = feature_vector_for_goal # [number of "goal_state" nodes, size of feature vector]
-        data["observation"].x = feature_vector_for_obs # [number of "observation" nodes, size of feature vector]
+        data["current_state"].x = feature_vector_for_current_state
+        data["goal_state"].x = feature_vector_for_goal
+        data["observation"].x = th.stack([feature_vector_for_obs[0][33*j:33*(j+1)] for j in range(num_of_obst)], dim=0)
 
         # add edges
-        data["current_state", "dist_state_to_goal", "goal_state"].edge_index = th.tensor([
+
+        # data["current_state", "dist_current_state_to_goal_state", "goal_state"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (current state)
+        #                                                                                 [0],  # idx of target nodes (goal state)
+        #                                                                                 ],dtype=th.int64)
+        # data["current_state", "dist_current_state_to_observation", "observation"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (current state)
+        #                                                                                 [0],  # idx of target nodes (observation)
+        #                                                                                 ],dtype=th.int64)
+        # data["observation", "dist_obs_to_goal", "goal_state"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (observation)
+        #                                                                                 [0, 1],  # idx of target nodes (goal state)
+        #                                                                                 ],dtype=th.int64)
+        # data["observation", "dist_observation_to_current_state", "current_state"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (observation)
+        #                                                                                 [0, 1],  # idx of target nodes (current state)
+        #                                                                                 ],dtype=th.int64)
+        # data["goal_state", "dist_goal_state_to_current_state", "current_state"].edge_index = th.tensor([
+        #                                                                                 [0],  # idx of source nodes (goal state)
+        #                                                                                 [0],  # idx of target nodes (current state)
+        #                                                                                 ],dtype=th.int64)
+        # data["goal_state", "dist_to_obs", "observation"].edge_index = th.tensor([
+        #                                                                                 [0, 0],  # idx of source nodes (goal state)
+        #                                                                                 [0, 1],  # idx of target nodes (observation)
+        #                                                                                 ],dtype=th.int64)
+        
+        data["current_state", "dist_current_state_to_goal_state", "goal_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (current state)
                                                                                         [0],  # idx of target nodes (goal state)
                                                                                         ],dtype=th.int64)
-        data["current_state", "dist_state_to_observation", "observation"].edge_index = th.tensor([
+        data["current_state", "dist_current_state_to_observation", "observation"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (current state)
                                                                                         [0],  # idx of target nodes (observation)
                                                                                         ],dtype=th.int64)
-        data["goal_state", "dist_goal_to_state", "current_state"].edge_index = th.tensor([
-                                                                                        [0],  # idx of source nodes (goal state)
-                                                                                        [0],  # idx of target nodes (current state)
-                                                                                        ],dtype=th.int64)
-        data["observation", "dist_observation_to_state", "current_state"].edge_index = th.tensor([
-                                                                                        [0],  # idx of source nodes (observation)
-                                                                                        [0],  # idx of target nodes (current state)
-                                                                                        ],dtype=th.int64)
-        data["observation", "dist_observation_to_goal", "goal_state"].edge_index = th.tensor([
+        data["observation", "dist_obs_to_goal", "goal_state"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (observation)
                                                                                         [0],  # idx of target nodes (goal state)
                                                                                         ],dtype=th.int64)
-        data["goal_state", "dist_goal_to_observation", "observation"].edge_index = th.tensor([
+        data["observation", "dist_observation_to_current_state", "current_state"].edge_index = th.tensor([
+                                                                                        [0],  # idx of source nodes (observation)
+                                                                                        [0],  # idx of target nodes (current state)
+                                                                                        ],dtype=th.int64)
+        data["goal_state", "dist_goal_state_to_current_state", "current_state"].edge_index = th.tensor([
+                                                                                        [0],  # idx of source nodes (goal state)
+                                                                                        [0],  # idx of target nodes (current state)
+                                                                                        ],dtype=th.int64)
+        data["goal_state", "dist_to_obs", "observation"].edge_index = th.tensor([
                                                                                         [0],  # idx of source nodes (goal state)
                                                                                         [0],  # idx of target nodes (observation)
                                                                                         ],dtype=th.int64)
 
         # add edge weights
-        data["current_state", "dist_state_to_goal", "goal_state"].edge_attr = dist_current_state_goal
-        data["current_state", "dist_state_to_observation", "observation"].edge_attr = dist_current_state_obs
-        data["observation", "dist_observation_to_goal", "goal_state"].edge_attr = dist_goal_obs
+        data["current_state", "dist_current_state_to_goal_state", "goal_state"].edge_attr = dist_current_state_goal
+        data["current_state", "dist_current_state_to_observation", "observation"].edge_attr = dist_current_state_obs
+        data["observation", "dist_obs_to_goal", "goal_state"].edge_attr = dist_goal_obs
         # make it undirected
-        data["goal_state", "dist_goal_to_state", "current_state"].edge_attr = dist_current_state_goal
-        data["observation", "dist_observation_to_state", "current_state"].edge_attr = dist_current_state_obs
-        data["goal_state", "dist_goal_to_observation", "observation"].edge_attr = dist_goal_obs
+        data["observation", "dist_observation_to_current_state", "current_state"].edge_attr = dist_current_state_obs
+        data["goal_state", "dist_goal_state_to_current_state", "current_state"].edge_attr = dist_current_state_goal
+        data["goal_state", "dist_goal_to_obs", "observation"].edge_attr = dist_goal_obs
+        # data["observation", "dist_observation_to_observation", "observation"].edge_attr = dist_obst_to_obst
 
         # add ground truth trajectory
         if not IS_TRAIN_ONLY_POS:
@@ -451,50 +466,63 @@ def visualize_trajectory(model, data, f_obs_n, true_trajs):
             ax.plot(w_posBS_pred.pos_bs[0](time_pred), w_posBS_pred.pos_bs[1](time_pred), w_posBS_pred.pos_bs[2](time_pred), lw=4, alpha=0.7, label='GNN', c='orange')
 
             # plot the start and goal position
-            ax.scatter(w_posBS_true.pos_bs[0](w_posBS_true.getT0()), w_posBS_true.pos_bs[1](w_posBS_true.getT0()), w_posBS_true.pos_bs[2](w_posBS_true.getT0()), s=100, c='green', marker='o', label='Start')
-            ax.scatter(w_posBS_true.pos_bs[0](w_posBS_true.getTf()), w_posBS_true.pos_bs[1](w_posBS_true.getTf()), w_posBS_true.pos_bs[2](w_posBS_true.getTf()), s=100, c='red', marker='o', label='Goal')
+            ax.scatter(w_posBS_true.pos_bs[0](w_posBS_true.getT0()), w_posBS_true.pos_bs[1](w_posBS_true.getT0()), w_posBS_true.pos_bs[2](w_posBS_true.getT0()), s=100, c='pink', marker='o', label='Start')
 
         else:
             ax.plot(w_posBS_true.pos_bs[0](time_true), w_posBS_true.pos_bs[1](time_true), w_posBS_true.pos_bs[2](time_true), lw=4, alpha=0.7, c='green')
             ax.plot(w_posBS_pred.pos_bs[0](time_pred), w_posBS_pred.pos_bs[1](time_pred), w_posBS_pred.pos_bs[2](time_pred), lw=4, alpha=0.7, c='orange')
 
-    # plot the obstacles
+    # plot the goal
     f_obs = om.denormalizeObservation(f_obs_n)
+    ax.scatter(f_obs[0][7], f_obs[0][8], f_obs[0][9], s=100, c='red', marker='*', label='Goal')
     
+    # plot the obstacles
     # get w pos of the obstacles
     w_obs_poses = []
     p0 = start_state.w_pos[0] # careful here: we assume the agent pos is at the origin - as the agent moves we expect the obstacles shift accordingly
-    for i in range(int(len(f_obs[0][10:-3])/3)):
-        w_obs_poses.append((f_obs[0][3*i+10:3*i+3+10].clone().detach().numpy() - p0.T).tolist())
-    bbox = f_obs[0][-3:].clone().detach().numpy()
+    
+    # extract each obstacle trajs
+    num_obst = int(len(f_obs[0][10:])/33)
+    for i in range(num_obst):
+        
+        # get each obstacle's trajectory
+        f_obs_each = f_obs[0][10+33*i:10+33*(i+1)]
+    
+        # get each obstacle's poses in that trajectory in the world frame
+        for i in range(int(len(f_obs_each[:-3])/3)):
+            w_obs_poses.append((f_obs_each[3*i:3*i+3].clone().detach().numpy() - p0.T).tolist())
 
-    for idx, w_obs_pos in enumerate(w_obs_poses):
-        # obstacle's position
-        # bbox (8 points)
-        p1 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
-        p2 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
-        p3 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
-        p4 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
-        p5 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
-        p6 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
-        p7 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
-        p8 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
-        # bbox lines (12 lines)
-        if idx == 0:
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue', label='Obstacle')
-        else:
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p1[0], p3[0]], [p1[1], p3[1]], [p1[2], p3[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p1[0], p5[0]], [p1[1], p5[1]], [p1[2], p5[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p2[0], p4[0]], [p2[1], p4[1]], [p2[2], p4[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p2[0], p6[0]], [p2[1], p6[1]], [p2[2], p6[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p3[0], p4[0]], [p3[1], p4[1]], [p3[2], p4[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p3[0], p7[0]], [p3[1], p7[1]], [p3[2], p7[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p4[0], p8[0]], [p4[1], p8[1]], [p4[2], p8[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p5[0], p6[0]], [p5[1], p6[1]], [p5[2], p6[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p5[0], p7[0]], [p5[1], p7[1]], [p5[2], p7[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p6[0], p8[0]], [p6[1], p8[1]], [p6[2], p8[2]], lw=2, alpha=0.7, c='blue')
-        ax.plot([p7[0], p8[0]], [p7[1], p8[1]], [p7[2], p8[2]], lw=2, alpha=0.7, c='blue')
+        # get each obstacle's bbox
+        bbox = f_obs_each[-3:].clone().detach().numpy()
+
+        # plot the bbox
+        for idx, w_obs_pos in enumerate(w_obs_poses):
+            # obstacle's position
+            # bbox (8 points)
+            p1 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p2 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p3 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p4 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p5 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p6 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p7 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p8 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            # bbox lines (12 lines)
+            if idx == 0 and i == 0:
+                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue', label='Obstacle')
+            else:
+                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p1[0], p3[0]], [p1[1], p3[1]], [p1[2], p3[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p1[0], p5[0]], [p1[1], p5[1]], [p1[2], p5[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p2[0], p4[0]], [p2[1], p4[1]], [p2[2], p4[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p2[0], p6[0]], [p2[1], p6[1]], [p2[2], p6[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p3[0], p4[0]], [p3[1], p4[1]], [p3[2], p4[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p3[0], p7[0]], [p3[1], p7[1]], [p3[2], p7[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p4[0], p8[0]], [p4[1], p8[1]], [p4[2], p8[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p5[0], p6[0]], [p5[1], p6[1]], [p5[2], p6[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p5[0], p7[0]], [p5[1], p7[1]], [p5[2], p7[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p6[0], p8[0]], [p6[1], p8[1]], [p6[2], p8[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p7[0], p8[0]], [p7[1], p8[1]], [p7[2], p8[2]], lw=2, alpha=0.7, c='blue')
 
     ax.grid(True)
     ax.legend(loc='best')
@@ -532,6 +560,138 @@ def visualize_trajectory(model, data, f_obs_n, true_trajs):
         else:
             ax.plot(time_yaw_true, w_yawBS_true.pos_bs[0](time_yaw_true), lw=4, alpha=0.7, c='green')
             ax.plot(time_yaw_pred, w_yawBS_pred.pos_bs[0](time_yaw_pred), lw=4, alpha=0.7, c='orange')
+
+    ax.grid(True)
+    ax.legend(loc='best')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Yaw')
+    # fig.savefig('/home/kota/Research/deep-panther_ws/src/deep_panther/panther/matlab/figures/test_yaw.png')
+    plt.show()
+
+def visualize_expert_trajectory(f_obs_n, true_trajs):
+
+    am = ActionManager() # get action manager
+    om = ObservationManager() # get observation manager
+
+    # convert it to numpy array
+    true_trajs = true_trajs.squeeze().detach().numpy()
+
+    print("true_trajs.shape: ", true_trajs.shape)
+
+    # plot 
+    fig = plt.figure(figsize=(20, 20))
+    ax = fig.add_subplot(211, projection='3d')
+
+    # plot the expert trajectory
+    for idx in range(true_trajs.shape[0]):
+
+        true_traj = am.denormalizeTraj(true_trajs[idx])
+
+        # add one dimension to the numpy trajectory
+        true_traj = np.expand_dims(true_traj, axis=0)
+
+        # convert the trajectory to a b-spline
+        start_state = getZeroState()
+        w_posBS_true, w_yawBS_true = am.f_trajAnd_w_State2wBS(true_traj, start_state)
+        num_vectors_pos = 100
+        num_vectors_yaw = 10
+        time_true = np.linspace(w_posBS_true.getT0(), w_posBS_true.getTf(), num_vectors_pos)
+        time_yaw_true = np.linspace(w_yawBS_true.getT0(), w_yawBS_true.getTf(), num_vectors_yaw)
+
+        # plot the predicted trajectory
+        if idx == 0:
+            ax.plot(w_posBS_true.pos_bs[0](time_true), w_posBS_true.pos_bs[1](time_true), w_posBS_true.pos_bs[2](time_true), lw=4, alpha=0.7, label='Expert', c='green')
+
+            # plot the start and goal position
+            ax.scatter(w_posBS_true.pos_bs[0](w_posBS_true.getT0()), w_posBS_true.pos_bs[1](w_posBS_true.getT0()), w_posBS_true.pos_bs[2](w_posBS_true.getT0()), s=100, c='pink', marker='o', label='Start')
+
+        else:
+            ax.plot(w_posBS_true.pos_bs[0](time_true), w_posBS_true.pos_bs[1](time_true), w_posBS_true.pos_bs[2](time_true), lw=4, alpha=0.7, c='green')
+
+    # plot the goal
+    f_obs = om.denormalizeObservation(f_obs_n)
+    ax.scatter(f_obs[0][7], f_obs[0][8], f_obs[0][9], s=100, c='red', marker='*', label='Goal')
+    
+    # plot the obstacles
+    # get w pos of the obstacles
+    w_obs_poses = []
+    p0 = start_state.w_pos[0] # careful here: we assume the agent pos is at the origin - as the agent moves we expect the obstacles shift accordingly
+    
+    # extract each obstacle trajs
+    num_obst = int(len(f_obs[0][10:])/33)
+    print("num_obst: ", num_obst)
+    for i in range(num_obst):
+        
+        # get each obstacle's trajectory
+        f_obs_each = f_obs[0][10+33*i:10+33*(i+1)]
+    
+        # get each obstacle's poses in that trajectory in the world frame
+        for i in range(int(len(f_obs_each[:-3])/3)):
+            w_obs_poses.append((f_obs_each[3*i:3*i+3].clone().detach().numpy() - p0.T).tolist())
+
+        # get each obstacle's bbox
+        bbox = f_obs_each[-3:].clone().detach().numpy()
+
+        # plot the bbox
+        for idx, w_obs_pos in enumerate(w_obs_poses):
+            # obstacle's position
+            # bbox (8 points)
+            p1 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p2 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p3 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p4 = [w_obs_pos[0] + bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p5 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p6 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] + bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            p7 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] + bbox[2]/2]
+            p8 = [w_obs_pos[0] - bbox[0]/2, w_obs_pos[1] - bbox[1]/2, w_obs_pos[2] - bbox[2]/2]
+            # bbox lines (12 lines)
+            if idx == 0 and i == 0:
+                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue', label='Obstacle')
+            else:
+                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p1[0], p3[0]], [p1[1], p3[1]], [p1[2], p3[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p1[0], p5[0]], [p1[1], p5[1]], [p1[2], p5[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p2[0], p4[0]], [p2[1], p4[1]], [p2[2], p4[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p2[0], p6[0]], [p2[1], p6[1]], [p2[2], p6[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p3[0], p4[0]], [p3[1], p4[1]], [p3[2], p4[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p3[0], p7[0]], [p3[1], p7[1]], [p3[2], p7[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p4[0], p8[0]], [p4[1], p8[1]], [p4[2], p8[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p5[0], p6[0]], [p5[1], p6[1]], [p5[2], p6[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p5[0], p7[0]], [p5[1], p7[1]], [p5[2], p7[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p6[0], p8[0]], [p6[1], p8[1]], [p6[2], p8[2]], lw=2, alpha=0.7, c='blue')
+            ax.plot([p7[0], p8[0]], [p7[1], p8[1]], [p7[2], p8[2]], lw=2, alpha=0.7, c='blue')
+
+    ax.grid(True)
+    ax.legend(loc='best')
+    ax.set_xlim(-2, 15)
+    ax.set_ylim(-4, 4)
+    ax.set_zlim(-5, 5)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_aspect('equal')
+    # plt.show()
+
+    fig.savefig('test_pos.png')
+
+    # plot the yaw trajectory
+    ax = fig.add_subplot(212)
+
+    for idx in range(true_trajs.shape[0]):
+
+        true_traj = am.denormalizeTraj(true_trajs[idx])
+
+        # add one dimension to the numpy trajectory
+        true_traj = np.expand_dims(true_traj, axis=0)
+
+        # convert the trajectory to a b-spline
+        start_state = getZeroState()
+        w_posBS_true, w_yawBS_true = am.f_trajAnd_w_State2wBS(true_traj, start_state)
+
+        if idx == 0:
+            ax.plot(time_yaw_true, w_yawBS_true.pos_bs[0](time_yaw_true), lw=4, alpha=0.7, label='Expert', c='green')
+        else:
+            ax.plot(time_yaw_true, w_yawBS_true.pos_bs[0](time_yaw_true), lw=4, alpha=0.7, c='green')
 
     ax.grid(True)
     ax.legend(loc='best')
@@ -728,8 +888,9 @@ def evaluate_performance(model, data, f_obs_n, true_traj):
 
     exit()
 
-def get_latest_model(dir_idx):
-    dir = "../evals/tmp_dagger/2/" # f"models/dir-{dir_idx}/"
+def get_latest_model():
+    # dir = "../evals-dir/evals1/tmp_dagger/2/"
+    dir = "../evals/tmp_dagger/2/"
     files = os.listdir(dir)
     files = [file for file in files if file.endswith('.pt')]
     files.sort()
@@ -737,6 +898,16 @@ def get_latest_model(dir_idx):
     print(f"loaded {file}")
     model = th.load(file).to('cpu')
     return model
+
+# def get_latest_model(dir_idx):
+#     dir = f"models/dir-{dir_idx}/"
+#     files = os.listdir(dir)
+#     files = [file for file in files if file.endswith('.pt')]
+#     files.sort()
+#     file = dir+files[-1]
+#     print(f"loaded {file}")
+#     model = th.load(file).to('cpu')
+#     return model
 
 def main(dataset, device, hidden_channels, num_heads, num_layers, group, num_linear_layers, linear_hidden_channels, num_of_trajs_per_replan, folder_name):
 
@@ -874,8 +1045,8 @@ if __name__ == "__main__":
         " ********************* LOAD DATA ********************* "
 
         # list npz files in the directory
+        # dirs = "../evals-dir/evals3/tmp_dagger/2/demos/"
         dirs = "../evals/tmp_dagger/2/demos/"
-        # dirs = "../evals_tmp/tmp_dagger/2/demos/"
         # loop over dirs
         obs_data = th.tensor([]).to(device)
         traj_data = th.tensor([]).to(device)
@@ -909,7 +1080,7 @@ if __name__ == "__main__":
         f_obs_ns = obs_data[0].clone().detach().to(device) # To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
         true_trajs = traj_data[0].clone().detach().unsqueeze(0).to(device)
 
-        dataset_size = obs_data.shape[0] if IS_TRAIN_MODEL else 10
+        dataset_size = obs_data.shape[0] if IS_TRAIN_MODEL else min(100, obs_data.shape[0])
         for i in range(1, dataset_size):
 
             print(f"\rdata index: {i+1}/{obs_data.shape[0]}", end="")
@@ -968,16 +1139,24 @@ if __name__ == "__main__":
 
     if IS_VISUALIZE_TRAJ:
         print("VISUALIZING TRAJECTORY")
-        dirs = os.listdir("models/")
+
+        # dirs = os.listdir("models/")
+        # for data_idx, data in enumerate(dataset):
+        #     print("data_idx: ", data_idx)
+        #     for dir_idx in range(len(dirs)-1):
+        #         print("dir_idx: ", dir_idx)
+        #         data = data.to('cpu')
+        #         true_traj = true_trajs[data_idx].clone().detach().unsqueeze(0).to('cpu')
+        #         f_obs_n = f_obs_ns[data_idx].clone().detach().unsqueeze(0).to('cpu')
+        #         # load the latest model (grab the latest .pt file in the models directory)
+        #         visualize_trajectory(get_latest_model(dir_idx), data, f_obs_n, true_traj)
+
         for data_idx, data in enumerate(dataset):
-            print("data_idx: ", data_idx)
-            for dir_idx in range(len(dirs)-1):
-                print("dir_idx: ", dir_idx)
                 data = data.to('cpu')
                 true_traj = true_trajs[data_idx].clone().detach().unsqueeze(0).to('cpu')
                 f_obs_n = f_obs_ns[data_idx].clone().detach().unsqueeze(0).to('cpu')
-                # load the latest model (grab the latest .pt file in the models directory)
-                visualize_trajectory(get_latest_model(dir_idx), data, f_obs_n, true_traj)
+                visualize_trajectory(get_latest_model(), data, f_obs_n, true_traj)
+                # visualize_expert_trajectory(f_obs_n, true_traj)
     
     if IS_EVALUATE_PERFORMANCE:
         print("EVALUATING PERFORMANCE")
@@ -987,4 +1166,4 @@ if __name__ == "__main__":
             f_obs_n = f_obs_ns[data_idx].clone().detach().unsqueeze(0).to('cpu')
             dirs = os.listdir("models/")
             for dir_idx in range(len(dirs)-1):
-                evaluate_performance(get_latest_model(dir_idx), data, f_obs_n, true_traj)
+                evaluate_performance(get_latest_model(), data, f_obs_n, true_traj)
