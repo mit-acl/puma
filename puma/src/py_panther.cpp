@@ -53,8 +53,6 @@ PYBIND11_MODULE(py_panther, m)
   py::class_<mt::obstacleForOpt>(m, "obstacleForOpt")
       .def(py::init<>())  /////////////////////////
       .def_readwrite("ctrl_pts", &mt::obstacleForOpt::ctrl_pts)
-      .def_readwrite("uncertainty_ctrl_pts", &mt::obstacleForOpt::uncertainty_ctrl_pts)
-      .def_readwrite("sigma_0", &mt::obstacleForOpt::sigma_0)
       .def_readwrite("bbox_inflated", &mt::obstacleForOpt::bbox_inflated)
       .def("printInfo", &mt::obstacleForOpt::printInfo)
       .def("__repr__", [](const mt::obstacleForOpt &a) { return "<py_panther.obstacleForOpt>"; });
@@ -168,12 +166,6 @@ PYBIND11_MODULE(py_panther, m)
       .def_readwrite("alpha_shrink", &mt::parameters::alpha_shrink)                    
       .def_readwrite("norminv_prob", &mt::parameters::norminv_prob)                    
       .def_readwrite("disc_pts_per_interval_oct_search", &mt::parameters::disc_pts_per_interval_oct_search)
-      .def_readwrite("uncertainty_aware", &mt::parameters::uncertainty_aware)
-      .def_readwrite("max_variance", &mt::parameters::max_variance)
-      .def_readwrite("max_variance_for_moving_direction", &mt::parameters::max_variance_for_moving_direction)
-      .def_readwrite("drone_initial_variance", &mt::parameters::drone_initial_variance)
-      .def_readwrite("infeasibility_adjust", &mt::parameters::infeasibility_adjust)
-      .def_readwrite("moving_direction_factor", &mt::parameters::moving_direction_factor)
       .def_readwrite("c_smooth_yaw_search", &mt::parameters::c_smooth_yaw_search)             
       .def_readwrite("c_visibility_yaw_search", &mt::parameters::c_visibility_yaw_search)         
       .def_readwrite("c_maxydot_yaw_search", &mt::parameters::c_maxydot_yaw_search)            
@@ -239,9 +231,4 @@ PYBIND11_MODULE(py_panther, m)
       .def(py::init<int>())  /////////////////////////
       .def("fit", &Fitter::fit)
       .def("__repr__", [](const Fitter &a) { return "<py_panther.Fitter>"; });
-
-  py::class_<ClosedFormYawSolver>(m, "ClosedFormYawSolver")
-      .def(py::init<>())  /////////////////////////
-      .def("getyCPsfrompCPSUsingClosedForm", &ClosedFormYawSolver::getyCPsfrompCPSUsingClosedForm)
-      .def("__repr__", [](const Fitter &a) { return "<py_panther.ClosedFormYawSolver>"; });
 }

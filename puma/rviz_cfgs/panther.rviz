@@ -7,9 +7,7 @@ Panels:
         - /Global Options1
         - /TF1
         - /TF1/Frames1
-        - /Image2
         - /DepthCloudSQ01s1/Auto Size1
-        - /SQ02s-downward-camera1
       Splitter Ratio: 0.7430555820465088
     Tree Height: 721
   - Class: rviz/Selection
@@ -238,45 +236,45 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ01s/puma/fov
       Name: SQ01sFOV
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ02s/puma/fov
       Name: SQ02sFOV
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ03s/puma/fov
       Name: SQ03sFOV
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ04s/puma/fov
       Name: SQ04sFOV
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /SQ05s/puma/fov
       Name: SQ05sFOV
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /obstacles_mesh
@@ -630,7 +628,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/puma/actual_traj
       Name: SQ01sActualTraj
       Namespaces:
-        {}
+        ActualTraj_SQ01s: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -706,7 +704,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/drone_marker
       Name: MeshSQ01s
       Namespaces:
-        {}
+        mesh_SQ01s: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -749,6 +747,14 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /SQ01s/puma/traj_obtained
+      Name: PlannedTrajSQ01s
+      Namespaces:
+        SQ01s: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 46; 52; 54
@@ -777,7 +783,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 35.18985366821289
+      Distance: 22.708833694458008
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -785,17 +791,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.8438823223114014
-        Y: 2.1073896884918213
-        Z: 1.4918016195297241
+        X: 8.090550422668457
+        Y: 2.4410107135772705
+        Z: 1.5168063640594482
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9197964072227478
+      Pitch: 1.3547966480255127
       Target Frame: <Fixed Frame>
-      Yaw: 4.7081780433654785
+      Yaw: 4.61816930770874
     Saved: ~
 Window Geometry:
   DepthImage:

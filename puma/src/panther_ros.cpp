@@ -343,7 +343,6 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
 
   // CHECK parameters
   std::cout << bold << "Parameters obtained, checking them..." << reset << std::endl;
-
   verify((par_.num_of_trajs_per_replan <= par_.max_num_of_initial_guesses), "par_.num_of_trajs_per_replan<=par_.max_"
                                                                             "num_of_initial_guesses must hold");
 
@@ -375,14 +374,6 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
 
   verify((par_.fov_x_deg >= 0), "fov_x_deg>=0 must hold");
   verify((par_.fov_y_deg >= 0), "fov_y_deg>=0 must hold");
-
-  // verify((par_.fov_y_deg == par_.fov_x_deg), "par_.fov_y_deg == par_.fov_x_deg must hold");
-
-  // if (par_.impose_FOV_in_trajCB)
-  // {
-  //   verify((par_.fov_depth > (par_.Ra + par_.drone_bbox[0])), "(par_.fov_depth > (par_.Ra + par_.drone_radius) must "
-  //                                                             "hold");
-  // }
 
   std::cout << bold << "Parameters checked" << reset << std::endl;
 
@@ -1164,196 +1155,62 @@ void PantherRos::publishObstacleCB(const ros::TimerEvent& e)
 
 void PantherRos::replanCB(const ros::TimerEvent& e)
 {
-  // std::cout << bold << blue << "pauseGazebo_.exists()= " << pauseGazebo_.exists() << reset << std::endl;
 
   if (ros::ok() && published_initial_position_ == true)
   {
 
-    mt::Edges edges_obstacles;
-    mt::Edges edges_obstacles_uncertainty;
-    mt::trajectory X_safe;
+    ROS_INFO("ReplanningCB");
 
-    si::solOrGuess best_solution_expert;
-    std::vector<si::solOrGuess> best_solutions_expert;
-    si::solOrGuess best_solution_student;
-    std::vector<si::solOrGuess> best_solutions_student;
-    std::vector<si::solOrGuess> guesses;
-    std::vector<si::solOrGuess> splines_fitted;
-
-    std::vector<Hyperplane3D> planes;
+    // Initialization
+    mt::trajectory traj_for_visualization;
     mt::log log;
+    int k_index_end = 0;
 
-    // std::cout << "WAITING FOR SERVICE" << std::endl;
-    ros::service::waitForService("/gazebo/pause_physics");
-    // std::cout << "SERVICE found" << std::endl;
-    // std::cout << "pauseGazebo_.exists()= " << pauseGazebo_.exists() << std::endl;
-
-    if (par_.pause_time_when_replanning)
-    {
-      // not sure why, but when you record rosbag using tmux, it won't stop recording when it's paused so add this topic to indicate the pause
-      std_msgs::Bool msg;
-      msg.data = true;
-      pub_pause_sim_.publish(msg);
-      pauseTime();
-    }
-
-    //
     // Optimization
-    //
+    si::solOrGuess best_solution;
+    bool replanned = panther_ptr_->replan(best_solution, log, k_index_end);
 
-    int k_index_end;
-    bool replanned = false;
-
-    replanned =
-        panther_ptr_->replan(edges_obstacles, edges_obstacles_uncertainty, best_solution_expert, best_solutions_expert, best_solution_student,
-                             best_solutions_student, guesses, splines_fitted, planes, log, k_index_end);
-
-    if (par_.pause_time_when_replanning)
-    {
-      std_msgs::Bool msg;
-      msg.data = false;
-      pub_pause_sim_.publish(msg);
-      unpauseTime();
+    if (!replanned) {
+      return;
     }
 
-    //
     // converting best_solution to pwp
-    //
-
     mt::PieceWisePol pwp;
-    si::solOrGuess best_solution;
-    par_.use_student ? best_solution = best_solution_student : best_solution = best_solution_expert;
     panther_ptr_->convertsolOrGuess2pwp(pwp, best_solution, par_.dc);
 
-    if (!replanned)
-    {
-      publishOwnTrajInFailure(edges_obstacles);
+    // Check & Recheck
+    int checked = panther_ptr_->safetyCheck(pwp);
+
+    std::cout << "checked= " << checked << std::endl;
+
+    if (!checked) {
       return;
     }
 
-    //
-    // Safety Check
-    //
-
-    bool checked = false;
-
-    if (par_.use_delaycheck)
-    {
-      //
-      // if we are using delaycheck without check, we skip the check step
-      //
-
-      if (!par_.use_delaycheck_wo_check)
-      {
-        checked = panther_ptr_->check(pwp);
-        if (!checked)
-        {
-          publishOwnTrajInFailure(edges_obstacles);
-          return;
-        }
-      }
-
-      //
-      // Publish Traj_New
-      //
-
-      publishOwnTraj(pwp, false);
-
-      //
-      // Delay Check
-      //
-
-      checked = panther_ptr_->delayCheck(pwp);
-    }
-    else
-    {
-      //
-      // Check & Recheck
-      //
-
-      checked = panther_ptr_->safetyCheck(pwp);
-    }
-
-    if (!checked)
-    {
-      publishOwnTrajInFailure(edges_obstacles);
-      return;
-    }
-
-    //
     // add Traj to Plan
-    //
+    bool added_traj_to_plan = panther_ptr_->addTrajToPlan(k_index_end, log, best_solution, traj_for_visualization);
 
-    bool added_traj_to_plan = panther_ptr_->addTrajToPlan(k_index_end, log, best_solution, X_safe);
+    std::cout << "added_traj_to_plan= " << added_traj_to_plan << std::endl;
 
-    if (!added_traj_to_plan)
-    {
-      publishOwnTrajInFailure(edges_obstacles);
+    if (!added_traj_to_plan) {
       return;
     }
 
     // Success
-
     publishOwnTraj(pwp, true);
     pwp_last_ = pwp;
 
-    if (log.drone_status != DroneStatus::GOAL_REACHED)  // log.replanning_was_needed
-    {
-      pub_log_.publish(log2LogMsg(log));
-    }
-
+    // visualization
     if (par_.visual)
     {
       // Delete markers to publish stuff
       visual_tools_->deleteAllMarkers();
       visual_tools_->enableBatchPublishing();
-
-      // std::cout << "size of edges_obstacles: " << edges_obstacles.size() << std::endl;
-      pubObstacles(edges_obstacles);
-      pubObstaclesWithUncertainty(edges_obstacles_uncertainty);
-
-      // Publish Uncertainty
-      pubUncertainty(best_solution_expert.obstacle_uncertainty_list, best_solution_expert.obstacle_sigma_list,
-                     best_solution_expert.obstacle_uncertainty_times, best_solution_expert.moving_direction_uncertainty_list,
-                     best_solution_expert.moving_direction_sigma_list, best_solution_expert.moving_direction_uncertainty_times);
-
-      pubAlpha(best_solution_expert.alpha);
-      pubTraj(X_safe);
-      publishPlanes(planes);
-
-      // pubBestTrajs(best_solutions);
-
-      if (replanned && checked)
-      {
-        if (par_.use_student)
-        {
-          std::vector<si::solOrGuess> best_solution_student_vector;
-          best_solution_student_vector.push_back(best_solution_student);
-          // clang-format off
-          clearMarkerArray(ma_best_solution_student_, pub_best_solution_student_);
-          ma_best_solution_student_=pubVectorOfsolOrGuess(best_solution_student_vector, pub_best_solution_student_, name_drone_ + "_best_solution_student", par_.color_type_student);
-          clearMarkerArray(ma_best_solutions_student_, pub_best_solutions_student_);
-          ma_best_solutions_student_=pubVectorOfsolOrGuess(best_solutions_student, pub_best_solutions_student_, name_drone_ + "_best_solutions_student", par_.color_type_student);
-          // clang-format on
-        }
-
-        if (par_.use_expert)
-        {
-          std::vector<si::solOrGuess> best_solution_expert_vector;
-          best_solution_expert_vector.push_back(best_solution_expert);
-          // clang-format off
-          clearMarkerArray(ma_best_solution_expert_, pub_best_solution_expert_);
-          ma_best_solutions_expert_=pubVectorOfsolOrGuess(best_solution_expert_vector, pub_best_solution_expert_, name_drone_ + "_best_solution_expert", par_.color_type_expert);
-          clearMarkerArray(ma_best_solutions_expert_, pub_best_solutions_expert_);
-          ma_best_solutions_expert_=pubVectorOfsolOrGuess(best_solutions_expert, pub_best_solutions_expert_, name_drone_ + "_best_solutions_expert", par_.color_type_expert);
-          clearMarkerArray(ma_guesses_, pub_guesses_);
-          ma_guesses_=pubVectorOfsolOrGuess(guesses, pub_guesses_, name_drone_ + "_guess", par_.color_type_expert);
-          // clang-format on
-        }
-      }
-
-      pubVectorOfsolOrGuess(splines_fitted, pub_splines_fitted_, name_drone_ + "_spline_fitted", "vel");
+      pubTraj(traj_for_visualization);
     }
+
+    ROS_INFO("ReplanningCB finished");
+
   }
 }
 
@@ -1490,14 +1347,10 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
       obstacleShareCBTimer_.start();
     }
     std::cout << on_blue << "**************PANTHER STARTED" << reset << std::endl;
-
     panther_msgs::IsReady is_ready_msg;
     is_ready_msg.header.stamp = ros::Time::now();
     is_ready_msg.is_ready = true;
     pub_is_ready_.publish(is_ready_msg);
-
-    std::cout << "published is_ready_msg" << std::endl;
-
   }
 }
 

@@ -80,14 +80,10 @@ add_library(cgal_utils STATIC src/cgal_utils)
 target_include_directories (cgal_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cgal_utils PUBLIC ${DECOMP_UTIL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(${PROJECT_NAME}_node src/panther_node.cpp src/panther_ros.cpp src/panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/yaw_guess_generator.cpp src/octopus_search.cpp src/bspline_utils.cpp)
+add_executable(${PROJECT_NAME}_node src/panther_node.cpp src/panther_ros.cpp src/panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/octopus_search.cpp src/bspline_utils.cpp)
 target_include_directories (${PROJECT_NAME}_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${DECOMP_UTIL_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}_node PUBLIC  mparser cgal_utils ${CASADI_LIBRARIES} ${catkin_LIBRARIES} ${DECOMP_UTIL_LIBRARIES} ${Boost_LIBRARIES})  #${CGAL_LIBS}
 add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS} )
-
-add_executable(test_octopus_search src/examples/test_octopus_search.cpp src/octopus_search.cpp src/bspline_utils.cpp src/utils.cpp) 
-add_dependencies(test_octopus_search ${catkin_EXPORTED_TARGETS} )
-target_link_libraries(test_octopus_search ${catkin_LIBRARIES}) 
 
 add_executable(test_utils src/examples/test_utils.cpp src/utils.cpp)
 add_dependencies(test_utils ${catkin_EXPORTED_TARGETS})
@@ -111,22 +107,8 @@ add_library(disable_physics src/disable_physics.cpp)
 target_link_libraries(disable_physics ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 target_link_libraries(move_model ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-pybind_add_module(py_panther MODULE src/py_panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/yaw_guess_generator.cpp src/octopus_search.cpp src/bspline_utils.cpp)
+pybind_add_module(py_panther MODULE src/py_panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/octopus_search.cpp src/bspline_utils.cpp)
 target_link_libraries(py_panther PRIVATE ${catkin_LIBRARIES} ${CASADI_LIBRARIES})
-
-
-
-add_executable(test2_call_student src/test2_call_student.cpp)
-target_link_libraries(test2_call_student  ${PYTHON_LIBRARIES}) #See https://github.com/pybind/pybind11/issues/2232#issuecomment-655520324
-
-
-add_executable(test1_call_student src/test1_call_student.cpp)
-target_link_libraries(test1_call_student  ${PYTHON_LIBRARIES}) #See https://github.com/pybind/pybind11/issues/2232#issuecomment-655520324
-
-
-add_executable(test3_call_student src/test3_call_student.cpp)
-target_link_libraries(test3_call_student  ${PYTHON_LIBRARIES} ${catkin_LIBRARIES}) #See https://github.com/pybind/pybind11/issues/2232#issuecomment-655520324
-
 
 # target_precompile_headers(test_utils PUBLIC include/exprtk.hpp)
 # target_precompile_headers(move_model PUBLIC include/exprtk.hpp)
@@ -199,7 +181,7 @@ target_link_libraries(test3_call_student  ${PYTHON_LIBRARIES} ${catkin_LIBRARIES
 
 
 
-# add_library(solver_ipopt STATIC src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/solver_ipopt_guess.cpp src/yaw_guess_generator.cpp src/utils.cpp src/octopus_search.cpp src/bspline_utils.cpp)
+# add_library(solver_ipopt STATIC src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/solver_ipopt_guess.cpp src/utils.cpp src/octopus_search.cpp src/bspline_utils.cpp)
 # target_include_directories (solver_ipopt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${DECOMP_UTIL_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 # target_link_libraries(solver_ipopt PUBLIC ${CASADI_LIBRARIES} ${DECOMP_UTIL_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} cgal_utils)
 # cotire(solver_ipopt)

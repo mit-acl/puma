@@ -33,24 +33,15 @@ class Panther
 public:
   Panther(mt::parameters par);
   ~Panther();
-  bool replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_uncertainty_out, si::solOrGuess& best_solution_expert,
-              std::vector<si::solOrGuess>& best_solutions_expert, si::solOrGuess& best_solution_student,
-              std::vector<si::solOrGuess>& best_solutions_student, std::vector<si::solOrGuess>& guesses,
-              std::vector<si::solOrGuess>& splines_fitted, std::vector<Hyperplane3D>& planes, mt::log& log,
-              int& k_index_end);
+  bool replan(si::solOrGuess& best_solution, mt::log& log, int& k_index_end);
   void pubObstacleEdge(mt::Edges& edges_obstacles_out, const Eigen::Affine3d& c_T_b, const Eigen::Affine3d& w_T_b);
-  bool addTrajToPlan(const int& k_index_end, mt::log& log, const si::solOrGuess& best_solution,
-                     mt::trajectory& X_safe_out);
+  bool addTrajToPlan(const int& k_index_end, mt::log& log, const si::solOrGuess& best_solution, mt::trajectory& traj);
   bool safetyCheck(mt::PieceWisePol& pwp);
   bool check(mt::PieceWisePol& pwp);
   bool delayCheck(mt::PieceWisePol& pwp);
-  bool trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWisePol& pwp, const double& t_start,
-                                 const double& t_end);
-  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end,
-                                                  const Eigen::Vector3d& delta);
-  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
-  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end, const Eigen::Vector3d& delta, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
-  std::vector<Eigen::Vector3d> vertexesOfIntervalUncertaintyInflated(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
+  bool trajsAndPwpAreInCollision(mt::dynTrajCompiled& traj, mt::PieceWisePol& pwp, const double& t_start, const double& t_end);
+  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end, const Eigen::Vector3d& delta);
+  std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end);
   void updateState(mt::state data);
 
   bool getNextGoal(mt::state& next_goal);
@@ -87,34 +78,21 @@ private:
   mt::committedTrajectory plan_;
 
   ConvexHullsOfCurves convexHullsOfCurves(double t_start, double t_end);
-  ConvexHullsOfCurves convexHullsOfCurvesWithUncertainty(double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
   ConvexHullsOfCurves convexHullsOfCurvesForObstacleEdge(double t_start, double t_end, const Eigen::Affine3d& c_T_b, const Eigen::Affine3d& w_T_b);
   ConvexHullsOfCurve convexHullsOfCurve(mt::dynTrajCompiled& traj, double t_start, double t_end);
-  ConvexHullsOfCurve convexHullsOfCurveWithUncertainty(mt::dynTrajCompiled& traj, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty, double t_start, double t_end);
-  CGAL_Polyhedron_3 convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end, std::vector<double>& projected_time, std::vector<Eigen::Vector3d>& projected_uncertainty);
-
-  std::vector<mt::obstacleForOpt> getObstaclesForOpt(double t_start, double t_end,
-                                                     std::vector<si::solOrGuess>& splines_fitted);
-  void addDummyObstacle(double t_start, double t_end, std::vector<mt::obstacleForOpt>& obstacles_for_opt, mt::state& A,
-                        std::vector<si::solOrGuess>& splines_fitted);
-
+  CGAL_Polyhedron_3 convexHullOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end);
+  std::vector<mt::obstacleForOpt> getObstaclesForOpt(double t_start, double t_end);
+  void addDummyObstacle(double t_start, double t_end, std::vector<mt::obstacleForOpt>& obstacles_for_opt, mt::state& A, std::vector<si::solOrGuess>& splines_fitted);
   Eigen::Vector3d evalMeanDynTrajCompiled(const mt::dynTrajCompiled& traj, double t);
   Eigen::Vector3d evalVarDynTrajCompiled(const mt::dynTrajCompiled& traj, double t);
 
   bool isReplanningNeeded();
-
   void logAndTimeReplan(const std::string& info, const bool& success, mt::log& log);
-
   void getNumObstAndNumOtherAgents(const std::vector<mt::obstacleForOpt>& obstacles_for_opt, int& num_obst, int& num_oa);
   void dynTraj2dynTrajCompiled(const mt::dynTraj& traj, mt::dynTrajCompiled& traj_compiled);
-
   bool initializedStateAndTermGoal();
-
   // bool safetyCheckAfterOpt(mt::PieceWisePol pwp_optimized);
-
-  // bool trajsAndPwpAreInCollision(mt::dynTrajCompiled traj, mt::PieceWisePol pwp_optimized, double t_start,
-  //                                double t_end);
-
+  // bool trajsAndPwpAreInCollision(mt::dynTrajCompiled traj, mt::PieceWisePol pwp_optimized, double t_start, double t_end);
   // void removeTrajsThatWillNotAffectMe(const mt::state& A, double t_start, double t_end);
 
   void updateInitialCond(int i);
@@ -168,7 +146,7 @@ private:
   std::mutex mtx_G_term;
   std::mutex mtx_t_;
 
-  // casadi::Function cf_fit3d_;
+  // casadi::Function cf_fit2d_;
   mt::state stateA_;  // It's the initial condition for the solver
 
   mt::state state_;

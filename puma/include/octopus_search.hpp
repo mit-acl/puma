@@ -121,10 +121,6 @@ public:
 
   std::vector<Eigen::Vector3d> recoverCPsFromNodePtr(Node* node1_ptr);
 
-  void getAllTrajsFound(std::vector<mt::trajectory>& all_trajs_found);
-
-  void getBestTrajsFound(std::vector<mt::trajectory>& all_trajs_found);
-
   void computeInverses();
 
   void setBBoxSearch(double x, double y, double z);
@@ -137,7 +133,6 @@ public:
 
   int getNumOfLPsRun();
 
-  void getBestTrajFound(mt::trajectory& best_traj_found, mt::PieceWisePol& pwp, double dc);
   void getEdgesConvexHulls(mt::Edges& edges_convex_hulls);
 
   int B_SPLINE = 1;  // B-Spline Basis

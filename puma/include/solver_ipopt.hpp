@@ -38,6 +38,7 @@ std::vector<Eigen::Vector3d> casadiMatrix2StdVectorEigen3d(const casadi::DM &qp_
 std::vector<Eigen::Matrix<double, 9, 1>> casadiMatrix2StdVectorEigen9d(const casadi::DM &qp_casadi);
 std::vector<double> casadiMatrix2StdVectorDouble(const casadi::DM &qy_casadi);
 casadi::DM stdVectorEigen3d2CasadiMatrix(const std::vector<Eigen::Vector3d> &qp);
+casadi::DM stdVectorEigen2d2CasadiMatrix(const std::vector<Eigen::Vector2d> &qp);
 casadi::DM stdVectorDouble2CasadiRowVector(const std::vector<Eigen::Vector3d> &qp);
 casadi::DM eigenXd2CasadiMatrix(const Eigen::VectorXd &data);
 
@@ -48,17 +49,8 @@ struct solOrGuess
 
   double alpha;
 
-  std::vector<Eigen::Vector3d> qp;  // control points for position
+  std::vector<Eigen::Vector2d> qp;  // control points for position
   std::vector<double> qy;           // control points for yaw
-
-  std::vector<Eigen::Vector3d> obstacle_uncertainty_list;
-  std::vector<Eigen::Matrix<double, 9, 1>> obstacle_sigma_list;
-  std::vector<double> obstacle_uncertainty_times;
-
-  std::vector<Eigen::Vector3d> moving_direction_uncertainty_list;
-  std::vector<Eigen::Matrix<double, 9, 1>> moving_direction_sigma_list;
-  std::vector<double> moving_direction_uncertainty_times;
-
   // mt::PieceWisePol pwp;
   Eigen::RowVectorXd knots_p;  // contains time information
   Eigen::RowVectorXd knots_y;  // contains time information
@@ -88,7 +80,7 @@ struct solOrGuess
     using namespace termcolor;
     std::cout << "Pos Control points:" << std::endl;
 
-    Eigen::Matrix<double, 3, -1> tmp(3, qp.size());
+    Eigen::Matrix<double, 2, -1> tmp(2, qp.size());
 
     for (int i = 0; i < qp.size(); i++)
     {
@@ -186,28 +178,12 @@ public:
 
   ~Fitter();
 
-  std::vector<Eigen::Vector3d> fit(std::vector<Eigen::Vector3d> &samples);
+  std::vector<Eigen::Vector2d> fit(std::vector<Eigen::Vector3d> &samples);
 
 protected:
 private:
-  casadi::Function cf_fit3d_;
+  casadi::Function cf_fit2d_;
   int fitter_num_samples_;
-};
-
-class ClosedFormYawSolver
-{
-public:
-  ClosedFormYawSolver();
-
-  ~ClosedFormYawSolver();
-
-  std::vector<double> getyCPsfrompCPSUsingClosedForm(std::vector<Eigen::Vector3d> &pCPs, double total_time,
-                                                     const std::vector<Eigen::Vector3d> &pCPs_feature, const double y0,
-                                                     const double ydot0, const double ydotf);
-
-protected:
-private:
-  casadi::Function cf_;
 };
 
 class SolverIpopt
@@ -317,8 +293,6 @@ private:
   void printQND(std::vector<Eigen::Vector3d> &q, std::vector<Eigen::Vector3d> &n, std::vector<double> &d);
 
   void findCentroidHull(const Polyhedron_Std &hull, Eigen::Vector3d &centroid);
-
-  casadi::DM generateYawGuess(casadi::DM matrix_qp_guess, double y0, double ydot0, double ydotf, double t0, double tf);
 
   std::vector<Eigen::Vector3d> n_;  // Each n_[i] has 3 elements (nx,ny,nz)
   std::vector<double> d_;           // d_[i] has 1 element

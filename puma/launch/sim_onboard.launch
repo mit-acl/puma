@@ -15,13 +15,8 @@
   <arg name="rviz" default="false"/>
   <arg name="use_planner" default="true"/>
   <arg name="use_downward_camera" default="true"/>
-
-  <!-- <arg name="student_policy_path" default="$(find puma)/../panther_compression/trained_policies/Hung_dynamic_obstacles.pt" />  -->
   <arg name="student_policy_path" default="$(find puma)/../panther_compression/trained_policies/policies/test23.pt" />
-  <!-- <arg name="student_policy_path" default="$(find puma)/../panther_compression/evals/tmp_dagger/2/intermediate_policy_round28_log9.pt" /> -->
-
   <arg name="static_planning" default="false" />  <!-- #If true, it will always plan from the same initial condition -->
-  <!--  <arg name="mode" default="panther" />  --><!--  noPA (no_perception_aware), py (first_pos_then_yaw), panther (panther) ysweep (noPA but with sweep in yaw) -->
 
   <!--
     Agent specific parameters
@@ -111,14 +106,14 @@
    PANTHER launch
   -->
 
-
   <group if="$(arg use_planner)">
 
     <node ns="$(arg quad)" name="puma" pkg="puma" type="puma_node" output="screen" clear_params="false"> 
 
       <!-- Parameters -->
       <rosparam file="$(find puma)/param/puma.yaml" command="load"/>
-      <rosparam file="$(find puma)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/>
+      <!-- <rosparam file="$(find puma)/matlab/casadi_generated_files/params_casadi.yaml" command="load"/> -->
+      <rosparam file="$(find puma)/matlab/casadi_generated_files/acslam_params_casadi.yaml" command="load"/>
       <param name="gui_mission" value="$(arg gui_mission)" /> 
       <param name="perfect_prediction" value="$(arg perfect_prediction)" /> 
       <param name="student_policy_path" value="$(arg student_policy_path)" /> 

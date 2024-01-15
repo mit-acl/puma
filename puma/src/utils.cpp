@@ -54,9 +54,6 @@ panther_msgs::Log log2LogMsg(mt::log log)
 
   switch (log.drone_status)
   {
-    case DroneStatus::YAWING:
-      log_msg.drone_status = "YAWING";
-      break;
     case DroneStatus::TRAVELING:
       log_msg.drone_status = "TRAVELING";
       break;

@@ -122,12 +122,6 @@ void OctopusSearch::setVisual(bool visual)
   visual_ = visual;
 }
 
-void OctopusSearch::getBestTrajFound(mt::trajectory& best_traj_found, mt::PieceWisePol& pwp, double dc)
-{
-  mt::trajectory traj;
-  CPs2TrajAndPwp_old(best_solution_.qp, best_traj_found, pwp, N_, p_, num_seg_, knots_, dc);
-}
-
 void OctopusSearch::getEdgesConvexHulls(mt::Edges& edges_convex_hulls)
 {
   Eigen::Matrix<double, 3, 4> last4Cps;
@@ -161,64 +155,6 @@ void OctopusSearch::getEdgesConvexHulls(mt::Edges& edges_convex_hulls)
         }
       }
     }
-  }
-}
-
-void OctopusSearch::getBestTrajsFound(std::vector<mt::trajectory>& all_trajs_found)
-{
-  all_trajs_found.clear();
-
-  for (auto node_ptr : nodesptr_cg_and_cng_)
-  {
-    std::vector<Eigen::Vector3d> cps;
-
-    Node* tmp = node_ptr;
-
-    while (tmp != NULL)
-    {
-      cps.push_back(Eigen::Vector3d(tmp->qi.x(), tmp->qi.y(), tmp->qi.z()));
-      tmp = tmp->previous;
-    }
-
-    cps.push_back(q1_);
-    cps.push_back(q0_);  // cps = [....q4 q3 q2 q1 q0}
-
-    std::reverse(std::begin(cps), std::end(cps));  // cps=[q0 q1 q2 q3 q4 ...]
-
-    mt::trajectory traj;
-    mt::PieceWisePol pwp;
-    CPs2TrajAndPwp_old(cps, traj, pwp, N_, p_, num_seg_, knots_, 0.01);  // Last number is the resolution
-
-    all_trajs_found.push_back(traj);
-  }
-}
-
-void OctopusSearch::getAllTrajsFound(std::vector<mt::trajectory>& all_trajs_found)
-{
-  all_trajs_found.clear();
-
-  for (auto node : expanded_valid_nodes_)
-  {
-    std::vector<Eigen::Vector3d> cps;
-
-    Node* tmp = &node;
-
-    while (tmp != NULL)
-    {
-      cps.push_back(Eigen::Vector3d(tmp->qi.x(), tmp->qi.y(), tmp->qi.z()));
-      tmp = tmp->previous;
-    }
-
-    cps.push_back(q1_);
-    cps.push_back(q0_);  // cps = [....q4 q3 q2 q1 q0}
-
-    std::reverse(std::begin(cps), std::end(cps));  // cps=[q0 q1 q2 q3 q4 ...]
-
-    mt::trajectory traj;
-    mt::PieceWisePol pwp;
-    CPs2TrajAndPwp_old(cps, traj, pwp, N_, p_, num_seg_, knots_, 0.01);  // Last number is the resolution
-
-    all_trajs_found.push_back(traj);
   }
 }
 

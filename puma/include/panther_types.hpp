@@ -88,11 +88,7 @@ struct log
 
 struct obstacleForOpt
 {
-  // casadi::DM bbox_inflated;
-  // casadi::DM ctrl_pts;
-  std::vector<Eigen::Vector3d> ctrl_pts;
-  std::vector<Eigen::Vector3d> uncertainty_ctrl_pts;
-  Eigen::Matrix<double, 9, 1> sigma_0;
+  std::vector<Eigen::Vector2d> ctrl_pts;
   Eigen::Vector3d bbox_inflated;
   bool is_dummy = false;
   bool is_agent = false;
@@ -100,16 +96,9 @@ struct obstacleForOpt
   void printInfo()
   {
     std::cout << termcolor::yellow << "ctrl_pts=" << termcolor::reset << std::endl;
-    for (auto& q : ctrl_pts)
-    {
+    for (auto& q : ctrl_pts) {
       std::cout << termcolor::yellow << q.transpose() << termcolor::reset << std::endl;
     }
-    std::cout << termcolor::red << "uncertainty_ctrl_pts=" << termcolor::reset << std::endl;
-    for (auto& q : uncertainty_ctrl_pts)
-    {
-      std::cout << termcolor::red << q.transpose() << termcolor::reset << std::endl;
-    }
-    std::cout << termcolor::blue << "simga_0=" << sigma_0.transpose() << termcolor::reset << std::endl;
     std::cout << termcolor::blue << "bbox_inflated=" << bbox_inflated.transpose() << termcolor::reset << std::endl;
   }
 };
@@ -146,6 +135,24 @@ struct state
   void setJerk(const double x, const double y, const double z)
   {
     jerk << x, y, z;
+  }
+
+  void setPos(const double x, const double y)
+  {
+    pos << x, y;
+  }
+  void setVel(const double x, const double y)
+  {
+    vel << x, y;
+  }
+  void setAccel(const double x, const double y)
+  {
+    accel << x, y;
+  }
+
+  void setJerk(const double x, const double y)
+  {
+    jerk << x, y;
   }
 
   void setPos(const Eigen::Vector3d& data)

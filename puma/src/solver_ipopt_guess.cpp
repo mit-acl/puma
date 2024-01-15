@@ -25,11 +25,9 @@ bool SolverIpopt::generateAStarGuess(std::vector<os::solution>& p_guesses)
 {
   octopusSolver_ptr_->setUp(t_init_, t_final_guess_, hulls_);
 
-  // std::cout << "t_init_= " << t_init_ << std::endl;
-  // std::cout << "t_final_guess_= " << t_final_guess_ << std::endl;
-  // std::cout << "par_.vmax= " << par_.v_max << std::endl;
-
-  ///////////////////////////////
+  std::cout << "t_init_= " << t_init_ << std::endl;
+  std::cout << "t_final_guess_= " << t_final_guess_ << std::endl;
+  std::cout << "par_.vmax= " << par_.v_max << std::endl;
 
   Eigen::RowVectorXd knots_p = constructKnotsClampedUniformSpline(t_init_, t_final_guess_, par_.deg_pos, par_.num_seg);
 
@@ -61,31 +59,18 @@ bool SolverIpopt::generateAStarGuess(std::vector<os::solution>& p_guesses)
   q2 = (sp_.p * sp_.p * q1 - (t1PpP1 - t2) * (a0 * (t2 - tpP1) + v0) - sp_.p * (q1 + (-t1PpP1 + t2) * v0)) /
        ((-1 + sp_.p) * sp_.p);
 
-  // qN_ = pf;
-  // qNm1_ = pf + ((tN - tNPp) * vf) / sp_.p;
-  // qNm2_ =
-  //     (sp_.p * sp_.p * qNm1_ - (tNm1 - tNm1Pp) * (af * (-tN + tNm1Pp) + vf) - sp_.p * (qNm1_ + (-tNm1 + tNm1Pp) *
-  //     vf)) /
-  //     ((-1 + sp_.p) * sp_.p);
-
   std::cout << "[NL] Running A* from" << q0.transpose() << " to " << final_state_.pos.transpose()
             << ", allowing time = " << par_.max_runtime_octopus_search * 1000 << " ms" << std::endl;
-
-  ///////////////////////////////
 
   octopusSolver_ptr_->setq0q1q2(q0, q1, q2);
   octopusSolver_ptr_->setGoal(final_state_.pos);
 
   double goal_size = par_.goal_radius;  //[meters]
 
-  octopusSolver_ptr_->setXYZMinMaxAndRa(par_.x_min, par_.x_max, par_.y_min, par_.y_max, par_.z_min, par_.z_max,
-                                        par_.Ra);             // limits for the search, in world frame
+  octopusSolver_ptr_->setXYZMinMaxAndRa(par_.x_min, par_.x_max, par_.y_min, par_.y_max, par_.z_min, par_.z_max, par_.Ra);             // limits for the search, in world frame
   octopusSolver_ptr_->setBBoxSearch(2000.0, 2000.0, 2000.0);  // limits for the search, centered on q2
-  // Eigen::Vector3d invsqrt3Vector = (1.0 / sqrt(3)) * Eigen::Vector3d::Ones();
-
   octopusSolver_ptr_->setMaxValuesAndSamples(par_.v_max, par_.a_max, par_.a_star_samp_x, par_.a_star_samp_y,
                                              par_.a_star_samp_z, par_.a_star_fraction_voxel_size);
-
   octopusSolver_ptr_->setRunTime(par_.max_runtime_octopus_search);  // hack, should be kappa_ * max_runtime_
   octopusSolver_ptr_->setGoalSize(goal_size);
   octopusSolver_ptr_->setBias(par_.a_star_bias);
