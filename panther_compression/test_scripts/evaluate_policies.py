@@ -13,7 +13,7 @@ def main():
     machine = cwd.split("/")[2] 
     
     encoders = ["mlp", "lstm", "transformer", "gnn"]
-    decoders = ["diffusion"]
+    decoders = ["mlp", "diffusion"]
 
     for encoder in encoders:
         for decoder in decoders:
