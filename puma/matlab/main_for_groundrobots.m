@@ -33,7 +33,7 @@ make_plots = true;
 
 deg_pos = 3;                %The degree of the position polynomial
 num_seg = 7;                %The number of segments in the trajectory (the more segments the less conservative the trajectory is [also makes optimization problem harder])
-num_max_of_obst = 3;        % This is the maximum num of the obstacles that will be considered in the constraints
+num_max_of_obst = 10;        % This is the maximum num of the obstacles that will be considered in the constraints
 dim_pos = 2;                %The dimension of the position trajectory (R3)
 offset_vel = 0.1;
 basis = "MINVO";            %MINVO OR B_SPLINE or BEZIER. This is the basis used for collision checking (in position, velocity, accel and jerk space), both in Matlab and in C++
