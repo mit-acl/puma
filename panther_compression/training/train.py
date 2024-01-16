@@ -15,6 +15,6 @@ decoders = ["mlp", "diffusion"]
 
 for encoder in encoders:
     for decoder in decoders:
-        cmd = f"python test_gnn_diffusion_training.py -en {encoder} -de {decoder} -m {machine}"
+        cmd = f"python training.py -en {encoder} -de {decoder} -m {machine}"
         print(cmd.split())
         subprocess.call(cmd.split(), cwd=cwd)
