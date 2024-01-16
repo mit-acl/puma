@@ -81,8 +81,8 @@ class DynCorridor:
         self.name = name[1:-1]
 
         self.total_num_obs=total_num_obs
-        self.num_of_dyn_objects = total_num_obs
-        self.num_of_stat_objects = 0
+        self.num_of_dyn_objects = 0
+        self.num_of_stat_objects = total_num_obs
         self.x_min= 1.0 
         self.x_max= 3.0
         self.y_min= 1.0 
@@ -100,7 +100,7 @@ class DynCorridor:
 
         self.bbox_dynamic=PANTHER_YAML_PARAMS["obstacle_bbox"] # this corresponds to training_obst_size defined in puma.yaml
         self.add_noise_to_obst = PANTHER_YAML_PARAMS["add_noise_to_obst"]
-        self.bbox_static_vert=[0.3, 2.5, 2.5]
+        self.bbox_static_vert=[0.5, 0.5, 0.5]
         self.bbox_static_horiz=[0.4, 8, 0.4]
         self.percentage_vert=0.0
         self.name_obs="obs_"
@@ -195,13 +195,7 @@ class DynCorridor:
             mesh=random.choice(self.available_meshes_static)
             bbox=self.bbox_static_vert
             z=bbox[2]/2.0
-            
-            if i == 1:
-                [x_string, y_string, z_string] = self.static(12,0,3.0)
-            elif i == 2:
-                [x_string, y_string, z_string] = self.static(12,-1.0,3.0)
-            elif i == 3:
-                [x_string, y_string, z_string] = self.static(12,1,3.0)
+            [x_string, y_string, z_string] = self.static(3.0, 0.0, 1.0)
 
             # [x_string, y_string, z_string] = self.wave_in_z(x, y, z, self.scale[2], offset, 1.0)
         return [x_string, y_string, z_string, x, y, z, mesh, bbox]

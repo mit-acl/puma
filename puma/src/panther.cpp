@@ -1364,20 +1364,16 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
 
   solutions_found_++;
 
-  std::cout << "here1" << std::endl;
-
   ///////////////////////////////////////////////////////////
   ///////////////       OTHER STUFF    //////////////////////
   //////////////////////////////////////////////////////////
 
   planner_initialized_ = true;
 
-  std::cout << "here2" << std::endl;
   log_ptr_->cost = best_solution.cost;
   log_ptr_->obst_avoidance_violation = best_solution.obst_avoidance_violation;
   log_ptr_->dyn_lim_violation = best_solution.dyn_lim_violation;
 
-  std::cout << "here3" << std::endl;
   // Send Uncertainty Edges
   if (par_.use_expert){
     mtx_trajs_.lock();
@@ -1392,7 +1388,6 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
     printInfo(best_solution, n_safe_trajs);
   }
 
-  std::cout << "here5" << std::endl;
   return true;
 }
 
