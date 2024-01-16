@@ -356,7 +356,7 @@ end
 t_opt_n_samples=linspace(0,1,sampler.num_samples);
 
 %%
-%% Direction of motion uncertainty
+%% Direction of motion uncertainty (debugged and tihs is not the cause of NaN issue)
 %%
 
 replan_times = linspace(0,1,num_seg);

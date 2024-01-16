@@ -21,6 +21,18 @@ from joblib import Parallel, delayed
 import multiprocessing
 import gym
 import rospy
+import rospkg
+import torch
+
+# add path to training folder
+rospack = rospkg.RosPack()
+path_puma=rospack.get_path('puma')
+sys.path.insert(0, path_puma + '/../panther_compression/training')
+print(path_puma + '/../panther_compression/training')
+# for student
+from utils import setup_diffusion
+from network_utils import MLP
+from training import get_kwargs
 
 class ExpertDidntSucceed(Exception):
 	  pass
@@ -1533,7 +1545,18 @@ class StudentCaller():
 	def __init__(self, policy_path):
 		# self.student_policy=bc.reconstruct_policy(policy_path)
 		# self.student_policy=policy = th.load(policy_path, map_location=utils.get_device("auto")) #Same as doing bc.reconstruct_policy(policy_path) 
-		self.student_policy=policy = th.load(policy_path, map_location=utils.get_device("cpu")) #Same as doing bc.reconstruct_policy(policy_path) 
+		_, self.kwargs = get_kwargs()
+		print("create student policy")
+		self.decoder = policy_path.split("_")[-2]
+		print("self.decoder: ", self.decoder)
+		with th.autocast(device_type="cpu"):
+			if self.decoder == "mlp":
+				self.student_policy = MLP(**self.kwargs)
+			else: # diffusion
+				self.student_policy, self.noise_scheduler = setup_diffusion(**self.kwargs)
+			self.student_policy.eval()
+			self.student_policy.load_state_dict(th.load(policy_path, map_location=utils.get_device("cpu"))) #Same as doing bc.reconstruct_policy(policy_path)
+		print("student policy created")
 		self.om=ObservationManager()
 		self.am=ActionManager()
 		self.obsm=ObstaclesManager()
@@ -1546,7 +1569,10 @@ class StudentCaller():
 		self.costs_and_violations_of_action = None# CostsAndViolationsOfAction
 		self.num_max_of_obst = self.params["num_max_of_obst"]
 
+	@th.autocast(device_type="cpu")
 	def predict(self, w_init_ppstate, w_ppobstacles, w_gterm, num_obst, num_oa): #pp stands for py_panther
+
+		print("in student caller predict")
 
 		w_init_state=convertPPState2State(w_init_ppstate)
 		w_gterm=w_gterm.reshape(3,1)
@@ -1566,13 +1592,65 @@ class StudentCaller():
         ## 
 
 		self.student_policy.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=f_obs_n.shape)
-		self.student_policy.features_extractor = self.student_policy.features_extractor_class(self.student_policy.observation_space)
-
-		use_num_obses = False # to make sure LSTM takes a various number of obstacles
-		self.student_policy.set_use_num_obses(use_num_obses)
-		self.student_policy.set_num_obs_num_oa(num_obst, num_oa)
 		with th.no_grad():
-			action_normalized = self.student_policy._predict(th.as_tensor(f_obs_n), deterministic=True) 
+
+			obs = th.as_tensor(f_obs_n).float()
+			if self.decoder == "mlp":
+				action_normalized = self.student_policy(obs)
+				action_normalized = action_normalized.float().cpu().numpy()
+
+			elif self.decoder == "diffusion":
+				
+				B = 1
+				num_trajs = self.kwargs.get('num_trajs')
+				num_diffusion_iters = self.kwargs.get('num_diffusion_iters')
+				action_dim = self.kwargs.get('action_dim')
+				use_gnn = self.kwargs.get('en_network_type') == 'gnn'
+				device = self.kwargs.get('device')
+
+				# reshape observation to (B,obs_horizon*obs_dim)
+				obs_cond = obs.unsqueeze(0)
+				# initialize action from Guassian noise
+				noisy_action = torch.randn(
+					(B, num_trajs, action_dim), device=device)
+				naction = noisy_action
+
+				# init scheduler
+				self.noise_scheduler.set_timesteps(num_diffusion_iters)
+
+				# for k in tqdm(self.noise_scheduler.timesteps, desc="diffusion iter k"):
+				for k in self.noise_scheduler.timesteps:
+					# predict noise
+
+					if use_gnn:
+						# TODO: need to make change so here to make this work for GNN
+						x_dict = dataset[dataset_idx].x_dict
+						edge_index_dict = dataset[dataset_idx].edge_index_dict
+						noise_pred = self.student_policy(
+							sample=naction,
+							timestep=k,
+							global_cond=obs_cond,
+							x_dict=x_dict,
+							edge_index_dict=edge_index_dict
+						)
+					else:
+
+						noise_pred = self.student_policy(
+							sample=naction,
+							timestep=k,
+							global_cond=obs_cond
+						)
+
+					# inverse diffusion step (remove noise)
+					naction = self.noise_scheduler.step(
+						model_output=noise_pred,
+						timestep=k,
+						sample=naction
+					).prev_sample
+
+				action_normalized = naction.squeeze(0).cpu().numpy()
+		print("action_normalized.shape: ", action_normalized.shape)
+
 		action_normalized = action_normalized.reshape(self.am.getActionShape())
 
 		##

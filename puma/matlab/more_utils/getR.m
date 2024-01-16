@@ -16,7 +16,6 @@ function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg
     w_R_b=toRotMat(q); %Rotation between the body and the world frame
     
     w_T_b=[w_R_b w_t_b; zeros(1,3) 1];
-    w_T_c=w_T_b*b_T_c;
     c_T_b=invPose(b_T_c);
     b_T_w=invPose(w_T_b);
     
@@ -24,7 +23,6 @@ function R = getR(sp, sy, t_n, alpha, b_T_c, pos_center_obs, thetax_half_FOV_deg
     w_fevar=pos_center_obs;
     
     c_P=c_T_b*b_T_w*[w_fevar;1]; %Position of the feature (the center of the obstacle) in the camera frame
-    s=c_P(1:2)/(c_P(3));  %Note that here we are not using f (the focal length in meters) because it will simply add a constant factor in ||s|| and in ||s_dot||
     
     %FOV is a cone:  (See more possible versions of this constraint at the end of this file) (inFOV in Panther paper table 2)
     is_in_FOV_tmp=-cos(thetax_half_FOV_deg*pi/180.0) + (c_P(1:3)'/norm(c_P((1:3))))*[0;0;1]; % Constraint is is_in_FOV1>=0

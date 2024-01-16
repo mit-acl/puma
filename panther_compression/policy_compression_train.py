@@ -308,11 +308,7 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
 
 def main():
 
-
-
     " ********************* Parse args *********************"
-
-
 
     parser = argparse.ArgumentParser()
 

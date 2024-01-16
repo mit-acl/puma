@@ -1322,9 +1322,6 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
     }
 
     best_solution_student = best_solutions_student[index_smallest_augmented_cost];
-
-    // std::cout << "Chosen cost=" << best_solution_student.augmented_cost << std::endl;
-
     if (best_solution_student.isInCollision())
     {
       std::cout << red << bold << "All the trajectories found by the student are in collision" << reset << std::endl;
@@ -1367,22 +1364,27 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
 
   solutions_found_++;
 
+  std::cout << "here1" << std::endl;
+
   ///////////////////////////////////////////////////////////
   ///////////////       OTHER STUFF    //////////////////////
   //////////////////////////////////////////////////////////
 
   planner_initialized_ = true;
 
+  std::cout << "here2" << std::endl;
   log_ptr_->cost = best_solution.cost;
   log_ptr_->obst_avoidance_violation = best_solution.obst_avoidance_violation;
   log_ptr_->dyn_lim_violation = best_solution.dyn_lim_violation;
 
+  std::cout << "here3" << std::endl;
   // Send Uncertainty Edges
-  mtx_trajs_.lock();
-  ConvexHullsOfCurves hulls = convexHullsOfCurvesWithUncertainty(t_start, t_start + par_.fitter_total_time, best_solution.obstacle_uncertainty_times, best_solution.obstacle_uncertainty_list);
-  mtx_trajs_.unlock();
-  edges_obstacles_uncertainty_out = cu::vectorGCALPol2edges(hulls);
-
+  if (par_.use_expert){
+    mtx_trajs_.lock();
+    ConvexHullsOfCurves hulls = convexHullsOfCurvesWithUncertainty(t_start, t_start + par_.fitter_total_time, best_solution.obstacle_uncertainty_times, best_solution.obstacle_uncertainty_list);
+    mtx_trajs_.unlock();
+    edges_obstacles_uncertainty_out = cu::vectorGCALPol2edges(hulls);
+  }
   logAndTimeReplan("Success", true, log);
 
   if ((this_replan_uses_new_gterm == true && par_.static_planning == true) || (par_.static_planning == false))
@@ -1390,6 +1392,7 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
     printInfo(best_solution, n_safe_trajs);
   }
 
+  std::cout << "here5" << std::endl;
   return true;
 }
 
