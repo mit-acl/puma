@@ -155,6 +155,8 @@ def get_kwargs():
     adv_clip_for_rl = 10.0                                              # reward clip for rl
     use_reinforce_for_rl = True                                         # use REINFORCE for rl
     use_importance_sampling_for_rl = False                              # use importance sampling for rl
+    use_start_cond_diffusion = True                                     # use start condition for diffusion
+    use_goal_cond_diffusion = True                                      # use end condition for diffusion
 
     # sanity check
     assert not (use_reinforce_for_rl and use_importance_sampling_for_rl), "use_reinforce_for_rl and use_importance_sampling_for_rl cannot be both True"
@@ -246,6 +248,8 @@ def get_kwargs():
         'use_importance_sampling_for_rl': use_importance_sampling_for_rl,
         'linear_layer_output_dim': linear_layer_output_dim,
         'output_dim_for_agent_obs': output_dim_for_agent_obs,
+        'use_start_cond_diffusion': use_start_cond_diffusion,
+        'use_goal_cond_diffusion': use_goal_cond_diffusion,
     }
 
     # create dataset

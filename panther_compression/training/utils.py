@@ -456,6 +456,8 @@ def get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
     use_gnn = kwargs.get('en_network_type') == 'gnn'
     device = kwargs.get('device')
     num_eval = kwargs.get('num_eval')
+    use_start_cond_diffusion = kwargs.get('use_start_cond_diffusion')
+    use_goal_cond_diffusion = kwargs.get('use_goal_cond_diffusion')
 
     # set model to evaluation mode
     policy.eval()
@@ -519,6 +521,16 @@ def get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
                     timestep=k,
                     sample=naction
                 ).prev_sample
+
+                # pose start and goal condition
+                if use_start_cond_diffusion:
+                    naction[:, :, :3] = expert_action[:, :, :3]
+
+                if use_goal_cond_diffusion:
+                    # pos (first 15 ctrl pts)
+                    naction[:, :, 12:15] = expert_action[:, :, 12:15]
+                    # yaw (following 6 ctrl pts)
+                    naction[:, :, 21] = expert_action[:, :, 21]
 
             # end timer
             end_time = time.time()
