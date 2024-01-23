@@ -13,3 +13,6 @@ windows:
     - roscore
     - roslaunch --wait puma sim_base_station.launch num_of_obs:=1 rviz:=true gui_mission:=false
     - roslaunch --wait puma sim_onboard.launch quad:=SQ01s use_downward_camera:=false perfect_controller:=true perfect_prediction:=true x:=0.0 y:=0.0 z:=1.0 yaw:=0.0 2> >(grep -v -e TF_REPEATED_DATA -e buffer)
+    - roslaunch --wait puma goal_reached_checker_ua.launch num_of_agents:=1
+    - roslaunch --wait puma pub_goal.launch
+    - rosbag record /SQ01s/goal -o /media/jtorde/T7/gdp/bags/flight __name:=bag_recorder

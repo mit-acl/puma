@@ -48,7 +48,8 @@ class FakeSim:
         rospy.sleep(1.0)
 
         self.state.header.frame_id="world"
-        self.pubState.publish(self.state)  
+        self.pubState.publish(self.state)
+        self.pubMarkerDrone.publish(self.getDroneMarker())
 
         pose=Pose()
         pose.position.x=self.state.pos.x
@@ -61,8 +62,8 @@ class FakeSim:
 
         # self.pubMarkerDrone.publish(self.getDroneMarker(pose));
 
-
     def goalCB(self, data):
+
 
         state = State()
 

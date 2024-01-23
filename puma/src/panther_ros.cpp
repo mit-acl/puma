@@ -185,10 +185,8 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "training_env_y_min", par_.training_env_y_min);
   safeGetParam(nh1_, "training_env_z_max", par_.training_env_z_max);
   safeGetParam(nh1_, "training_env_z_min", par_.training_env_z_min);
-  safeGetParam(nh1_, "max_dist2goal", par_.max_dist2goal);
   safeGetParam(nh1_, "max_dist2obs", par_.max_dist2obs);
   safeGetParam(nh1_, "max_side_bbox_obs", par_.max_side_bbox_obs);
-  safeGetParam(nh1_, "max_dist2BSPoscPoint", par_.max_dist2BSPoscPoint);
   safeGetParam(nh1_, "training_dt", par_.training_dt);
   safeGetParam(nh1_, "yaw_loss_weight", par_.yaw_loss_weight);
   safeGetParam(nh1_, "margin_v_factor", par_.margin_v_factor);

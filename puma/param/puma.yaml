@@ -23,10 +23,10 @@ use_obstacle_share: false
 use_obstacle_shareCB: false # if it's False and use_obstacle_share is True, then an agent will publish whenever it receives obstacle's traj from tracking predictor. (which could be too frequent, so I intoroduced publishObstacleCB) 
 add_noise_to_obst: false
 agents_ids: ["01"]
-use_ff: true # use feedforward #Needs to be true if you are using perfect_tracker (because the perfect_tracker needs accel)
-goal_radius: 1.0   #(m) Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
-goal_seen_radius: 5.0 #(m) no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
-Ra: 30.0           # [m] Radius of my planning sphere (planning horizon)
+use_ff: true          # use feedforward #Needs to be true if you are using perfect_tracker (because the perfect_tracker needs accel)
+goal_radius: 1.0      # [m] Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
+goal_seen_radius: 20.0 # [m] no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
+Ra: 30.0              # [m] Radius of my planning sphere (planning horizon)
 drone_bbox: [0.05, 0.05, 0.05]  #(m) Used for collision checking
 obstacle_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
 dc: 0.01            #(seconds) Duration for the interpolation=Value of the timer pubGoal
@@ -36,8 +36,8 @@ x_min: -15.0  # [m] don't forget the .0  , be careful with setting these to extr
 x_max: 15.0   # [m] don't forget the .0
 y_min: -15.0  # [m] don't forget the .0
 y_max: 15.0   # [m] don't forget the .0
-z_min: -1.0   #[m] points below this are considered ground
-z_max: 3.0    #[m] 
+z_min: -1.0   # [m] points below this are considered ground
+z_max: 3.0    # [m] 
 ydot_max: 5.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
 v_max: [10.0, 10.0, 10.0]   #[m/s]  7.0
 a_max: [20.0, 20.0, 20.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
@@ -79,9 +79,9 @@ initial_position_variance_for_agents: 0.1
 initial_velocity_variance_for_agents: 0.1
 initial_acceleration_variance_for_agents: 0.01
 
-max_variance: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-max_variance_for_moving_direction: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-drone_initial_variance: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+max_variance:                       [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+max_variance_for_moving_direction:  [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+drone_initial_variance:             [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 infeasibility_adjust: 0.1
 moving_direction_factor: 1.0
 
@@ -105,10 +105,8 @@ training_env_y_min: -20.0
 training_env_z_max: 2.0 # note that agent initial pos_z = 0.0
 training_env_z_min: -2.0 # it is important to have negative z since planning is in agent frame # note that agent initial pos_z = 1.0
 # used for normalization
-max_dist2goal: 25.0
 max_dist2obs: 25.0
 max_side_bbox_obs: 3.0
-max_dist2BSPoscPoint: 25.0
 training_dt: 0.2 #Training timestep in seconds (how much you proceed as a step in an episode)
 yaw_loss_weight: 1.0
 margin_v_factor: 1.5 #relaxation factor for training constraints used in ObservationManager()

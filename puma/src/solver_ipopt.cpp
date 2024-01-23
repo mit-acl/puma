@@ -252,13 +252,8 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
       cf_op_ = casadi::Function::load(folder + "op_ua.casadi");
       cf_fit_yaw_ = casadi::Function::load(folder + "fit_yaw_ua.casadi");
       cf_visibility_ = casadi::Function::load(folder + "visibility_ua.casadi");
-      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_"
-                                                                                    "violation_ua.casadi");
-      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_"
-                                                                                                  "yaw_"
-                                                                                                  "dyn_limits_"
-                                                                                                  "constraints_"
-                                                                                                  "violation_ua.casadi");
+      cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "compute_dyn_limits_constraints_violation_ua.casadi");
+      cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "compute_trans_and_yaw_dyn_limits_constraints_violation_ua.casadi");
     }
     else
     {
@@ -287,16 +282,8 @@ SolverIpopt::SolverIpopt(const mt::parameters &par)
     cf_op_ = casadi::Function::load(folder + "panther_op.casadi");
     cf_fit_yaw_ = casadi::Function::load(folder + "panther_fit_yaw.casadi");
     cf_visibility_ = casadi::Function::load(folder + "panther_visibility.casadi");
-    cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "panther_compute_dyn_limits_"
-                                                                                   "constraints_"
-                                                                                   "violation.casadi");
-    cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "panther_compute_"
-                                                                                                 "trans_and_"
-                                                                                                 "yaw_"
-                                                                                                 "dyn_limits_"
-                                                                                                 "constraints_"
-                                                                                                 "violation."
-                                                                                                 "casadi");
+    cf_compute_dyn_limits_constraints_violation_ = casadi::Function::load(folder + "panther_compute_dyn_limits_constraints_violation.casadi");
+    cf_compute_trans_and_yaw_dyn_limits_constraints_violatoin_ = casadi::Function::load(folder + "panther_compute_trans_and_yaw_dyn_limits_constraints_violation.casadi");
   }
 
   b_Tmatrixcasadi_c_ = casadi::DM(4, 4);

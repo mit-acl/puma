@@ -1006,10 +1006,8 @@ struct parameters
   double          fitter_deg_pos;                     //From Casadi               //void setVar_fitter_deg_pos(const std::string& value) { fitter_deg_pos = std::stod(value); };   
   int             sampler_num_samples;                //From Casadi              //void setVar_sampler_num_samples(const std::string& value) { sampler_num_samples = std::stoi(value); };
   int             num_of_intervals;
-  double max_dist2goal;
   double max_dist2obs;
   double max_side_bbox_obs;
-  double max_dist2BSPoscPoint;
   bool use_expert;
   bool use_student;
   std::string student_policy_path;

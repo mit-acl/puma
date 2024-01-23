@@ -620,7 +620,6 @@ end
 %% Determines violation of constraints used for training by python
 %%
 
-
 %%
 %% get translational dyn. limits violation
 %%
@@ -846,7 +845,6 @@ end
 %%
 
 compute_dyn_limits_constraints_violation = casadi.Function('compute_dyn_limits_constraints_violation', par_and_init_guess_exprs ,{violation_dyn_limits}, par_and_init_guess_names ,{'violation'});
-tmp=compute_dyn_limits_constraints_violation(names_value{:});
 compute_dyn_limits_constraints_violation=compute_dyn_limits_constraints_violation.expand();
 
 if use_panther_star
@@ -865,7 +863,6 @@ end
 
 compute_trans_and_yaw_dyn_limits_constraints_violation = casadi.Function('compute_trans_and_yaw_dyn_limits_constraints_violation', par_and_init_guess_exprs ,{translatoinal_violation_dyn_limits, yaw_violoation_dyn_limits},...
                                                            par_and_init_guess_names ,{'trans_violation', 'yaw_violation'});
-tmp=compute_trans_and_yaw_dyn_limits_constraints_violation(names_value{:});
 compute_trans_and_yaw_dyn_limits_constraints_violation=compute_trans_and_yaw_dyn_limits_constraints_violation.expand();
 
 if use_panther_star

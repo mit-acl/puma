@@ -5,10 +5,20 @@
     <arg name="y_goal_list" default="[0]"/>
     <arg name="z_goal_list" default="[0]"/>
 
-	<node name="pub_goal" pkg="puma" type="pub_goal.py" output="screen">
+
+    <!-- default pub_goal -->
+	<!-- <node name="pub_goal" pkg="puma" type="pub_goal.py" output="screen">
         <rosparam param="x_goal_list" subst_value="True">$(arg x_goal_list)</rosparam>
         <rosparam param="y_goal_list" subst_value="True">$(arg y_goal_list)</rosparam>
         <rosparam param="z_goal_list" subst_value="True">$(arg z_goal_list)</rosparam>
+	</node> -->
+
+    <!-- random pub_goal for one agent -->
+    <node name="pub_goal" pkg="puma" type="pub_random_goal_sequences.py" output="screen">
+        <rosparam param="x_goal_list" subst_value="True">$(arg x_goal_list)</rosparam>
+        <rosparam param="y_goal_list" subst_value="True">$(arg y_goal_list)</rosparam>
+        <rosparam param="z_goal_list" subst_value="True">$(arg z_goal_list)</rosparam>
+        <param name="n_agents" value="1"/>
 	</node>
 
 </launch>

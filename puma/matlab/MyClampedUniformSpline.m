@@ -671,6 +671,7 @@ classdef MyClampedUniformSpline < handle
             for j=1:obj.num_seg
                 cps=obj.getCPs_XX_Vel_ofInterval(basis, j);
                 for u=1:size(cps,2)
+
                     if(j==1 && (u==1 || u==2) && obj.dim==3)
                         continue   %Not impose constraint on the first vel ctrl points for position[to allow "infeasible" initial velocities due to planning in body frame and v constraints in each axis].
                     end
