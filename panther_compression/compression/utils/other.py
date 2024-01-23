@@ -809,7 +809,6 @@ class ObservationManager():
 		self.a_max=np.array(params["a_max"]).reshape(3,1)
 		self.j_max=np.array(params["j_max"]).reshape(3,1)
 		self.ydot_max=params["ydot_max"]
-		# self.max_dist2goal=params["max_dist2goal"]
 		self.max_dist2obs=params["max_dist2obs"]
 		self.max_side_bbox_obs=params["max_side_bbox_obs"]
 		self.Ra=params["Ra"]
@@ -1196,17 +1195,14 @@ class ActionManager():
 		self.action_size = self.num_traj_per_action*self.traj_size
 		self.Npos = self.num_seg + self.deg_pos-1
 
-		self.max_dist2BSPoscPoint=params["max_dist2BSPoscPoint"]
+		self.Ra = params["Ra"]
 		# self.max_yawcPoint=self.margin_yaw_factor*2.0*math.pi # not sure why but this was 4e3*math.pi before (Kota's change)
 		self.max_yawcPoint=10.0*math.pi # not sure why but this was 4e3*math.pi before (Kota's change)
 		self.fitter_total_time=params["fitter_total_time"]
 
 		self.training_other_agent_size = params["training_other_agent_size"]
 		self.drone_bbox = params["drone_bbox"]
-
-		# print("self.max_dist2BSPoscPoint= ", self.max_dist2BSPoscPoint)
-		# print("self.max_yawcPoint= ", self.max_yawcPoint)
-		self.normalization_constant_traj=np.concatenate((self.max_dist2BSPoscPoint*np.ones((1, self.traj_size_pos_ctrl_pts)), \
+		self.normalization_constant_traj=np.concatenate((self.Ra*np.ones((1, self.traj_size_pos_ctrl_pts)), \
 													self.max_yawcPoint*np.ones((1, self.traj_size_yaw_ctrl_pts))), axis=1)
 
 		self.normalization_constant=np.matlib.repmat(self.normalization_constant_traj, self.num_traj_per_action, 1)
@@ -1648,8 +1644,15 @@ class StudentCaller():
 						sample=naction
 					).prev_sample
 
+					# constrain action for start and goal
+					# start zeros
+					# naction[:, :, :3] = torch.zeros_like(naction[:, :, :3])
+
+					# goal should be the same as the goal in the observation
+					# print("obs_cond[:, :, 7:10]: ", obs_cond[:, :, 7:10])
+					naction[:, :, 12:15] = obs_cond[:, :, 7:10]
+
 				action_normalized = naction.squeeze(0).cpu().numpy()
-		print("action_normalized.shape: ", action_normalized.shape)
 
 		action_normalized = action_normalized.reshape(self.am.getActionShape())
 
@@ -1688,7 +1691,7 @@ class StudentCaller():
 			my_solOrGuess.dyn_lim_violation = self.costs_and_violations_of_action.dyn_lim_violations[i]
 			my_solOrGuess.aug_cost = self.cc.computeAugmentedCost(my_solOrGuess.cost, my_solOrGuess.obst_avoidance_violation, my_solOrGuess.dyn_lim_violation)
 
-			my_solOrGuess= self.am.f_trajAnd_w_State2w_ppSolOrGuess(traj,w_init_state)
+			# my_solOrGuess= self.am.f_trajAnd_w_State2w_ppSolOrGuess(traj,w_init_state)
 
 			all_solOrGuess.append(my_solOrGuess)
 
