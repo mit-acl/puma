@@ -155,7 +155,6 @@ def get_kwargs():
     adv_clip_for_rl = 10.0                                              # reward clip for rl
     use_reinforce_for_rl = True                                         # use REINFORCE for rl
     use_importance_sampling_for_rl = False                              # use importance sampling for rl
-    use_start_cond_diffusion = True                                     # use start condition for diffusion
     use_goal_cond_diffusion = True                                      # use end condition for diffusion
 
     # sanity check
@@ -171,7 +170,7 @@ def get_kwargs():
     mlp_hidden_sizes = [2048, 2048, 2048, 2048]                         # hidden sizes for mlp
     agent_obs_hidden_sizes = [256, 256, 256, 256]                       # hidden sizes for agent obs
     mlp_activation = nn.ReLU()                                          # activation for mlp
-    lstm_hidden_size = 256                                            # hidden size for lstm
+    lstm_hidden_size = 1024                                            # hidden size for lstm
     transformer_d_model = 43 if de_network_type == 'mlp' else 23        # d_model for transformer (43 for mlp, 1, 13, 23, 299 for diffusion)
     transformer_nhead = 43 if de_network_type == 'mlp' else 23          # nhead for transformer (43 for mlp, 1, 13, 23, 299 for diffusion)
     transformer_dim_feedforward = 1024                                  # feedforward_dim for transformer
@@ -248,7 +247,6 @@ def get_kwargs():
         'use_importance_sampling_for_rl': use_importance_sampling_for_rl,
         'linear_layer_output_dim': linear_layer_output_dim,
         'output_dim_for_agent_obs': output_dim_for_agent_obs,
-        'use_start_cond_diffusion': use_start_cond_diffusion,
         'use_goal_cond_diffusion': use_goal_cond_diffusion,
     }
 

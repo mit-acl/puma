@@ -53,6 +53,7 @@ class Upsample1d(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.conv = nn.ConvTranspose1d(dim, dim, 4, 2, 1)
+        # self.conv = nn.ConvTranspose1d(dim, dim, 3, 2, 1)
 
     def forward(self, x):
         return self.conv(x)
@@ -273,6 +274,7 @@ class ConditionalUnet1D(nn.Module):
         self.up_modules = up_modules
         self.down_modules = down_modules
         self.final_conv = final_conv
+        self.tanh2 = nn.Tanh()
 
         # print("number of parameters: {:e}".format(
         #     sum(p.numel() for p in self.parameters()))
@@ -360,8 +362,6 @@ class ConditionalUnet1D(nn.Module):
         h = []
 
         for idx, (resnet, resnet2, downsample) in enumerate(self.down_modules):
-
-            # print out devices
             x = resnet(x, global_feature)
             x = resnet2(x, global_feature)
             h.append(x)
@@ -377,6 +377,7 @@ class ConditionalUnet1D(nn.Module):
             x = upsample(x)
 
         x = self.final_conv(x)
+        # x = self.tanh2(x)
 
         # (B,C,T)
         x = x.moveaxis(-1,-2)

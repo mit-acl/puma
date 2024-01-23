@@ -10,8 +10,8 @@ cwd = os.getcwd()
 machine = cwd.split("/")[2] 
 
 # run python script
-encoders = ["mlp", "lstm", "transformer", "gnn"]
-decoders = ["mlp", "diffusion"]
+encoders = ["mlp"]
+decoders = ["diffusion"]
 
 for encoder in encoders:
     for decoder in decoders:

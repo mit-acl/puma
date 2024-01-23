@@ -45,10 +45,10 @@ def evaluate_non_diffusion_model(dataset, policy, **kwargs):
     # num_eval
     num_eval = min(num_eval, len(dataset))
 
-    avg_cost_expert, avg_obst_avoidance_violation_expert, avg_dyn_lim_violation_expert, avg_augmented_cost_expert = [], [], [], []
-    min_cost_expert, min_obst_avoidance_violation_expert, min_dyn_lim_violation_expert, min_augmented_cost_expert = [], [], [], []
-    avg_cost_student, avg_obst_avoidance_violation_student, avg_dyn_lim_violation_student, avg_augmented_cost_student = [], [], [], []
-    min_cost_student, min_obst_avoidance_violation_student, min_dyn_lim_violation_student, min_augmented_cost_student = [], [], [], []
+    avg_cost_expert, obst_avoidance_violation_expert, dyn_lim_violation_expert, avg_augmented_cost_expert = [], [], [], []
+    min_cost_expert, min_augmented_cost_expert = [], []
+    avg_cost_student, obst_avoidance_violation_student, dyn_lim_violation_student, avg_augmented_cost_student = [], [], [], []
+    min_cost_student, min_augmented_cost_student = [], []
     computation_times = []
 
     for dataset_idx in range(num_eval):
@@ -84,52 +84,70 @@ def evaluate_non_diffusion_model(dataset, policy, **kwargs):
         student_action = student_action.detach().cpu().numpy()
 
         # compute cost for expert
-        cost_expert, obst_avoidance_violation_expert, dyn_lim_violation_expert, augmented_cost_expert = [], [], [], []
+        cost_expert, augmented_cost_expert = [], []
         for j in range(expert_action.shape[0]): # expert_action.shape[1] is num_trajs
             cost, obst_avoidance_violation, dyn_lim_violation, augmented_cost = cost_computer.computeCost_AndObsAvoidViolation_AndDynLimViolation_AndAugmentedCost(nob, expert_action[[j], :])
+            
             cost_expert.append(cost)
-            obst_avoidance_violation_expert.append(obst_avoidance_violation)
-            dyn_lim_violation_expert.append(dyn_lim_violation)
             augmented_cost_expert.append(augmented_cost)
+
+
+            if obst_avoidance_violation > 1e-3:
+                obst_avoidance_violation_expert.append(1)
+            else:
+                obst_avoidance_violation_expert.append(0)
+            print("dyn_lim_violation", dyn_lim_violation)
+            if dyn_lim_violation > 1e-3:
+                dyn_lim_violation_expert.append(1)
+            else:
+                dyn_lim_violation_expert.append(0)
 
         # get average and min for each trajectory 
         avg_cost_expert.append(np.mean(cost_expert))
-        avg_obst_avoidance_violation_expert.append(np.mean(obst_avoidance_violation_expert))
-        avg_dyn_lim_violation_expert.append(np.mean(dyn_lim_violation_expert))
         avg_augmented_cost_expert.append(np.mean(augmented_cost_expert))
         min_cost_expert.append(np.min(cost_expert))
-        min_obst_avoidance_violation_expert.append(np.min(obst_avoidance_violation_expert))
-        min_dyn_lim_violation_expert.append(np.min(dyn_lim_violation_expert))
         min_augmented_cost_expert.append(np.min(augmented_cost_expert))
+        
 
         # compute cost for student
-        cost_student, obst_avoidance_violation_student, dyn_lim_violation_student, augmented_cost_student = [], [], [], []
-        # for i in range(num_obst):
-        # for i in range(1):
+        cost_student, augmented_cost_student = [], []
         for j in range(student_action.shape[0]): # student_action.shape[0] is num_trajs
-            # cost, obst_avoidance_violation, dyn_lim_violation, augmented_cost = cost_computer.computeCost_AndObsAvoidViolation_AndDynLimViolation_AndAugmentedCost(nob, student_action[1, [j], :])
             cost, obst_avoidance_violation, dyn_lim_violation, augmented_cost = cost_computer.computeCost_AndObsAvoidViolation_AndDynLimViolation_AndAugmentedCost(nob, student_action[[j], :])
             cost_student.append(cost)
-            obst_avoidance_violation_student.append(obst_avoidance_violation)
-            dyn_lim_violation_student.append(dyn_lim_violation)
             augmented_cost_student.append(augmented_cost)
+
+            if obst_avoidance_violation > 1e-3:
+                obst_avoidance_violation_student.append(1)
+            else:
+                obst_avoidance_violation_student.append(0)
+            if dyn_lim_violation > 1e-3:
+                dyn_lim_violation_student.append(1)
+            else:
+                dyn_lim_violation_student.append(0)
         
         # get average and min for each trajectory
         avg_cost_student.append(np.mean(cost_student))
-        avg_obst_avoidance_violation_student.append(np.mean(obst_avoidance_violation_student))
-        avg_dyn_lim_violation_student.append(np.mean(dyn_lim_violation_student))
         avg_augmented_cost_student.append(np.mean(augmented_cost_student))
         min_cost_student.append(np.min(cost_student))
-        min_obst_avoidance_violation_student.append(np.min(obst_avoidance_violation_student))
-        min_dyn_lim_violation_student.append(np.min(dyn_lim_violation_student))
         min_augmented_cost_student.append(np.min(augmented_cost_student))
 
-    # return
-    return  np.mean(avg_cost_expert), np.mean(avg_obst_avoidance_violation_expert), np.mean(avg_dyn_lim_violation_expert), np.mean(avg_augmented_cost_expert), \
-            np.mean(min_cost_expert), np.mean(min_obst_avoidance_violation_expert), np.mean(min_dyn_lim_violation_expert), np.mean(min_augmented_cost_expert), \
-            np.mean(avg_cost_student), np.mean(avg_obst_avoidance_violation_student), np.mean(avg_dyn_lim_violation_student), np.mean(avg_augmented_cost_student), \
-            np.mean(min_cost_student), np.mean(min_obst_avoidance_violation_student), np.mean(min_dyn_lim_violation_student), np.mean(min_augmented_cost_student), \
-            np.mean(np.array(computation_times))
+    # create a dictionary to store the results
+    results = dict()
+    results['avg_cost_expert'] = np.mean(avg_cost_expert)
+    results['avg_augmented_cost_expert'] = np.mean(avg_augmented_cost_expert)
+    results['min_cost_expert'] = np.mean(min_cost_expert)
+    results['min_augmented_cost_expert'] = np.mean(min_augmented_cost_expert)
+    results['avg_cost_student'] = np.mean(avg_cost_student)
+    results['avg_augmented_cost_student'] = np.mean(avg_augmented_cost_student)
+    results['min_cost_student'] = np.mean(min_cost_student)
+    results['min_augmented_cost_student'] = np.mean(min_augmented_cost_student)
+    results['computation_times'] = np.mean(np.array(computation_times))
+    results['obst_avoidance_violation_expert'] = np.mean(obst_avoidance_violation_expert)
+    results['dyn_lim_violation_expert'] = np.mean(dyn_lim_violation_expert)
+    results['obst_avoidance_violation_student'] = np.mean(obst_avoidance_violation_student)
+    results['dyn_lim_violation_student'] = np.mean(dyn_lim_violation_student)
+
+    return results
 
 def evaluate_diffusion_model(dataset, policy, noise_scheduler, return_only_student=False, **kwargs):
 
@@ -148,17 +166,18 @@ def evaluate_diffusion_model(dataset, policy, noise_scheduler, return_only_stude
     cost_computer = CostComputer()
 
     # get expert actions and student actions
-    expert_actions, student_actions, nobs, computation_time = get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
+    expert_actions, student_actions, nobs, computation_times = get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
 
-    avg_cost_expert, avg_obst_avoidance_violation_expert, avg_dyn_lim_violation_expert, avg_augmented_cost_expert = [], [], [], []
-    min_cost_expert, min_obst_avoidance_violation_expert, min_dyn_lim_violation_expert, min_augmented_cost_expert = [], [], [], []
-    avg_cost_student, avg_obst_avoidance_violation_student, avg_dyn_lim_violation_student, avg_augmented_cost_student = [], [], [], []
-    min_cost_student, min_obst_avoidance_violation_student, min_dyn_lim_violation_student, min_augmented_cost_student = [], [], [], []
+    avg_cost_expert, obst_avoidance_violation_expert, dyn_lim_violation_expert, avg_augmented_cost_expert = [], [], [], []
+    min_cost_expert, min_augmented_cost_expert = [], []
+    avg_cost_student, obst_avoidance_violation_student, dyn_lim_violation_student, avg_augmented_cost_student = [], [], [], []
+    min_cost_student, min_augmented_cost_student = [], []
+
     if not return_only_student:
 
         # evaluation for expert actions
         for nob, expert_action in zip(nobs, expert_actions):
-            cost_expert, obst_avoidance_violation_expert, dyn_lim_violation_expert, augmented_cost_expert = [], [], [], []
+            cost_expert, augmented_cost_expert = [], []
             for j in range(expert_action.shape[0]): # for num_trajs we loop through
 
                 # compute cost
@@ -166,27 +185,30 @@ def evaluate_diffusion_model(dataset, policy, noise_scheduler, return_only_stude
                 
                 # append
                 cost_expert.append(cost)
-                obst_avoidance_violation_expert.append(obst_avoidance_violation)
-                dyn_lim_violation_expert.append(dyn_lim_violation)
                 augmented_cost_expert.append(augmented_cost)
+
+                if obst_avoidance_violation > 1e-3:
+                    obst_avoidance_violation_expert.append(1)
+                else:
+                    obst_avoidance_violation_expert.append(0)
+                if dyn_lim_violation > 1e-3:
+                    dyn_lim_violation_expert.append(1)
+                else:
+                    dyn_lim_violation_expert.append(0)
 
             # get average and min for each trajectory and convert to numpy
             avg_cost_expert.append(np.mean(cost_expert))
-            avg_obst_avoidance_violation_expert.append(np.mean(obst_avoidance_violation_expert))
-            avg_dyn_lim_violation_expert.append(np.mean(dyn_lim_violation_expert))
             avg_augmented_cost_expert.append(np.mean(augmented_cost_expert))
             min_cost_expert.append(np.min(cost_expert))
-            min_obst_avoidance_violation_expert.append(np.min(obst_avoidance_violation_expert))
-            min_dyn_lim_violation_expert.append(np.min(dyn_lim_violation_expert))
             min_augmented_cost_expert.append(np.min(augmented_cost_expert))
 
     else:
-        avg_cost_expert, avg_obst_avoidance_violation_expert, avg_dyn_lim_violation_expert, avg_augmented_cost_expert = None, None, None, None
-        min_cost_expert, min_obst_avoidance_violation_expert, min_dyn_lim_violation_expert, min_augmented_cost_expert = None, None, None, None
+        avg_cost_expert, avg_augmented_cost_expert = None, None, None, None
+        min_cost_expert, min_augmented_cost_expert = None, None, None, None
 
     # evaluation for student actions
     for nob, student_action in zip(nobs, student_actions):
-        cost_student, obst_avoidance_violation_student, dyn_lim_violation_student, augmented_cost_student = [], [], [], []
+        cost_student, augmented_cost_student = [], []
         for j in range(student_action.shape[0]): # for num_trajs we loop through
             
             # compute cost
@@ -194,26 +216,40 @@ def evaluate_diffusion_model(dataset, policy, noise_scheduler, return_only_stude
             
             # append
             cost_student.append(cost)
-            obst_avoidance_violation_student.append(obst_avoidance_violation)
-            dyn_lim_violation_student.append(dyn_lim_violation)
             augmented_cost_student.append(augmented_cost)
+
+            if obst_avoidance_violation > 1e-3:
+                obst_avoidance_violation_student.append(1)
+            else:
+                obst_avoidance_violation_student.append(0)
+            if dyn_lim_violation > 1e-3:
+                dyn_lim_violation_student.append(1)
+            else:
+                dyn_lim_violation_student.append(0)
 
         # get average and min for each trajectory and convert to numpy
         avg_cost_student.append(np.mean(cost_student))
-        avg_obst_avoidance_violation_student.append(np.mean(obst_avoidance_violation_student))
-        avg_dyn_lim_violation_student.append(np.mean(dyn_lim_violation_student))
         avg_augmented_cost_student.append(np.mean(augmented_cost_student))
         min_cost_student.append(np.min(cost_student))
-        min_obst_avoidance_violation_student.append(np.min(obst_avoidance_violation_student))
-        min_dyn_lim_violation_student.append(np.min(dyn_lim_violation_student))
         min_augmented_cost_student.append(np.min(augmented_cost_student))
 
-    # return the average of average and min cost
-    return np.mean(avg_cost_expert), np.mean(avg_obst_avoidance_violation_expert), np.mean(avg_dyn_lim_violation_expert), np.mean(avg_augmented_cost_expert), \
-            np.mean(min_cost_expert), np.mean(min_obst_avoidance_violation_expert), np.mean(min_dyn_lim_violation_expert), np.mean(min_augmented_cost_expert), \
-            np.mean(avg_cost_student), np.mean(avg_obst_avoidance_violation_student), np.mean(avg_dyn_lim_violation_student), np.mean(avg_augmented_cost_student), \
-            np.mean(min_cost_student), np.mean(min_obst_avoidance_violation_student), np.mean(min_dyn_lim_violation_student), np.mean(min_augmented_cost_student), \
-            computation_time
+    # create a dictionary to store the results
+    results = dict()
+    results['avg_cost_expert'] = np.mean(avg_cost_expert)
+    results['avg_augmented_cost_expert'] = np.mean(avg_augmented_cost_expert)
+    results['min_cost_expert'] = np.mean(min_cost_expert)
+    results['min_augmented_cost_expert'] = np.mean(min_augmented_cost_expert)
+    results['avg_cost_student'] = np.mean(avg_cost_student)
+    results['avg_augmented_cost_student'] = np.mean(avg_augmented_cost_student)
+    results['min_cost_student'] = np.mean(min_cost_student)
+    results['min_augmented_cost_student'] = np.mean(min_augmented_cost_student)
+    results['computation_times'] = np.mean(np.array(computation_times))
+    results['obst_avoidance_violation_expert'] = np.mean(obst_avoidance_violation_expert)
+    results['dyn_lim_violation_expert'] = np.mean(dyn_lim_violation_expert)
+    results['obst_avoidance_violation_student'] = np.mean(obst_avoidance_violation_student)
+    results['dyn_lim_violation_student'] = np.mean(dyn_lim_violation_student)
+
+    return results
 
 def get_samples_nbatch(nbatch, policy, noise_scheduler, **kwargs):
 
@@ -698,7 +734,6 @@ def train_loop_diffusion_model(policy, optimizer, lr_scheduler, noise_scheduler,
                 filename = f'{save_dir}/{en_network_type}_{de_network_type}_num_{epoch_counter}.pth'
                 th.save(policy.state_dict(), filename)
             epoch_counter += 1
-                    
             tglobal.set_postfix(loss=np.mean(epoch_loss))
 
             # if machine == 'jtorde': # if it's my desktop, then evaluate on the whole dataset
@@ -940,22 +975,28 @@ def test_net(policy, dataset, noise_scheduler=None, **kwargs):
         costs = evaluate_non_diffusion_model(dataset, policy, **kwargs)
 
     # unpack
-    avg_cost_expert_test, avg_obst_avoidance_violation_expert_test, avg_dyn_lim_violation_expert_test, avg_augmented_cost_expert_test, \
-    min_cost_expert_test, min_obst_avoidance_violation_expert_test, min_dyn_lim_violation_expert_test, min_augmented_cost_expert_test, \
-    avg_cost_student_test, avg_obst_avoidance_violation_student_test, avg_dyn_lim_violation_student_test, avg_augmented_cost_student_test, \
-    min_cost_student_test, min_obst_avoidance_violation_student_test, min_dyn_lim_violation_student_test, min_augmented_cost_student_test, \
-    computation_time = costs
+    obst_avoidance_violation_expert_test = costs['obst_avoidance_violation_expert']
+    dyn_lim_violation_expert_test = costs['dyn_lim_violation_expert']
+    obst_avoidance_violation_student_test = costs['obst_avoidance_violation_student']
+    dyn_lim_violation_student_test = costs['dyn_lim_violation_student']
+    avg_cost_expert_test = costs['avg_cost_expert']
+    avg_cost_student_test = costs['avg_cost_student']
+    computation_time = costs['computation_times']
+    min_cost_expert_test = costs['min_cost_expert']
+    min_cost_student_test = costs['min_cost_student']
 
     # print
-    print("en_network_type:                 ", en_network_type)
-    print("de_network_type:                 ", de_network_type)
-    print("min expert test:                 ", min_cost_expert_test)
-    print("min student test:                ", min_cost_student_test)
-    print("avg expert test:                 ", avg_cost_expert_test)
-    print("avg student test:                ", avg_cost_student_test)
-    print("avg augmented cost expert test:  ", avg_augmented_cost_expert_test)
-    print("avg augmented cost student test: ", avg_augmented_cost_student_test)
-    print("computation time:                ", computation_time)
+    print("en_network_type:                         ", en_network_type)
+    print("de_network_type:                         ", de_network_type)
+    print("min expert test:                         ", min_cost_expert_test)
+    print("min student test:                        ", min_cost_student_test)
+    print("avg expert test:                         ", avg_cost_expert_test)
+    print("avg student test:                        ", avg_cost_student_test)
+    print("obst avoidance violation expert [%]:     ", obst_avoidance_violation_expert_test*100)
+    print("obst avoidance violation student [%]:    ", obst_avoidance_violation_student_test*100)
+    print("dyn lim violation expert [%]:            ", dyn_lim_violation_expert_test*100)
+    print("dyn lim violation student [%]:           ", dyn_lim_violation_student_test*100)
+    print("computation time:                        ", computation_time)
     
     # save results in file
     path = save_dir if train_model else model_path
@@ -964,11 +1005,13 @@ def test_net(policy, dataset, noise_scheduler=None, **kwargs):
         f.write(f'model_path:                  {path}\n')
         f.write(f'en_network_type:             {en_network_type}\n')
         f.write(f'de_network_type:             {de_network_type}\n')
-        f.write(f'min cost expert test:        {min_cost_expert_test}\n')
-        f.write(f'min cost student test:       {min_cost_student_test}\n')
-        f.write(f'avg cost expert test:        {avg_cost_expert_test}\n')
-        f.write(f'avg cost student test:       {avg_cost_student_test}\n')
-        f.write(f'augmented cost expert test:  {avg_augmented_cost_expert_test}\n')
-        f.write(f'augmented cost student test: {avg_augmented_cost_student_test}\n')
-        f.write(f'computation time:            {computation_time}\n')
-        f.write(f'\n')
+        f.write(f'min expert test:             {min_cost_expert_test}\n')
+        f.write(f'min student test:            {min_cost_student_test}\n')
+        f.write(f'avg expert test:             {avg_cost_expert_test}\n')
+        f.write(f'avg student test:            {avg_cost_student_test}\n')
+        f.write(f'obst avoidance violation expert [%]:     {obst_avoidance_violation_expert_test*100}\n')
+        f.write(f'obst avoidance violation student [%]:    {obst_avoidance_violation_student_test*100}\n')
+        f.write(f'dyn lim violation expert [%]:            {dyn_lim_violation_expert_test*100}\n')
+        f.write(f'dyn lim violation student [%]:           {dyn_lim_violation_student_test*100}\n')
+        f.write(f'computation time:                        {computation_time}\n')
+        f.write('\n')

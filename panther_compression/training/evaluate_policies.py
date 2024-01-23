@@ -12,10 +12,8 @@ def main():
     # get machine name
     machine = cwd.split("/")[2] 
     
-    # encoders = ["mlp", "lstm", "transformer", "gnn"]
-    # decoders = ["mlp", "diffusion"]
-    encoders = ["lstm"]
-    decoders = ["mlp"]
+    encoders = ["mlp", "lstm", "transformer", "gnn"]
+    decoders = ["mlp", "diffusion"]
 
     for encoder in encoders:
         for decoder in decoders:
