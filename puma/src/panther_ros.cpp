@@ -492,6 +492,9 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
     // Everything in the same world frame
   }
 
+  // Subscribe to the obstacles from costmap converter
+  sub_costmap_obst_ = nh1_.subscribe("/costmap_converter/costmap_obstacles", 1, &PantherRos::costmapObstCB, this);
+
   //
   // Timers
   //
@@ -718,6 +721,88 @@ void PantherRos::obstacleTrajCB(const panther_msgs::DynTraj& msg)
   obstacle_traj_ = msg;
   obstacle_traj_.id = 5000 + id_;  // TODO: hardcoded here + it only supports an one-obstacle case
   mtx_obstacle_traj_.unlock();
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
+
+void PantherRos::costmapObstCB(const costmap_converter::ObstacleArrayMsg& msg){
+
+  //
+  // store this received obstacle array
+  //
+
+  // go through each obstacle
+  for (auto osbt : msg.obstacles)
+  {
+    // initialize dynTraj
+    mt::dynTraj tmp;
+
+    // since it is an obstacle, we don't need to use pwp field
+    tmp.use_pwp_field = false;
+
+    // get centroid of the polygon
+    std::vector<double> pos_x;
+    std::vector<double> pos_y;
+    std::vector<double> pos_z;
+    for (auto p : osbt.polygon.points)
+    {
+      pos_x.push_back(p.x);
+      pos_y.push_back(p.y);
+      pos_z.push_back(p.z);
+    }    
+    double centroid_x = std::accumulate(pos_x.begin(), pos_x.end(), 0.0) / pos_x.size();
+    double centroid_y = std::accumulate(pos_y.begin(), pos_y.end(), 0.0) / pos_y.size();
+    double centroid_z = std::accumulate(pos_z.begin(), pos_z.end(), 0.0) / pos_z.size();
+
+    // store the obstacle
+    tmp.s_mean.push_back(std::to_string(centroid_x));
+    tmp.s_mean.push_back(std::to_string(centroid_y));
+    tmp.s_mean.push_back(std::to_string(centroid_z));
+    tmp.s_var.push_back(std::to_string(0.0));
+    tmp.s_var.push_back(std::to_string(0.0));
+    tmp.s_var.push_back(std::to_string(0.0));
+
+    // get the bbox - which is the max distance from the centroid
+    double max_dist_x = 0;
+    double max_dist_y = 0;
+    double max_dist_z = 0;
+    for (auto p : osbt.polygon.points)
+    {
+      double dist_x = fabs(p.x - centroid_x);
+      if (dist_x > max_dist_x)
+      {
+        max_dist_x = dist_x;
+      }
+
+      double dist_y = fabs(p.y - centroid_y);
+      if (dist_y > max_dist_y)
+      {
+        max_dist_y = dist_y;
+      }
+
+      double dist_z = fabs(p.z - centroid_z);
+      if (dist_z > max_dist_z)
+      {
+        max_dist_z = dist_z;
+      }
+    }
+
+    // add buffer to the bbox
+    max_dist_x += 0.2;
+    max_dist_y += 0.2;
+    max_dist_z += 0.2;
+
+    // publish the trajectory
+    tmp.bbox << max_dist_x, max_dist_y, max_dist_z;
+    // tmp.id = osbt.id;
+    tmp.is_agent = false;
+    tmp.is_committed = true;
+    tmp.time_received = ros::Time::now().toSec();
+    panther_ptr_->updateTrajObstacles(tmp);
+  }
+
 }
 
 //

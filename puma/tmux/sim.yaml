@@ -8,7 +8,7 @@ windows:
 - window_name: test
   layout: tiled
   focus: true
-
+  
   panes:
     - roscore
     - roslaunch --wait puma sim_base_station.launch num_of_obs:=2 rviz:=true gui_mission:=false

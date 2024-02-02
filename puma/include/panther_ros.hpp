@@ -36,6 +36,9 @@
 
 #include "timer.hpp"
 
+#include <costmap_converter/ObstacleArrayMsg.h>
+#include <costmap_converter/ObstacleMsg.h>
+
 
 // #define WHOLE 1  // Whole trajectory (part of which is planned on unkonwn space)
 // #define SAFE 2   // Safe path
@@ -74,6 +77,7 @@ private:
   void publishOwnTrajInFailure(mt::Edges edges_obstacles);
   void trajCB(const panther_msgs::DynTraj& msg);
   void obstacleTrajCB(const panther_msgs::DynTraj& msg);
+  void costmapObstCB(const costmap_converter::ObstacleArrayMsg& msg);
 
   void pauseTime();
   void unpauseTime();
@@ -184,6 +188,7 @@ private:
   ros::Subscriber sub_frame_align_;
   ros::Subscriber sub_traj_;                    // subscriber for obs perfect traj prediction
   std::vector<ros::Subscriber> sub_traj_list_;  // subscribers for each agent
+  ros::Subscriber sub_costmap_obst_;           // subscriber for costmap obstacles
 
   ros::Timer pubCBTimer_;
   ros::Timer replanCBTimer_;
@@ -222,4 +227,8 @@ private:
 
   panther_msgs::DynTraj obstacle_traj_;
   std::mutex mtx_obstacle_traj_;
+
+  // store costmap obstacles
+  std::vector<costmap_converter::ObstacleMsg> costmap_obst_;
+
 };

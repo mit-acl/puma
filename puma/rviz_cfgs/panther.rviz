@@ -8,6 +8,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /DepthCloudSQ01s1/Auto Size1
+        - /Obstacles2
       Splitter Ratio: 0.7430555820465088
     Tree Height: 721
   - Class: rviz/Selection
@@ -755,6 +756,14 @@ Visualization Manager:
         SQ01s: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /SQ01s/puma/obstacles
+      Name: Obstacles
+      Namespaces:
+        markertacles: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 46; 52; 54
@@ -799,9 +808,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3547966480255127
+      Pitch: 0.8597971200942993
       Target Frame: <Fixed Frame>
-      Yaw: 4.61816930770874
+      Yaw: 4.648169994354248
     Saved: ~
 Window Geometry:
   DepthImage:
