@@ -2,7 +2,7 @@
 #If you want to change a parameter, change it in main.m and run the main.m again
 deg_pos: 3
 num_seg: 7
-num_max_of_obst: 10
+num_max_of_obst: 5
 sampler_num_samples: 28
 fitter_num_samples: 20
 fitter_total_time: 6
