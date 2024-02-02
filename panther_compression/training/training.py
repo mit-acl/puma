@@ -227,7 +227,7 @@ def get_kwargs():
         'transformer_d_model': transformer_d_model,
         'transformer_nhead': transformer_nhead,
         'transformer_dim_feedforward': transformer_dim_feedforward,
-        'transformer_dropout': transformer_dropout,
+        'transformer_dropout': transformer_dropout, 
         'gnn_hidden_channels': gnn_hidden_channels,
         'gnn_num_layers': gnn_num_layers,
         'gnn_num_heads': gnn_num_heads,

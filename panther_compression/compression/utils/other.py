@@ -29,9 +29,9 @@ rospack = rospkg.RosPack()
 path_puma=rospack.get_path('puma')
 sys.path.insert(0, path_puma + '/../panther_compression/training')
 # for student
-# from misc_utils import setup_diffusion
+from utils import setup_diffusion
 from network_utils import MLP
-# from training import get_kwargs
+from training import get_kwargs
 
 class ExpertDidntSucceed(Exception):
 	  pass

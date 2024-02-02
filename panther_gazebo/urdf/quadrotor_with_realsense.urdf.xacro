@@ -6,15 +6,27 @@
     
     <!-- Included URDF Files -->
     <xacro:include filename="$(find panther_gazebo)/urdf/quadrotor_base.urdf.xacro" />
-    <xacro:include filename="$(find panther_gazebo)/urdf/fake_realsense_camera.urdf.xacro" />
     
+    <!-- T265 -->
+    <!-- <xacro:include filename="$(find panther_gazebo)/urdf/fake_realsense_camera.urdf.xacro" /> -->
+    
+    <!-- D435 -->
+    <xacro:include filename="$(find panther_gazebo)/urdf/_d435.urdf.xacro" />
+
     <!-- Instantiate quadrotor_base_macro once (has no parameters atm) -->
     <xacro:quadrotor_base_macro />
     
     <!-- Asus Xiton Live Pro -->
-    <xacro:realsense_T265 sensor_name="camera" parent_link="base_link" rate="30.0">
+
+    <!-- For T265 -->
+    <!-- <xacro:realsense_T265 sensor_name="camera" parent_link="base_link" rate="30.0">
         <origin xyz="0 0 -0.15" rpy="0 ${M_PI/2} 0"/>
-    </xacro:realsense_T265>
+    </xacro:realsense_T265> -->
+
+    <!-- For D435 -->
+    <xacro:sensor_d435 parent="base_link" name="camera" use_nominal_extrinsics="true" add_plug="true" use_mesh="true">
+        <origin xyz="0 0 -0.15" rpy="0 ${M_PI/2} 0"/>
+    </xacro:sensor_d435>
 
        <!-- Sonar height sensor -->
 <!--     <xacro:include filename="$(find panther_gazebo)/urdf/sonar_sensor.urdf.xacro" /> 

@@ -10,6 +10,12 @@
   <arg name="z" default="0.3"/>
   <arg name="yaw" default="0.0"/>
 
+  <!-- params for D435 -->
+  <arg name="parent" default="base_link"/>
+  <arg name="use_nominal_extrinsics" default="true"/>
+  <arg name="add_plug" default="true"/>
+  <arg name="use_mesh" default="true"/>
+
   <arg name="world_frame" default="world"/> <!-- This should actually be "/world". See https://github.com/ros-simulation/gazebo_ros_pkgs/pull/324 -->
   <arg name="base_link_frame" default="$(arg tf_prefix)/base_link"/>
 
