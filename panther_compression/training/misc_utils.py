@@ -9,6 +9,9 @@ import argparse
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from diffusers.schedulers.scheduling_dpmsolver_multistep import DPMSolverMultistepScheduler
+from colorama import Fore, Style
+
+from compression.utils.other import ObservationManager, ActionManager, getZeroState
 
 # torch import
 import torch as th
@@ -24,6 +27,7 @@ from tqdm import tqdm
 
 # calculate loss
 from scipy.optimize import linear_sum_assignment
+from scipy import optimize
 
 # network utils import
 from network_utils import ConditionalUnet1D
@@ -49,6 +53,15 @@ class DictDataset(Dataset):
     def add_reward(self, reward):
         self.reward = reward
 
+" ********************* Coloring of the python errors, https://stackoverflow.com/a/52797444/6057617 ********************* "
+
+def printInBoldBlue(data_string):
+    print(Style.BRIGHT+Fore.BLUE+data_string+Style.RESET_ALL)
+def printInBoldRed(data_string):
+    print(Style.BRIGHT+Fore.RED+data_string+Style.RESET_ALL)
+def printInBoldGreen(data_string):
+    print(Style.BRIGHT+Fore.GREEN+data_string+Style.RESET_ALL)
+    
 def get_dataloader_training(dataset_training, **kwargs):
 
     """
@@ -457,6 +470,12 @@ def get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
     device = kwargs.get('device')
     num_eval = kwargs.get('num_eval')
     use_goal_cond_diffusion = kwargs.get('use_goal_cond_diffusion')
+    use_qp_constraints = kwargs.get('use_qp_constraints')
+    qp_start_k_step = kwargs.get('qp_start_k_step')
+    v_max = kwargs.get('qp_vmax_constraint')
+    a_max = kwargs.get('qp_amax_constraint')
+    j_max = kwargs.get('qp_jmax_constraint')
+    am = ActionManager() # get action manager
 
     # set model to evaluation mode
     policy.eval()
@@ -521,11 +540,14 @@ def get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
                     sample=naction
                 ).prev_sample
 
+                if use_qp_constraints and k < qp_start_k_step:
+                    naction = solver_qp_constraints(naction, v_max, a_max, j_max, am)
+
                 if use_goal_cond_diffusion:
                     # pos (first 15 ctrl pts)
                     naction[:, :, 12:15] = nobs[:, :, 7:10]
                     # yaw (following 6 ctrl pts)
-                    naction[:, :, 21] = expert_action[:, :, 21]
+                    # naction[:, :, 21] = expert_action[:, :, 21]
 
             # end timer
             end_time = time.time()
@@ -837,3 +859,291 @@ def calculate_deep_panther_loss(batch, policy, **kwargs):
     loss = time_loss + pos_loss + yaw_loss_weight*yaw_loss
 
     return loss
+
+def reorder_list(q):
+
+    """
+    This function reorders the list to match the order of the control points
+    
+    @param q: list of control points [[x0, x1, x2, ...], [y0, y1, y2, ...], [z0, z1, z2, ...]]
+    @return q_reordered: reordered list of control points [x0, y0, z0, x1, y1, z1, x2, y2, z2, ...]
+    
+    """
+
+    # get the number of control points
+    num_ctrl_pts = len(q[0])
+
+    # initialize reordered list
+    q_reordered = []
+
+    # loop over the control points
+    for i in range(num_ctrl_pts):
+        for j in range(3):
+            q_reordered.append(q[j][i])
+
+    return np.array(q_reordered)
+
+def solver_qp_constraints(nactions, v_max, a_max, j_max, am):
+
+    # get start state
+    start_state = getZeroState() # TODO (hardcoded)
+
+    for batch_idx in range(nactions.shape[0]):
+
+        for action_idx in range(nactions.shape[1]):
+
+            # get trajectory for each action
+            naction = nactions[batch_idx, [action_idx], :].reshape(1, -1)
+
+            traj = am.denormalizeTraj(naction)
+        
+            # because tf needs to be greater than 0, we max(0, tf). But in practial, we want tf > min_tf
+            min_tf = 1.0
+            traj[0, -1] = max(min_tf, traj[0, -1])
+
+            # convert the trajectory to a b-spline
+            w_posBS, _ = am.f_trajAnd_w_State2wBS(traj, start_state)
+            knots = w_posBS.knots
+            
+            q = reorder_list(w_posBS.ctrl_pts)
+
+            # get velocity constraints
+            p = w_posBS.deg
+            n = w_posBS.deg + w_posBS.num_seg - 1
+            # Get q_star, v_star, and a_star
+            q_star = solve_QP(p, n, knots, v_max, a_max, j_max, q)
+            
+            # put together the optimized control points with the rest of the control points
+            q_star = th.from_numpy(q_star).float().reshape(1, -1)
+
+            # add dummy tf for normalization
+            dummy_tf = th.ones((1, 1)).float()
+            q_star = th.cat((q_star, dummy_tf), dim=1)
+
+            # normalize the action
+            q_star = th.from_numpy(am.normalizeTraj(q_star).reshape(1, -1))
+
+            # add actual tf back
+            q_star[:, -1] = naction[:, -1]
+
+            # update nactions
+            nactions[batch_idx, action_idx, :] = q_star[0, :]
+
+    return nactions
+
+def get_subset_vel(A_v, b_v, p, knots, v_max, q0):
+    
+    """
+    This function is used to get the subset of velocity constraints for the p-th control point
+    """
+
+    A_v_sub = A_v[3*(p-1):, 3*p:]
+    b_v_sub = b_v[3*p:]
+
+    # add velocity inequality constraints from q_p to q_{p+1}
+    alpha_v_2 = p / (knots[2//3+p+1] - knots[2//3+1]) # v2 is the first control point we have control over
+    b_v_sub_prime = np.zeros(3)
+    b_v_sub_prime[0] = v_max + alpha_v_2 * q0[6]
+    b_v_sub_prime[1] = v_max + alpha_v_2 * q0[7]
+    b_v_sub_prime[2] = v_max + alpha_v_2 * q0[8]
+    b_v_sub = np.hstack((b_v_sub_prime, b_v_sub))
+
+    return A_v_sub, b_v_sub
+
+def get_subset_acc(A_a, b_a, p, knots, a_max, q0):
+
+    A_a_sub = A_a[3*(p-2):, 3*p:]
+    b_a_sub = b_a[3*p:]
+
+    # add acceleration inequality constraints from q_{p-1} and q_p to q_{p+1}
+
+    # used to constraint q_{1}
+    alpha_a_1_1 = p*(p-1) / (knots[1//3+p+1] - knots[1//3+2]) # a1 is the first control point we have control over
+    alpha_a_2_1 = 1 / (knots[1//3+p+2] - knots[1//3+2])
+    alpha_a_3_1 = (knots[1//3+p+1] - knots[1//3+1] + knots[1//3+p+2] - knots[1//3+2]) / ( (knots[1//3+p+2] - knots[1//3+2]) * (knots[1//3+p+1] - knots[1//3+1]) )
+    alpha_a_4_1 = 1 / (knots[1//3+p+1] - knots[1//3+1])
+
+    # used to constraint q_{2}
+    alpha_a_1_2 = p*(p-1) / (knots[2//3+p+1] - knots[2//3+2]) 
+    alpha_a_2_2 = 1 / (knots[2//3+p+2] - knots[2//3+2])
+    alpha_a_3_2 = (knots[2//3+p+1] - knots[2//3+1] + knots[2//3+p+2] - knots[2//3+2]) / ( (knots[2//3+p+2] - knots[2//3+2]) * (knots[2//3+p+1] - knots[2//3+1]) )
+    alpha_a_4_2 = 1 / (knots[2//3+p+1] - knots[2//3+1])
+
+    b_a_sub_prime = np.zeros(6)
+    # constraint q_{3}
+    b_a_sub_prime[0] = a_max + alpha_a_1_1 * alpha_a_3_1 * q0[6] - alpha_a_1_1 * alpha_a_4_1 * q0[3]
+    b_a_sub_prime[1] = a_max + alpha_a_1_1 * alpha_a_3_1 * q0[7] - alpha_a_1_1 * alpha_a_4_1 * q0[4]
+    b_a_sub_prime[2] = a_max + alpha_a_1_1 * alpha_a_3_1 * q0[8] - alpha_a_1_1 * alpha_a_4_1 * q0[5]
+    # constraint q_{4}
+    b_a_sub_prime[3] = a_max - alpha_a_1_2 * alpha_a_4_2 * q0[6]
+    b_a_sub_prime[4] = a_max - alpha_a_1_2 * alpha_a_4_2 * q0[7]
+    b_a_sub_prime[5] = a_max - alpha_a_1_2 * alpha_a_4_2 * q0[8]
+
+    b_a_sub = np.hstack((b_a_sub_prime, b_a_sub))
+
+
+    # I think i need to constrain the last control point to be 0 acceleration
+
+    return A_a_sub, b_a_sub
+
+def get_subset_jerk(A_j, b_j, p, knots, j_max, q):
+
+    """
+    This function is used to get the subset of jerk constraints for the p-th control point
+    """
+
+    A_j_sub = A_j[3*(p-3):, 3*p:]
+    b_j_sub = b_j[3*p:]
+
+    # add jerk inequality constraints from q_{p-2}, q_{p-1} and q_p to q_{p+1}
+
+    # used to constraint q_{0} to q_{2}
+    alpha_j = np.zeros((3, 5))
+    for i in range(0, 3):
+        alpha_j[i][4] = p*(p-1)*(p-2) / ( (knots[i//3+p+1] - knots[i//3+3]) * (knots[i//3+p+1] - knots[i//3+2]) )                               # constanst before everything
+        alpha_j[i][3] = ( knots[i//3+p+1] - knots[i//3+2]) / ( (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) )          # constant before P_{i+3} # refer to the paper
+        alpha_j[i][2] = ( (knots[i//3+p+1] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+2] + knots[i//3+p+3] - knots[i//3+3]) + \
+                        (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) ) * \
+                        1 / ( (knots[i//3+p+2] - knots[i//3+2])**2 * (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) )    # constant before P_{i+2} # refer to the paper
+        alpha_j[i][1] = ( (knots[i//3+p+1] - knots[i//3+1]) * (knots[i//3+p+1] - knots[i//3+2]) + (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+1] - knots[i//3+1] + knots[i//3+p+2] - knots[i//3+2]) ) * \
+                        1 / ( (knots[i//3+p+1] - knots[i//3+1]) * (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+3]) )       # constant before P_{i+1} # refer to the paper
+        alpha_j[i][0] = 1 / (knots[i//3+p+1] - knots[i//3+1])                                                                                   # constant before P_{i}   # refer to the paper
+
+    b_j_sub_prime = np.zeros(9)
+
+    # constraint q_{3} (depends on q_{0}, q_{1}, q_{2}, where q_{0} = q[0:3], q_{1} = q[3:6], q_{2} = q[6:9])
+    b_j_sub_prime[0] = j_max + alpha_j[0][4] * alpha_j[0][2] * q[6] - alpha_j[0][4] * alpha_j[0][1] * q[3] + alpha_j[0][4] * alpha_j[0][0] * q[0] #x
+    b_j_sub_prime[1] = j_max + alpha_j[0][4] * alpha_j[0][2] * q[7] - alpha_j[0][4] * alpha_j[0][1] * q[4] + alpha_j[0][4] * alpha_j[0][0] * q[1] #y
+    b_j_sub_prime[2] = j_max + alpha_j[0][4] * alpha_j[0][2] * q[8] - alpha_j[0][4] * alpha_j[0][1] * q[5] + alpha_j[0][4] * alpha_j[0][0] * q[2] #z
+
+    # constraint q_{4} (depends on q_{1}, q_{2}, (and q_{3} but this is included in A_j_sub))
+    b_j_sub_prime[3] = j_max - alpha_j[1][4] * alpha_j[1][1] * q[6] + alpha_j[1][4] * alpha_j[1][0] * q[3] #x
+    b_j_sub_prime[4] = j_max - alpha_j[1][4] * alpha_j[1][1] * q[7] + alpha_j[1][4] * alpha_j[1][0] * q[4] #y
+    b_j_sub_prime[5] = j_max - alpha_j[1][4] * alpha_j[1][1] * q[8] + alpha_j[1][4] * alpha_j[1][0] * q[5] #z
+
+    # constraint q_{5} (depends on q_{2}, (and q_{3}, q_{4} but this is included in A_j_sub))
+    b_j_sub_prime[6] = j_max + alpha_j[2][4] * alpha_j[2][0] * q[6] #x
+    b_j_sub_prime[7] = j_max + alpha_j[2][4] * alpha_j[2][0] * q[7] #y
+    b_j_sub_prime[8] = j_max + alpha_j[2][4] * alpha_j[2][0] * q[8] #z
+
+    b_j_sub = np.hstack((b_j_sub_prime, b_j_sub))
+
+
+    return A_j_sub, b_j_sub
+
+def solve_QP(p, n, knots, v_max, a_max, j_max, q0):
+
+    """
+    Using scipy.optimize.minimize
+    """
+
+    # Get velocity constraint matrix A_v and vector b_v
+    A_v, b_v = get_vel_constr(p, n, knots, v_max)
+    # Get acceleration constraint matrix A_a and vector b_a
+    A_a, b_a = get_acc_constr_wrt_q(p, n, knots, a_max)
+    # Get jerk constraint matrix A_j and vector b_j
+    A_j, b_j = get_jerk_constr_wrt_q(p, n, knots, j_max)
+
+    # optimize only a subset of the control points
+    q_sub = q0[3*p:]
+    A_v_sub, b_v_sub = get_subset_vel(A_v, b_v, p, knots, v_max, q0)
+    A_a_sub, b_a_sub = get_subset_acc(A_a, b_a, p, knots, a_max, q0)
+    A_j_sub, b_j_sub = get_subset_jerk(A_j, b_j, p, knots, j_max, q0)
+
+    # Get q, A, and b
+    q_orig = q0
+    x = q_sub
+    # A = A_v_sub
+    # b = b_v_sub
+    A = np.vstack((A_v_sub, -A_v_sub, A_a_sub, -A_a_sub, A_j_sub, -A_j_sub))
+    b = np.hstack((b_v_sub, b_v_sub, b_a_sub, b_a_sub, b_j_sub, b_j_sub))
+
+    # Get H, c, and c0 (ref: https://stackoverflow.com/questions/17009774/quadratic-program-qp-solver-that-only-depends-on-numpy-scipy)
+    H = np.eye(x.shape[0])
+    c = - x.copy()
+    c0 = 1/2 * x.T @ x
+    x0 = np.random.randn(x.shape[0])
+    # x0 = q0[3*p:]
+
+    def loss(x, sign=1.):
+        return sign * (0.5 * np.dot(x.T, np.dot(H, x))+ np.dot(c, x) + c0)
+
+    def jac(x, sign=1.):
+        return sign * (np.dot(x.T, H) + c)
+    
+    ineq_cons = {'type':'ineq',
+            'fun':lambda x: b - np.dot(A,x),
+            'jac':lambda x: -A}
+
+    eq_cons = {'type':'eq',
+            'fun':lambda x: q_orig[-3:] - x[-3:],
+            'jac':lambda x: -np.eye(3, x.shape[0])}
+
+    cons = ([ineq_cons, eq_cons])
+
+    opt = {'disp':False}
+
+    res_cons = optimize.minimize(loss, x0, jac=jac,constraints=cons,
+                                    method='SLSQP', options=opt)
+    
+    print("success: ", res_cons['success'])
+
+    return res_cons['x']
+
+def get_vel_constr(p, n, knots, v_max=2):
+
+    A_v = np.zeros((3*n, 3*(n+1)))
+    for i in range(0, 3*n, 3):
+        alpha_v_i = p / (knots[i//3+p+1] - knots[i//3+1])
+        # x axis constraint
+        A_v[i, i] = -alpha_v_i; A_v[i, i+3] = alpha_v_i
+        # y axis constraint
+        A_v[i+1, i+1] = -alpha_v_i; A_v[i+1, i+4] = alpha_v_i
+        # z axis constraint
+        A_v[i+2, i+2] = -alpha_v_i; A_v[i+2, i+5] = alpha_v_i
+
+    b_v = np.repeat(v_max, 3*n)
+
+    return A_v, b_v
+
+def get_acc_constr_wrt_q(p, n, knots, a_max):
+
+    A_a = np.zeros((3*(n-1), 3*(n+1)))
+    for i in range(0, 3*(n-1), 3):
+        alpha_a_1 = p*(p-1) / (knots[i//3+p+1] - knots[i//3+2])
+        alpha_a_2 = 1 / (knots[i//3+p+2] - knots[i//3+2])
+        alpha_a_3 = (knots[i//3+p+1] - knots[i//3+1] + knots[i//3+p+2] - knots[i//3+2]) / ( (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+1] - knots[i//3+1]) )
+        alpha_a_4 = 1 / (knots[i//3+p+1] - knots[i//3+1])
+        # x axis constraint
+        A_a[i, i] = alpha_a_1 * alpha_a_4; A_a[i, i+3] = -alpha_a_1 * alpha_a_3; A_a[i, i+6] = alpha_a_1 * alpha_a_2
+        # y axis constraint
+        A_a[i+1, i+1] = alpha_a_1 * alpha_a_4; A_a[i+1, i+4] = -alpha_a_1 * alpha_a_3; A_a[i+1, i+7] = alpha_a_1 * alpha_a_2
+        # z axis constraint
+        A_a[i+2, i+2] = alpha_a_1 * alpha_a_4; A_a[i+2, i+5] = -alpha_a_1 * alpha_a_3; A_a[i+2, i+8] = alpha_a_1 * alpha_a_2
+    
+    b_a = np.repeat(a_max, 3*(n-1))
+
+    return A_a, b_a
+
+def get_jerk_constr_wrt_q(p, n, knots, j_max):
+
+    A_j = np.zeros((3*(n-2), 3*(n+1)))
+    for i in range(0, 3*(n-2), 3):
+        alpha_j_1 = p*(p-1)*(p-2) / ( (knots[i//3+p+1] - knots[i//3+3]) * (knots[i//3+p+1] - knots[i//3+2]) )
+        alpha_j_2 = ( knots[i//3+p+1] - knots[i//3+2]) / ( (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) )
+        alpha_j_3 = ( (knots[i//3+p+1] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+2] + knots[i//3+p+3] - knots[i//3+3]) + \
+                        (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) ) * \
+                        1 / ( (knots[i//3+p+2] - knots[i//3+2])**2 * (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+3] - knots[i//3+3]) )
+        alpha_j_4 = ( (knots[i//3+p+1] - knots[i//3+1]) * (knots[i//3+p+1] - knots[i//3+2]) + (knots[i//3+p+2] - knots[i//3+3]) * (knots[i//3+p+1] - knots[i//3+1] + knots[i//3+p+2] - knots[i//3+2]) ) * \
+                        1 / ( (knots[i//3+p+1] - knots[i//3+1]) * (knots[i//3+p+2] - knots[i//3+2]) * (knots[i//3+p+2] - knots[i//3+3]) )
+        alpha_j_5 = 1 / (knots[i//3+p+1] - knots[i//3+1])
+        # x axis constraint
+        A_j[i, i] = -alpha_j_1 * alpha_j_5; A_j[i, i+3] = alpha_j_1 * alpha_j_4; A_j[i, i+6] = -alpha_j_1 * alpha_j_3; A_j[i, i+9] = alpha_j_1 * alpha_j_2
+        # y axis constraint
+        A_j[i+1, i+1] = -alpha_j_1 * alpha_j_5; A_j[i+1, i+4] = alpha_j_1 * alpha_j_4; A_j[i+1, i+7] = -alpha_j_1 * alpha_j_3; A_j[i+1, i+10] = alpha_j_1 * alpha_j_2
+        # z axis constraint
+        A_j[i+2, i+2] = -alpha_j_1 * alpha_j_5; A_j[i+2, i+5] = alpha_j_1 * alpha_j_4; A_j[i+2, i+8] = -alpha_j_1 * alpha_j_3; A_j[i+2, i+11] = alpha_j_1 * alpha_j_2
+    
+    b_j = np.repeat(j_max, 3*(n-2))
+
+    return A_j, b_j

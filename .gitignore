@@ -22,4 +22,5 @@ panther_compression/evals-dir
 panther_compression/evals_dyn_obst
 panther_compression/test_scripts/models
 panther_compression/test_scripts/wandb
+panther_compression/trained_policies/*
 panther_compression/training/wandb

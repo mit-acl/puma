@@ -6,12 +6,11 @@ import argparse
 import torch.nn as nn
 
 # network utils import
-from utils import create_dataset, str2bool, setup_diffusion, visualize, get_dataloader_training
+from misc_utils import create_dataset, str2bool, setup_diffusion, visualize, get_dataloader_training
 from network_utils import MLP
 
 # training utils import
 from training_utils import train_diffusion_model, train_non_diffusion_model, test_net
-
 
 # avoid using too much memory 
 th.cuda.empty_cache()
@@ -116,7 +115,7 @@ def get_kwargs():
         data_dir = args.data_dir
         save_dir = args.save_dir
     else: # lambda machines
-        data_dir = './evals-dir/evals4/tmp_dagger/2/demos/'
+        data_dir = './evals-dir/evals7/tmp_dagger/2/demos/'
         save_dir = './models/'
 
     is_test_run = args.test                                             # test run?
@@ -133,9 +132,9 @@ def get_kwargs():
     th.set_default_device(device)                                       # set default device                                   
     th.set_default_dtype(th.float32)                                    # set default dtype
     max_num_training_demos = 10_000 if not is_test_run else 8           # max number of training demonstrations
-    percentage_training = 0.8                                           # percentage of training demonstrations
-    percentage_eval = 0.1                                               # percentage of evaluation demonstrations
-    percentage_test = 0.1                                               # percentage of test demonstrations
+    percentage_training = 0.98                                           # percentage of training demonstrations
+    percentage_eval = 0.01                                               # percentage of evaluation demonstrations
+    percentage_test = 0.01 
     num_trajs = 8  # in diffusion model it has to be a multiple of 2    # num_trajs to predict
     obs_horizon = 1                                                     # TODO remove (from diffuion policy paper)
     obs_dim = 43                                                        # if we use GNN, this will be overwritten in Conditional ResidualBlock1D and won't be used
@@ -143,10 +142,10 @@ def get_kwargs():
     obst_obs_dim = 33
     output_dim_for_agent_obs = 64                                       # output dim for agent obs
     action_dim = 22                                                     # 15(pos) + 6(yaw) + 1(time)
-    num_diffusion_iters = 10                                            # number of diffusion iterations
+    num_diffusion_iters = 5                                             # number of diffusion iterations
     num_epochs = 1000 if not is_test_run else 1                         # number of epochs
     num_eval = 10                                                       # number of evaluation data points
-    batch_size = 64 if not is_test_run else 4                          # batch size
+    batch_size = 64 if not is_test_run else 4                           # batch size
     scheduler_type = 'ddim' # 'ddpm', 'ddim' or 'dpm-multistep'         # scheduler type (ddpm/dpm-multistep)
     yaw_loss_weight = 1.0                                               # yaw loss weight
     policy_save_freq = 50                                               # policy save frequency
@@ -167,7 +166,7 @@ def get_kwargs():
     """ ********************* NETWORK ********************* """
     # network parameters
 
-    mlp_hidden_sizes = [2048, 2048, 2048, 2048]                         # hidden sizes for mlp
+    mlp_hidden_sizes = [64, 64]                         # hidden sizes for mlp
     agent_obs_hidden_sizes = [256, 256, 256, 256]                       # hidden sizes for agent obs
     mlp_activation = nn.ReLU()                                          # activation for mlp
     lstm_hidden_size = 1024                                            # hidden size for lstm
@@ -180,7 +179,7 @@ def get_kwargs():
     gnn_num_layers = 4                                                  # num_layers for gnn
     gnn_num_heads = 4                                                   # num_heads for gnn
     gnn_group = 'max'                                                   # group for gnn
-    linear_layer_output_dim = 256                                       # output dim for linear layer
+    linear_layer_output_dim = 64                                       # output dim for linear layer
 
     # default model path
     if model_path is not None:
@@ -205,7 +204,6 @@ def get_kwargs():
         'percentage_training': percentage_training,
         'percentage_eval': percentage_eval,
         'percentage_test': percentage_test,
-        'num_trajs': num_trajs,
         'obs_horizon': obs_horizon,
         'obs_dim': obs_dim,
         'agent_obs_dim': agent_obs_dim,
@@ -234,8 +232,8 @@ def get_kwargs():
         'gnn_num_layers': gnn_num_layers,
         'gnn_num_heads': gnn_num_heads,
         'gnn_group': gnn_group,
-        'diffusion_step_embed_dim': 256,
-        'diffusion_down_dims': [256, 512, 1024],
+        'diffusion_step_embed_dim': 64,
+        'diffusion_down_dims': [64, 128, 256],
         'diffusion_kernel_size': 5,
         'diffusion_n_groups': 8,
         'machine': args.machine,
@@ -248,6 +246,11 @@ def get_kwargs():
         'linear_layer_output_dim': linear_layer_output_dim,
         'output_dim_for_agent_obs': output_dim_for_agent_obs,
         'use_goal_cond_diffusion': use_goal_cond_diffusion,
+        'use_qp_constraints': True,
+        'qp_start_k_step': 1,
+        'qp_vmax_constraint': 10.0,
+        'qp_amax_constraint': 20.0,
+        'qp_jmax_constraint': 30.0,
     }
 
     # create dataset

@@ -14,7 +14,7 @@ import torch as th
 import time
 
 # network utils import
-from utils import get_nactions, calculate_deep_panther_loss, get_dataloader_training
+from misc_utils import get_nactions, calculate_deep_panther_loss, get_dataloader_training
 
 # wanb
 import wandb
@@ -91,7 +91,6 @@ def evaluate_non_diffusion_model(dataset, policy, **kwargs):
             cost_expert.append(cost)
             augmented_cost_expert.append(augmented_cost)
 
-
             if obst_avoidance_violation > 1e-3:
                 obst_avoidance_violation_expert.append(1)
             else:
@@ -166,7 +165,7 @@ def evaluate_diffusion_model(dataset, policy, noise_scheduler, return_only_stude
     cost_computer = CostComputer()
 
     # get expert actions and student actions
-    expert_actions, student_actions, nobs, computation_times = get_nactions(policy, noise_scheduler, dataset, is_visualize=False, **kwargs)
+    expert_actions, student_actions, nobs, computation_times = get_nactions(policy, noise_scheduler, dataset, is_visualize=True, **kwargs)
 
     avg_cost_expert, obst_avoidance_violation_expert, dyn_lim_violation_expert, avg_augmented_cost_expert = [], [], [], []
     min_cost_expert, min_augmented_cost_expert = [], []

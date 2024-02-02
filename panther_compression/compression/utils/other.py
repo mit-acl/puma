@@ -28,11 +28,10 @@ import torch
 rospack = rospkg.RosPack()
 path_puma=rospack.get_path('puma')
 sys.path.insert(0, path_puma + '/../panther_compression/training')
-print(path_puma + '/../panther_compression/training')
 # for student
-from utils import setup_diffusion
+# from misc_utils import setup_diffusion
 from network_utils import MLP
-from training import get_kwargs
+# from training import get_kwargs
 
 class ExpertDidntSucceed(Exception):
 	  pass
@@ -1314,6 +1313,12 @@ class ActionManager():
 		dummy_action=self.denormalizeAction(dummy_action_normalized)
 		traj=dummy_action[0,:].reshape(traj_normalized.shape)
 		return traj
+	
+	def normalizeTraj(self, traj):
+		dummy_action = np.matlib.repmat(traj, self.num_traj_per_action, 1)
+		dummy_action_normalized = self.normalizeAction(dummy_action)
+		traj_normalized = dummy_action_normalized[0,:].reshape(traj.shape)
+		return traj_normalized
 
 	def getActionSize(self):
 		return self.action_size

@@ -10,53 +10,36 @@ from compression.policies.GNNStudentPolicy import GNNStudentPolicy, create_empty
 from compression.utils.eval import evaluate_policy, rollout_stats, compute_success
 from compression.utils.other import ExpertDidntSucceed, ActionManager
 
-def make_simple_dagger_trainer(tmpdir, eval_dir, venv, rampdown_rounds, custom_logger, lr, batch_size, 
-                               evaluation_data_size, weight_prob, expert_policy, type_loss, use_one_zero_beta, 
-                               gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group, num_linear_layers,
-                               linear_hidden_channels, out_channels, num_of_trajs_per_replan,
-                               only_test_loss=False, epsilon_RWTA=0.05, reuse_latest_policy=True, use_lr_scheduler=True, train_evaluation_rate=0.9):
+def make_simple_dagger_trainer(tmpdir, eval_dir, venv, custom_logger, expert_policy, args, **kwargs):
 
-    if use_one_zero_beta:
-        beta_schedule=dagger.OneZeroBetaSchedule()
-    else:
-        beta_schedule=dagger.LinearBetaSchedule(rampdown_rounds)
-    
+    # unpack kwargs
+    use_one_zero_beta = kwargs['use_one_zero_beta']
+    rampdown_rounds = args.rampdown_rounds
+    lr = kwargs['lr']
+    reuse_latest_policy = kwargs['reuse_latest_policy']
+    type_loss = args.type_loss
+    only_test_loss = args.only_test_loss
+    epsilon_RWTA = args.epsilon_RWTA
+
+    beta_schedule=dagger.OneZeroBetaSchedule() if use_one_zero_beta else dagger.LinearBetaSchedule(rampdown_rounds)
+    policy = get_latest_policy() if reuse_latest_policy else StudentPolicy(observation_space=venv.observation_space, action_space=venv.action_space, **kwargs)
     am=ActionManager()
-
-    if reuse_latest_policy:
-        policy = get_latest_policy()
-    else:
-        empty_gnn_data = create_empty_gnn_data()
-        policy = GNNStudentPolicy(  observation_space=venv.observation_space,
-                                    action_space=venv.action_space,
-                                    gnn_data=empty_gnn_data,
-                                    gnn_hidden_channels=gnn_hidden_channels,
-                                    gnn_num_layers=gnn_num_layers,
-                                    gnn_num_heads=gnn_num_heads,
-                                    group=group,
-                                    num_linear_layers=num_linear_layers,
-                                    linear_hidden_channels=linear_hidden_channels,
-                                    out_channels=out_channels,
-                                    num_of_trajs_per_replan=num_of_trajs_per_replan
-                                    )
     
     bc_trainer = bc.BC(
         observation_space=venv.observation_space,
         action_space=venv.action_space,
+        args=args,
         optimizer_kwargs=dict(lr=lr),
-        use_lr_scheduler = use_lr_scheduler,
         custom_logger=custom_logger,
         policy=policy,
-        batch_size=batch_size,
-        evaluation_data_size=evaluation_data_size,
         traj_size_pos_ctrl_pts=am.traj_size_pos_ctrl_pts,
         traj_size_yaw_ctrl_pts=am.traj_size_yaw_ctrl_pts,
         use_closed_form_yaw_student=am.use_closed_form_yaw_student,
         make_yaw_NN=am.make_yaw_NN,
         type_loss=type_loss,
-        weight_prob=weight_prob,
         only_test_loss=only_test_loss,
-        epsilon_RWTA=epsilon_RWTA
+        epsilon_RWTA=epsilon_RWTA,
+        **kwargs
     )
 
     return dagger.SimpleDAggerTrainer(
@@ -67,7 +50,6 @@ def make_simple_dagger_trainer(tmpdir, eval_dir, venv, rampdown_rounds, custom_l
         beta_schedule=beta_schedule,
         bc_trainer=bc_trainer,
         custom_logger=custom_logger,
-        train_evaluation_rate=train_evaluation_rate
     )
 
 def make_dagger_trainer(tmpdir, venv, rampdown_rounds, custom_logger, lr, batch_size, weight_prob, type_loss, use_lstm, only_test_loss=False, epsilon_RWTA=0.05):

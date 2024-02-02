@@ -24,42 +24,17 @@ from compression.policies.ExpertPolicy import ExpertPolicy
 from compression.utils.train import make_simple_dagger_trainer
 from compression.utils.eval import evaluate_policy
 from IPython.core import ultratb
+import rospkg
 
-
-
-" ********************* Coloring of the python errors, https://stackoverflow.com/a/52797444/6057617 ********************* "
-
-
-
-def printInBoldBlue(data_string):
-    print(Style.BRIGHT+Fore.BLUE+data_string+Style.RESET_ALL)
-def printInBoldRed(data_string):
-    print(Style.BRIGHT+Fore.RED+data_string+Style.RESET_ALL)
-def printInBoldGreen(data_string):
-    print(Style.BRIGHT+Fore.GREEN+data_string+Style.RESET_ALL)
-
-
-
-" ********************* Take string as args and convert it to bool ********************* " 
-# See https://stackoverflow.com/a/43357954/6057617
-
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1', 'True'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0', 'False'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
+# add path to training folder
+rospack = rospkg.RosPack()
+path_puma=rospack.get_path('puma')
+sys.path.insert(0, path_puma + '/../panther_compression/training')
+# for student
+from training import get_kwargs
+from utils import printInBoldBlue, printInBoldRed, printInBoldGreen, str2bool
 
 " ********************* Preliminary evaluation ********************* "
-
-
 
 def preliminary_evaluation(test_venv, expert_policy, LOG_PATH, args, trainer):
     printInBoldBlue("\n----------------------- Preliminary Evaluation: --------------------\n")
@@ -88,17 +63,11 @@ def preliminary_evaluation(test_venv, expert_policy, LOG_PATH, args, trainer):
 
     del expert_stats
 
-
-
 " ********************* main_train definition ******************* "
 
 
 
-def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group, 
-               num_linear_layers, linear_hidden_channels, out_channels, num_of_trajs_per_replan,
-               batch_size, N_EPOCHS, use_lr_scheduler, lr, evaluation_data_size, weight_prob,
-               reuse_latest_policy, use_one_zero_beta, only_collect_data, record_bag, launch_tensorboard,
-               log_interval, num_envs, train_evaluation_rate):
+def main_train(thread_count, args, **kwargs):
 
     ## To avoid the RuntimeError: CUDA error: out of memory
     time.sleep(thread_count)
@@ -112,16 +81,11 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
     print(f"use_only_last_coll_ds:          {args.use_only_last_coll_ds}")
     print(f"DAgger rampdown_rounds:         {args.rampdown_rounds}")
     print(f"total_demos_per_round:          {args.total_demos_per_round}")
-    print(f"gnn_hidden_channels:            {gnn_hidden_channels}")
-    print(f"gnn_num_layers:                 {gnn_num_layers}")
-    print(f"gnn_num_heads:                  {gnn_num_heads}")
-    print(f"num_linear_layers:              {num_linear_layers}")
-    print(f"linear_hidden_channels:         {linear_hidden_channels}")
-    print(f"out_channels:                   {out_channels}")
-    print(f"num_of_trajs_per_replan:        {num_of_trajs_per_replan}")
-    print(f"batch_size:                     {batch_size}")
-    print(f"N_EPOCHS:                       {N_EPOCHS}")
-    print(f"use_lr_scheduler:               {use_lr_scheduler}")
+    print(f"action_dim:                     {kwargs['action_dim']}")
+    print(f"num_of_trajs:                   {kwargs['num_trajs']}")
+    print(f"batch_size:                     {kwargs['batch_size']}")
+    print(f"num_epochs:                     {kwargs['num_epochs']}")
+    print(f"use_lr_scheduler:               {kwargs['use_lr_scheduler']}")
 
     ## Params
     DATA_POLICY_PATH = os.path.join(args.policy_dir, str(args.seed))
@@ -144,29 +108,20 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
     random.seed(args.seed+thread_count)
 
     ## Create and set properties for TRAINING environment:
+
     printInBoldBlue("\n----------------------- Making Environments: -------------------\n")
-    train_venv = util.make_vec_env(env_name=ENV_NAME, n_envs=num_envs, seed=args.seed, parallel=False)#Note that parallel applies to the environment step, not to the expert step
+    
+    train_venv = util.make_vec_env(env_name=ENV_NAME, n_envs=kwargs['num_envs'], seed=args.seed, parallel=False)#Note that parallel applies to the environment step, not to the expert step
     train_venv.seed(args.seed)
     train_venv.env_method("set_len_ep", (args.train_len_episode_max_steps))
     print("[Train Env] Ep. Len:  {} [steps].".format(train_venv.get_attr("len_episode")))
 
-    for i in range(num_envs):
+    for i in range(kwargs['num_envs']):
         train_venv.env_method("setID", i, indices=[i]) 
 
-    if record_bag:
-        for i in range(num_envs):
+    if kwargs['record_bag']:
+        for i in range(kwargs['num_envs']):
             train_venv.env_method("startRecordBag", indices=[i]) 
-
-    if args.init_eval or args.final_eval or args.eval:
-        # Create and set properties for EVALUATION environment
-        print("[Test Env] Making test environment...")
-        test_venv = util.make_vec_env(env_name=ENV_NAME, n_envs=num_envs, seed=args.seed, parallel=False)#Note that parallel applies to the environment step, not to the expert step
-        test_venv.seed(args.seed)
-        test_venv.env_method("set_len_ep", (args.test_len_episode_max_steps)) 
-        print("[Test Env] Ep. Len:  {} [steps].".format(test_venv.get_attr("len_episode")))
-
-        for i in range(num_envs):
-            test_venv.env_method("setID", i, indices=[i]) 
 
     # Init logging
     tempdir = tempfile.TemporaryDirectory(prefix="quickstart")
@@ -174,68 +129,17 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
     print( f"All Tensorboards and logging are being written inside {tempdir_path}/.")
     custom_logger=logger.configure(tempdir_path, format_strs=["log", "csv", "tensorboard"])
 
-
-
-    " ********************* Create policies *********************"
-
-
+    printInBoldBlue("\n----------------------- Training Student: --------------------\n")
 
     # Create expert policy 
     expert_policy = ExpertPolicy()
 
     ## Create student policy
     trainer = make_simple_dagger_trainer(tmpdir=DATA_POLICY_PATH, eval_dir=EVALUATION_DATA_POLICY_PATH, venv=train_venv, 
-                                            rampdown_rounds=args.rampdown_rounds, custom_logger=custom_logger, lr=lr, 
-                                            use_lr_scheduler=use_lr_scheduler, batch_size=batch_size,
-                                            evaluation_data_size=evaluation_data_size, weight_prob=weight_prob, 
-                                            expert_policy=expert_policy, type_loss=args.type_loss, only_test_loss=args.only_test_loss, 
-                                            epsilon_RWTA=args.epsilon_RWTA, reuse_latest_policy=reuse_latest_policy, 
-                                            use_one_zero_beta=use_one_zero_beta,
-                                            gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads, group=group, 
-                                            num_linear_layers=num_linear_layers, linear_hidden_channels=linear_hidden_channels, out_channels=out_channels,
-                                            num_of_trajs_per_replan=num_of_trajs_per_replan, train_evaluation_rate=train_evaluation_rate)
-
-    ## Create policy for evaluation data set
-    evaluation_trainer = make_simple_dagger_trainer(tmpdir=EVALUATION_DATA_POLICY_PATH, eval_dir=EVALUATION_DATA_POLICY_PATH, venv=train_venv, 
-                                                    rampdown_rounds=args.rampdown_rounds, custom_logger=None, lr=lr, use_lr_scheduler=use_lr_scheduler, batch_size=batch_size, 
-                                                    evaluation_data_size=evaluation_data_size, weight_prob=weight_prob, expert_policy=expert_policy, 
-                                                    type_loss=args.type_loss, only_test_loss=args.only_test_loss, epsilon_RWTA=args.epsilon_RWTA, 
-                                                    reuse_latest_policy=reuse_latest_policy, use_one_zero_beta=True,
-                                                    gnn_hidden_channels=gnn_hidden_channels, gnn_num_layers=gnn_num_layers, gnn_num_heads=gnn_num_heads, group=group,
-                                                    num_linear_layers=num_linear_layers, linear_hidden_channels=linear_hidden_channels, out_channels=out_channels,
-                                                    num_of_trajs_per_replan=num_of_trajs_per_replan, train_evaluation_rate=train_evaluation_rate)
-
-
-
-    " ********************* Collect evaluation data *********************" 
-
-
-    # deprecated - right now we split the data into train and eval in bc.py
-    if args.evaluation_data_collection:
-        printInBoldBlue("\n----------------------- Collecting Evaluation Data: --------------------\n")
-        evaluation_policy_path = os.path.join(EVALUATION_DATA_POLICY_PATH, "evaluation_policy.pt") # Where to save curr policy
-        evaluation_trainer.train(n_rounds=1, total_demos_per_round=evaluation_data_size, only_collect_data=True, 
-                                    bc_train_kwargs=dict(n_epochs=N_EPOCHS, save_full_policy_path=evaluation_policy_path, 
-                                                        log_interval=log_interval))
-
-
-
-    " ********************* Preliminiary evaluation *********************"
-
-
-
-    if args.init_eval:
-        preliminary_evaluation(test_venv, expert_policy, LOG_PATH, args, trainer)
-        
-
-
-    " ********************* Training *********************"
-    printInBoldBlue("\n----------------------- Training Student: --------------------\n")
-
-
+                                         custom_logger=custom_logger, expert_policy=expert_policy, args=args, **kwargs)
 
     # Launch tensorboard visualization
-    if launch_tensorboard:
+    if kwargs['launch_tensorboard']:
         os.system("pkill -f tensorboard")
         proc1 = subprocess.Popen(["tensorboard", "--logdir", LOG_PATH, "--bind_all"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
@@ -245,7 +149,8 @@ def main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_
         if args.use_dagger:
             assert trainer.round_num == 0
         policy_path = os.path.join(DATA_POLICY_PATH, "intermediate_policy.pt") # Where to save curr policy
-        trainer.train(n_rounds=args.n_rounds, total_demos_per_round=args.total_demos_per_round, only_collect_data=only_collect_data, bc_train_kwargs=dict(n_epochs=N_EPOCHS, save_full_policy_path=policy_path, log_interval=log_interval))
+        trainer.train(n_rounds=args.n_rounds, total_demos_per_round=args.total_demos_per_round, only_collect_data=kwargs['only_collect_data'],
+                       bc_train_kwargs=dict(n_epochs=kwargs['num_epochs'], save_full_policy_path=policy_path, log_interval=kwargs['log_interval']))
 
         # Store the final policy.
         save_full_policy_path = os.path.join(DATA_POLICY_PATH, FINAL_POLICY_NAME)
@@ -320,23 +225,26 @@ def main():
     parser.add_argument("--policy_dir", type=str, default=path+"evals/tmp_dagger") # usually "tmp"
     parser.add_argument("--evaluation_data_dir", type=str, default=path+"evals/evalations") # usually "tmp"
 
+    ## Get kwargs
+    _, kwargs = get_kwargs()
+
     ## Toggles for test
 
-    parser.add_argument("-t", "--use-test-run-params", default=False, type=str2bool)
+    parser.add_argument("-t", "--use-test-run-params", default=True, type=str2bool)
     parser.add_argument("--only_test_loss", type=str2bool, default=False)
     DEFAULT_N_ROUNDS = 100 if not parser.parse_args().use_test_run_params else 100
     DEFAULT_TOTAL_DEMOS_PER_ROUND = 256*5 if not parser.parse_args().use_test_run_params else 10
-    only_collect_data = True # when you want to collect data and not train student
+    only_collect_data = False # when you want to collect data and not train student
 
     ## Evaluation params
 
     parser.add_argument("--total_demos_per_round_for_evaluation", default=100, type=int)
     reset_evaluation_data = True # reset evaluation data
-    evaluation_data_size = 100 if not parser.parse_args().use_test_run_params else 10 # evaluation batch size
+    kwargs['evaluation_data_size'] = 100 if not parser.parse_args().use_test_run_params else 10 # evaluation batch size
 
     ## Dagger params
 
-    use_one_zero_beta = False # use one zero beta in DAagger? if False, it will be LinearBetaSchedule()
+    kwargs['use_one_zero_beta'] = False # use one zero beta in DAagger? if False, it will be LinearBetaSchedule()
 
     ## Training params
 
@@ -352,18 +260,16 @@ def main():
     parser.add_argument("--init_eval", dest='init_eval', action='store_true')
     parser.add_argument("--final_eval", dest='final_eval', action='store_true')
     parser.add_argument("--use_only_last_collected_dataset", dest='use_only_last_coll_ds', action='store_true')
-    parser.add_argument("--evaluation_data_collection", dest='evaluation_data_collection', action='store_true')
     train_only_from_existing_data = False    # when you want to train student only from existing data
     reuse_previous_samples = True           # use the existing data?
-    reuse_latest_policy = False             # reuse the latest_policy?
+    kwargs['reuse_latest_policy'] = False             # reuse the latest_policy?
 
     ## NN hyperparams
 
     parser.add_argument("--type_loss", type=str, default="Hung")
     parser.add_argument("--epsilon_RWTA", type=float, default=0.05)
-    use_lr_scheduler = False # use learning rate schedule?
-    lr = 1e-3 # constant learning rate (if use_lr_scheduler is False)
-    weight_prob = 0.005 # probably not used
+    kwargs['use_lr_scheduler'] = False # use learning rate schedule?
+    kwargs['lr'] = 1e-4 # constant learning rate (if use_lr_scheduler is False)
     num_envs = 10 if parser.parse_args().use_test_run_params else 16  # number of environments
 
     ## Data collection params
@@ -374,16 +280,7 @@ def main():
     train_evaluation_rate = 1.0 # split the data into train and eval sets (train_evaluation_rate is the percentage of data that goes into the train set)
 
     ## GNN params
-    batch_size = 64 if not parser.parse_args().use_test_run_params else 5 # batch size
-    N_EPOCHS = 200 if not parser.parse_args().use_test_run_params else 1 # epoch size
-    group = 'max' # 'sum'
-    gnn_hidden_channels = 128 # the size of the hidden layer in GNN
-    linear_hidden_channels = 2048 # the size of the hidden layer in the linear layers following GNN
-    gnn_num_heads = 8 # the number of heads in GNN
-    gnn_num_layers = 4  # the number of GNN layers
-    num_linear_layers = 2 # the number of linear layers following GNN
-    out_channels = 22 # 22 is the number of actions (traj size)
-    num_of_trajs_per_replan = 10 # number of trajectories per replan
+    batch_size = kwargs['batch_size'] if not parser.parse_args().use_test_run_params else 5 # batch size
 
     ## expose args and params
     args = parser.parse_args()
@@ -430,12 +327,12 @@ def main():
         args.total_demos_per_round=0
 
     if args.only_test_loss:
-        batch_size=1; N_EPOCHS=1; log_interval=1
+        batch_size=1; num_epochs=1; log_interval=1
 
     if args.train_len_episode_max_steps> 1 and only_collect_data:
         printInBoldRed("Note that DAgger will not be used (since we are only collecting data)")
 
-    if args.only_test_loss==False and reuse_latest_policy==False:
+    if args.only_test_loss==False and kwargs['reuse_latest_policy']==False:
         os.system("find "+args.policy_dir+" -type f -name '*.pt' -delete") #Delete the policies
 
     if reuse_previous_samples==False:
@@ -448,15 +345,17 @@ def main():
 
     ## Coloring of the python errors, https://stackoverflow.com/a/52797444/6057617
     sys.excepthook = ultratb.FormattedTB(mode=mode, color_scheme='Linux', call_pdb=False)
-    
+
     " ********************* main_train ********************* "
 
     thread_count = 0
-    main_train(thread_count, args, gnn_hidden_channels, gnn_num_layers, gnn_num_heads, group,
-               num_linear_layers, linear_hidden_channels, out_channels, num_of_trajs_per_replan,
-               batch_size, N_EPOCHS, use_lr_scheduler, lr, evaluation_data_size, weight_prob,
-               reuse_latest_policy, use_one_zero_beta, only_collect_data, record_bag, launch_tensorboard,
-               log_interval, num_envs, train_evaluation_rate)
+    kwargs['only_collect_data'] = only_collect_data
+    kwargs['record_bag'] = record_bag
+    kwargs['launch_tensorboard'] = launch_tensorboard
+    kwargs['log_interval'] = log_interval
+    kwargs['num_envs'] = num_envs
+    kwargs['train_evaluation_rate'] = train_evaluation_rate
+    main_train(thread_count, args, **kwargs)
 
 if __name__ == "__main__":
     main()
