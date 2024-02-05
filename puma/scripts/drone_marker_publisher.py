@@ -75,7 +75,7 @@ class DroneMarkerPublisher:
 
 def startNode():
     c = DroneMarkerPublisher()
-    rospy.Subscriber("world", PoseStamped, c.worldCB)
+    rospy.Subscriber("map", PoseStamped, c.worldCB)
     rospy.spin()
 
 if __name__ == '__main__':

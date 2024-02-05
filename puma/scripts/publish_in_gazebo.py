@@ -27,7 +27,7 @@ class GazeboPublisher:
         self.gazebo_state.model_name = self.name
         self.gazebo_state.pose.orientation = data.quat
         self.gazebo_state.pose.position = data.pos
-        self.gazebo_state.reference_frame = "world"   
+        self.gazebo_state.reference_frame = "map"   
         self.pubState.publish(self.gazebo_state)        
 
 def startNode():

@@ -207,7 +207,7 @@ visualization_msgs::MarkerArray pwp2ColoredMarkerArray(mt::PieceWisePol& pwp, do
   {
     visualization_msgs::Marker m;
     m.type = visualization_msgs::Marker::ARROW;
-    m.header.frame_id = "world";
+    m.header.frame_id = "map";
     m.header.stamp = ros::Time::now();
     m.ns = ns;
     m.action = visualization_msgs::Marker::ADD;
@@ -409,7 +409,7 @@ visualization_msgs::Marker edges2Marker(const mt::Edges& edges, std_msgs::ColorR
     return marker;
   }
 
-  marker.header.frame_id = "world";
+  marker.header.frame_id = "map";
   marker.header.stamp = ros::Time::now();
   marker.ns = "markertacles";
   marker.id = 0;
@@ -910,7 +910,7 @@ visualization_msgs::Marker getMarkerSphere(double scale, int my_color)
 {
   visualization_msgs::Marker marker;
 
-  marker.header.frame_id = "world";
+  marker.header.frame_id = "map";
   marker.id = 0;
   marker.type = visualization_msgs::Marker::SPHERE;
   marker.scale.x = scale;
@@ -1042,7 +1042,7 @@ visualization_msgs::MarkerArray trajectory2ColoredMarkerArray(const mt::trajecto
     double vel = data[i].vel.norm();
     visualization_msgs::Marker m;
     m.type = visualization_msgs::Marker::ARROW;
-    m.header.frame_id = "world";
+    m.header.frame_id = "map";
     m.header.stamp = ros::Time::now();
     m.ns = ns;
     m.action = visualization_msgs::Marker::ADD;

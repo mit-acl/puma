@@ -11,5 +11,5 @@ windows:
   
   panes:
     - roscore
-    - roslaunch --wait puma sim_base_station.launch num_of_obs:=2 rviz:=true gui_mission:=false
+    - roslaunch --wait puma sim_base_station.launch num_of_obs:=5 rviz:=true gui_mission:=false
     - roslaunch --wait puma sim_onboard.launch quad:=SQ01s use_downward_camera:=false perfect_controller:=true perfect_prediction:=true x:=0.0 y:=1.0 z:=0.0 yaw:=0.0 2> >(grep -v -e TF_REPEATED_DATA -e buffer)

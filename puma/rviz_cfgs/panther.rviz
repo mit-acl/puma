@@ -8,7 +8,6 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /DepthCloudSQ01s1/Auto Size1
-        - /Obstacles2
       Splitter Ratio: 0.7430555820465088
     Tree Height: 721
   - Class: rviz/Selection
@@ -629,7 +628,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/puma/actual_traj
       Name: SQ01sActualTraj
       Namespaces:
-        ActualTraj_SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -705,7 +704,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/drone_marker
       Name: MeshSQ01s
       Namespaces:
-        mesh_SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -753,7 +752,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/puma/traj_obtained
       Name: PlannedTrajSQ01s
       Namespaces:
-        SQ01s: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -761,7 +760,7 @@ Visualization Manager:
       Marker Topic: /SQ01s/puma/obstacles
       Name: Obstacles
       Namespaces:
-        markertacles: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -792,7 +791,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 22.708833694458008
+      Distance: 29.245088577270508
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -808,9 +807,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8597971200942993
+      Pitch: 0.9197970628738403
       Target Frame: <Fixed Frame>
-      Yaw: 4.648169994354248
+      Yaw: 4.703169345855713
     Saved: ~
 Window Geometry:
   DepthImage:

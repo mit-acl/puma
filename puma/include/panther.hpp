@@ -23,9 +23,6 @@
 
 // status_ : YAWING-->TRAVELING-->GOAL_SEEN-->GOAL_REACHED-->YAWING-->TRAVELING-->...
 
-#include <pybind11/pybind11.h>
-#include <pybind11/embed.h>
-
 using namespace termcolor;
 
 class Panther
@@ -43,8 +40,9 @@ public:
   std::vector<Eigen::Vector3d> vertexesOfInterval(mt::PieceWisePol& pwp, double t_start, double t_end, const Eigen::Vector3d& delta);
   std::vector<Eigen::Vector3d> vertexesOfInterval(mt::dynTrajCompiled& traj, double t_start, double t_end);
   void updateState(mt::state data);
+  void removeCostmapObstacles();
 
-  bool getNextGoal(mt::state& next_goal);
+  bool getNextGoal(mt::state& next_goal, bool& is_yawing);
   void getG(mt::state& G);
   void getState(mt::state& data);
   void getG_term(mt::state& data);
@@ -63,18 +61,7 @@ public:
   std::pair<std::vector<double>, std::vector<Eigen::Vector3d>> projectUncertainty(const Eigen::Matrix<double, 9, 1>& initial_variance, double int_dt, double t_start, double t_end);
 
 private:
-  // pybind11::module calc_;
-  // pybind11::scoped_interpreter guard{};
-  // pybind11::object student_caller_;
-  // pybind11::module calc_;
-  // pybind11::detail::str_attr_accessor tmp_;
-  // std::shared_ptr<pybind11::scoped_interpreter> guard_ptr_;
 
-  pybind11::object* student_caller_ptr_;
-
-  // pybind11::scoped_interpreter guard;
-
-  // mt::state M_;
   mt::committedTrajectory plan_;
 
   ConvexHullsOfCurves convexHullsOfCurves(double t_start, double t_end);

@@ -21,6 +21,7 @@
 #include <rviz_visual_tools/rviz_visual_tools.h>
 #include <snapstack_msgs/State.h>
 #include <snapstack_msgs/Goal.h>
+#include <nav_msgs/Odometry.h>
 #include <std_srvs/Empty.h>
 
 #include <panther_msgs/WhoPlans.h>
@@ -69,6 +70,7 @@ private:
   void terminalGoalCB(const geometry_msgs::PoseStamped& msg);
   void pubState(const mt::state& msg, const ros::Publisher pub);
   void stateCB(const snapstack_msgs::State& msg);
+  void OdomCB(const nav_msgs::Odometry& msg);
   void whoPlansCB(const panther_msgs::WhoPlans& msg);
   void pubCB(const ros::TimerEvent& e);
   void replanCB(const ros::TimerEvent& e);
@@ -115,6 +117,7 @@ private:
   void applyFrameAlignment(Eigen::Matrix4d& T, const std::string& frame_src);
   void getPosFromT(std::vector<double>& pos, const Eigen::Matrix4d& T);
   void constructFOVMarker();
+  double wrapFromMPitoPi(double x);
 
   // dictory of frame alignment transform matrix
   std::map<std::string, Eigen::Matrix4d> dict_frame_align_;
@@ -122,7 +125,7 @@ private:
 
   mt::state state_;
 
-  std::string world_name_ = "world";
+  std::string world_name_ = "map";
 
   rvt::RvizVisualToolsPtr visual_tools_;
 
@@ -181,6 +184,7 @@ private:
   ros::Publisher pub_log_;
   ros::Publisher pub_is_ready_;
   ros::Publisher pub_pause_sim_;
+  ros::Publisher pub_cmd_vel_;
 
   ros::Subscriber sub_term_goal_;
   ros::Subscriber sub_whoplans_;
@@ -230,5 +234,5 @@ private:
 
   // store costmap obstacles
   std::vector<costmap_converter::ObstacleMsg> costmap_obst_;
-
+  int costmap_obst_id_ = 0;
 };

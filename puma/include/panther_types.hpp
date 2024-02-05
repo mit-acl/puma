@@ -837,6 +837,7 @@ struct dynTraj
   double time_received;  // time at which this trajectory was received from an agent
   bool is_agent;         // true for a trajectory of an agent, false for an obstacle
   bool is_committed;
+  bool is_costmap_obst = false;
 };
 
 struct dynTrajCompiled
@@ -856,6 +857,7 @@ struct dynTrajCompiled
   bool is_agent;         // true for a trajectory of an agent, false for an obstacle
   bool is_static;
   bool is_committed;
+  bool is_costmap_obst = false;
 };
 
 // struct mt::PieceWisePolWithInfo
@@ -878,8 +880,14 @@ struct parameters
 {
   //
   // clang-format off
+  double          kv;
+  double          kp;
+  double          kw;
+  double          kyaw;
+  double          kalpha;
   bool            is_frame_alignment;
   bool            use_yaw_guess_for_opt;
+  bool            suppress_optimize_output;
   double          initial_position_variance_for_agents;
   double          initial_velocity_variance_for_agents;
   double          initial_acceleration_variance_for_agents;

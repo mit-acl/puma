@@ -47,7 +47,7 @@ class FakeSim:
         
         rospy.sleep(1.0)
 
-        self.state.header.frame_id="world"
+        self.state.header.frame_id="map"
         self.pubState.publish(self.state)  
 
         pose=Pose()
@@ -93,7 +93,7 @@ class FakeSim:
 
         w_q_b=quaternion_multiply(qabc,qpsi)
 
-        self.state.header.frame_id="world"
+        self.state.header.frame_id="map"
         self.state.header.stamp=rospy.Time.now()
         self.state.pos=data.p
         self.state.vel=data.v
@@ -111,13 +111,13 @@ class FakeSim:
                          (self.state.quat.x, self.state.quat.y, self.state.quat.z, self.state.quat.w),
                          rospy.Time.now(),
                          self.name,
-                         "world")
+                         "map")
 
     def getDroneMarker(self):
         marker=Marker()
         marker.id=1
         marker.ns="mesh_"+self.name
-        marker.header.frame_id="world"
+        marker.header.frame_id="map"
         marker.type=marker.MESH_RESOURCE
         marker.action=marker.ADD
         marker.pose.position.x=self.state.pos.x

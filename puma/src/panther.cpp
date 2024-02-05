@@ -18,9 +18,6 @@
 #include "termcolor.hpp"
 #include "bspline_utils.hpp"
 // Needed to call the student
-#include <pybind11/eigen.h>
-#include <pybind11/stl.h>
-#include <pybind11/operators.h>
 // #include "exprtk.hpp"
 
 using namespace termcolor;
@@ -36,7 +33,7 @@ typedef PANTHER_timers::Timer MyTimer;
 
 Panther::Panther(mt::parameters par) : par_(par)
 {
-  drone_status_ == DroneStatus::GOAL_REACHED;
+  drone_status_ == DroneStatus::YAWING;
   G_.pos << 0, 0;
   G_term_.pos << 0, 0;
   mtx_initial_cond.lock();
@@ -128,6 +125,7 @@ void Panther::dynTraj2dynTrajCompiled(const mt::dynTraj& traj, mt::dynTrajCompil
 
   traj_compiled.use_pwp_field = traj.use_pwp_field;
   traj_compiled.is_agent = traj.is_agent;
+  traj_compiled.is_costmap_obst = traj.is_costmap_obst;
   traj_compiled.bbox = traj.bbox;
   traj_compiled.id = traj.id;
   traj_compiled.time_received = traj.time_received;  // ros::Time::now().toSec();
@@ -221,6 +219,28 @@ void Panther::removeOldTrajectories()
 //
 // ------------------------------------------------------------------------------------------------------
 //
+
+void Panther::removeCostmapObstacles()
+{
+
+  mtx_trajs_.lock();
+  // Remove all obstacles that are costmap obstacles (is_costmap_obst=true)
+  int trajs_size = trajs_.size();
+
+  for (int index_traj = 0; index_traj < trajs_size; index_traj++)
+  {
+    if (trajs_[index_traj].is_costmap_obst)
+    {
+      trajs_.erase(trajs_.begin() + index_traj);
+    }
+  }
+  mtx_trajs_.unlock();
+
+}
+
+//
+// ------------------------------------------------------------------------------------------------------
+//
 // Note that we need to compile the trajectories inside panther.cpp because t_ is in panther.hpp
 void Panther::updateTrajObstacles(mt::dynTraj traj)
 {
@@ -274,6 +294,33 @@ void Panther::updateTrajObstacles(mt::dynTraj traj)
       // ROS_WARN_STREAM("Adding " << traj_compiled.id);
     }
   }
+
+  std::vector<mt::dynTrajCompiled> local_trajs;
+
+  for (auto traj_compiled : trajs_)
+  {
+    mtx_t_.lock();
+    t_ = ros::Time::now().toSec();
+
+    Eigen::Vector3d center_obs;
+    center_obs << traj_compiled.s_mean[0].value(), traj_compiled.s_mean[1].value(),
+        traj_compiled.s_mean[2].value();
+
+    mtx_t_.unlock();
+
+    if (((traj_compiled.is_agent == false) && (center_obs - state_.pos).norm() > 2 * par_.Ra) ||
+        ((traj_compiled.is_agent) && (center_obs - state_.pos).norm() > 4 * par_.Ra))
+    {
+      // if it's too far away then do nothing
+    }
+    else
+    {
+      local_trajs.push_back(traj_compiled);
+    }
+  }
+
+  trajs_ = local_trajs;
+
 
   mtx_trajs_.unlock();
 
@@ -332,8 +379,11 @@ void Panther::setTerminalGoal(mt::state& term_goal)
   G_term_ = term_goal;
   mtx_G_term.unlock();
 
+  std::cout << "state_initialized_= " << state_initialized_ << std::endl;
+
   if (state_initialized_ == true)  // because I need plan_size()>=1
   {
+    std::cout << "doStuffTermGoal() called in setTerminalGoal()" << std::endl;
     doStuffTermGoal();
   }
   else
@@ -424,9 +474,27 @@ void Panther::doStuffTermGoal()
   G_.pos = G_term_.pos;
   mtx_G_term.unlock();
 
+  mtx_planner_status_.lock();
+  changeDroneStatus(DroneStatus::YAWING);
+
+  //
+  // No matter what, let's do yawing (might need to change this if we give term_goal while agent is flying)
+  //
+  
+  // save the state that the agent started yawing
+  mt::state yawing_start_state_;
+  getState(yawing_start_state_);
+
+  terminal_goal_initialized_ = true;
+
+  // std::cout << bold << red << "[FA] Received Term Goal=" << G_term_.pos.transpose() << reset << std::endl;
+  // std::cout << bold << red << "[FA] Received Proj Goal=" << G_.pos.transpose() << reset << std::endl;
+
+  is_new_g_term_ = true;
+  mtx_planner_status_.unlock();
+
   terminal_goal_initialized_ = true;
   is_new_g_term_ = true;
-  changeDroneStatus(DroneStatus::TRAVELING);
 }
 
 //
@@ -481,13 +549,11 @@ bool Panther::isReplanningNeeded()
 {
   if (initializedStateAndTermGoal() == false)
   {
-    std::cout << "Not replanning because state or terminal goal not initialized" << std::endl;
     return false;  // Note that log is not modified --> will keep its default values
   }
 
   if (par_.static_planning == true)
   {
-    std::cout << "Not replanning because static_planning==true" << std::endl;
     return true;
   }
 
@@ -533,7 +599,7 @@ bool Panther::isReplanningNeeded()
   }
 
   // Don't plan if drone is not traveling
-  if (drone_status_ == DroneStatus::GOAL_REACHED || (drone_status_ == DroneStatus::GOAL_SEEN)) {
+  if (drone_status_ == DroneStatus::GOAL_REACHED || (drone_status_ == DroneStatus::YAWING) || (drone_status_ == DroneStatus::GOAL_SEEN)) {
     return false;
   }
 
@@ -638,7 +704,6 @@ bool Panther::replan(si::solOrGuess& best_solution, mt::log& log, int& k_index_e
 
   if (isReplanningNeeded() == false)
   {
-    std::cout << "No replanning needed" << std::endl;
     return false;
   }
 
@@ -693,11 +758,17 @@ bool Panther::replan(si::solOrGuess& best_solution, mt::log& log, int& k_index_e
   std::vector<mt::obstacleForOpt> obstacles_for_opt = getObstaclesForOpt(t_start, t_start + par_.fitter_total_time);  // basically converts trajs_ to obstacles_for_opt
   mtx_trajs_.unlock();
 
-  // setobstacles for optimization
-  solver_->setObstaclesForOpt(obstacles_for_opt);
-
   // Verify that obstacles_for_opt.size() is less than par_.num_max_of_obst
-  verify(obstacles_for_opt.size() <= par_.num_max_of_obst, "obstacles_for_opt.size() should be less than par_.num_max_of_obst");
+  // verify(obstacles_for_opt.size() <= par_.num_max_of_obst, "obstacles_for_opt.size() should be less than par_.num_max_of_obst");
+  if (obstacles_for_opt.size() > par_.num_max_of_obst)
+  {
+    std::cout << red << bold << "obstacles_for_opt.size() should be less than par_.num_max_of_obst" << reset << std::endl;
+    std::cout << "obstacles_for_opt.size()= " << obstacles_for_opt.size() << std::endl;
+    obstacles_for_opt.resize(par_.num_max_of_obst);
+  }
+
+  // set obstacles for optimization
+  solver_->setObstaclesForOpt(obstacles_for_opt);
 
   // get t_final
   double time_allocated = getMinTimeDoubleIntegrator3D(A.pos, A.vel, G.pos, G.vel, par_.v_max, par_.a_max);
@@ -710,17 +781,28 @@ bool Panther::replan(si::solOrGuess& best_solution, mt::log& log, int& k_index_e
   solver_->par_.c_final_yaw = par_.c_final_yaw;
   solver_->par_.c_yaw_smooth = par_.c_yaw_smooth;
 
+  std::cout << "obstacles_for_opt.size()= " << obstacles_for_opt.size() << std::endl;
+  std::cout << "t_start= " << t_start << std::endl;
+  std::cout << "t_final= " << t_final << std::endl;
+  std::cout << "A= " << A.pos.transpose() << std::endl;
+  std::cout << "G= " << G.pos.transpose() << std::endl;
+
   bool correctInitialCond = solver_->setInitStateFinalStateInitTFinalT(A, G, t_start, t_final);
 
   if (correctInitialCond == false) {
+    std::cout << "correctInitialCond= " << correctInitialCond << std::endl;
     return false;
   }
 
-  // Solve optimization! 
-  bool result = solver_->optimize(false);
+  // Solve optimization!
+  bool result = solver_->optimize(par_.suppress_optimize_output);
+
+  std::cout << "optimization result= " << result << std::endl;
+
   if (result == false) {
     return false;
   }
+
   best_solution = solver_->fillTrajBestSolutionAndGetIt();
   total_replannings_++;
 
@@ -1123,7 +1205,7 @@ void Panther::yaw(double diff, mt::state& next_goal)
 {
   saturate(diff, -par_.dc * par_.ydot_max, par_.dc * par_.ydot_max);
   double dyaw_not_filtered;
-  double alpha_filter_dyaw = 0.1;
+  double alpha_filter_dyaw = 0.5;
 
   dyaw_not_filtered = copysign(1, diff) * par_.ydot_max;
 
@@ -1131,7 +1213,6 @@ void Panther::yaw(double diff, mt::state& next_goal)
   next_goal.dyaw = dyaw_filtered_;
   next_goal.yaw = previous_yaw_ + dyaw_filtered_ * par_.dc;
   previous_yaw_ = next_goal.yaw;
-  // std::cout << "next_goal.yaw " << next_goal.yaw << std::endl;
 }
 
 void Panther::getDesiredYaw(mt::state& next_goal)
@@ -1148,7 +1229,6 @@ void Panther::getDesiredYaw(mt::state& next_goal)
   double diff = desired_yaw - camera_state.yaw;
 
   angle_wrap(diff);
-
   yaw(diff, next_goal);
 
   if (fabs(diff) < 0.04)
@@ -1158,7 +1238,7 @@ void Panther::getDesiredYaw(mt::state& next_goal)
   }
 }
 
-bool Panther::getNextGoal(mt::state& next_goal)
+bool Panther::getNextGoal(mt::state& next_goal, bool& is_yawing)
 {
   if (initializedStateAndTermGoal() == false)  // || (drone_status_ == DroneStatus::GOAL_REACHED && plan_.size() == 1))
                                                // TODO: if included this part commented out, the last state (which is
@@ -1185,6 +1265,12 @@ bool Panther::getNextGoal(mt::state& next_goal)
     }
   }
 
+  if (drone_status_ == DroneStatus::YAWING)
+  {
+    getDesiredYaw(next_goal);
+    is_yawing = true;
+  }
+
   mtx_goals.unlock();
   mtx_plan_.unlock();
   return true;
@@ -1205,6 +1291,9 @@ void Panther::changeDroneStatus(int new_status)
   std::cout << "Changing DroneStatus from ";
   switch (drone_status_)
   {
+    case DroneStatus::YAWING:
+      std::cout << bold << "YAWING" << reset;
+      break;
     case DroneStatus::TRAVELING:
       std::cout << bold << "TRAVELING" << reset;
       break;
@@ -1219,6 +1308,9 @@ void Panther::changeDroneStatus(int new_status)
 
   switch (new_status)
   {
+    case DroneStatus::YAWING:
+      std::cout << bold << "YAWING" << reset;
+      break;
     case DroneStatus::TRAVELING:
       std::cout << bold << "TRAVELING" << reset;
       break;
@@ -1243,6 +1335,9 @@ void Panther::printDroneStatus()
 {
   switch (drone_status_)
   {
+    case DroneStatus::YAWING:
+      std::cout << bold << "status_=YAWING" << reset << std::endl;
+      break;
     case DroneStatus::TRAVELING:
       std::cout << bold << "status_=TRAVELING" << reset << std::endl;
       break;

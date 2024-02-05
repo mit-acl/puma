@@ -15,6 +15,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_finders")
 # find_package(CGAL REQUIRED)
 # include(${CGAL_USE_FILE})
 
+find_package(pybind11 REQUIRED)
 find_package(PythonLibs REQUIRED) #See https://github.com/pybind/pybind11/issues/2232#issuecomment-655520324
 
 find_package ( Boost COMPONENTS graph REQUIRED )
@@ -107,8 +108,8 @@ add_library(disable_physics src/disable_physics.cpp)
 target_link_libraries(disable_physics ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 target_link_libraries(move_model ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-pybind_add_module(py_panther MODULE src/py_panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/octopus_search.cpp src/bspline_utils.cpp)
-target_link_libraries(py_panther PRIVATE ${catkin_LIBRARIES} ${CASADI_LIBRARIES})
+# pybind_add_module(py_panther MODULE src/py_panther.cpp src/solver_ipopt.cpp src/solver_ipopt_utils.cpp src/utils.cpp src/solver_ipopt_guess.cpp src/octopus_search.cpp src/bspline_utils.cpp)
+# target_link_libraries(py_panther PRIVATE ${catkin_LIBRARIES} ${CASADI_LIBRARIES})
 
 # target_precompile_headers(test_utils PUBLIC include/exprtk.hpp)
 # target_precompile_headers(move_model PUBLIC include/exprtk.hpp)

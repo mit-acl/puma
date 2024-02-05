@@ -45,7 +45,7 @@ class FastSAM_ROS:
         else:
             self.camera_name_topic = "t265/fisheye1"
             self.camera = rospy.get_param('~camera', "t265_fisheye1")
-            self.world_name_topic = "world"
+            self.world_name_topic = "map"
 
         # get undistortion params
         self.get_undistortion_params()
@@ -257,7 +257,7 @@ class FastSAM_ROS:
     def publish_pose(self, pose):
         pub_pose_msg = PoseStamped()
         pub_pose_msg.header.stamp = rospy.Time.now()
-        pub_pose_msg.header.frame_id = "world"
+        pub_pose_msg.header.frame_id = "map"
         pub_pose_msg.pose.position.x = pose[0]
         pub_pose_msg.pose.position.y = pose[1]
         pub_pose_msg.pose.position.z = pose[2]

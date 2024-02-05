@@ -285,6 +285,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "lambda_dyn_lim_violation", par_.lambda_dyn_lim_violation);
   safeGetParam(nh1_, "num_of_intervals", par_.num_of_intervals);
   safeGetParam(nh1_, "use_yaw_guess_for_opt", par_.use_yaw_guess_for_opt);
+  safeGetParam(nh1_, "suppress_optimize_output", par_.suppress_optimize_output);
 
   //
   // other
@@ -326,6 +327,16 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   //
 
   safeGetParam(nh1_, "is_frame_alignment", par_.is_frame_alignment);
+
+  //
+  // Ground robot PD
+  //
+
+  safeGetParam(nh1_, "kv", par_.kv);
+  safeGetParam(nh1_, "kp", par_.kp);
+  safeGetParam(nh1_, "kw", par_.kw);
+  safeGetParam(nh1_, "kyaw", par_.kyaw);
+  safeGetParam(nh1_, "kalpha", par_.kalpha);
 
   // safeGetParam(nh1_, "distance_to_force_final_pos", par_.distance_to_force_final_pos);
   // safeGetParam(nh1_, "factor_alloc_when_forcing_final_pos", par_.factor_alloc_when_forcing_final_pos);
@@ -386,6 +397,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   pub_point_G_term_ = nh1_.advertise<geometry_msgs::PointStamped>("point_G_term", 1);
   pub_point_A_ = nh1_.advertise<visualization_msgs::Marker>("point_A", 1);
   pub_actual_traj_ = nh1_.advertise<visualization_msgs::Marker>("actual_traj", 1);
+  pub_cmd_vel_ = nh1_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
   poly_safe_pub_ = nh1_.advertise<decomp_ros_msgs::PolyhedronArray>("polys", 1, true);
   pub_traj_safe_colored_ = nh1_.advertise<visualization_msgs::MarkerArray>("traj_obtained", 1);
 
@@ -425,7 +437,8 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   // Subscribers
   sub_term_goal_ = nh1_.subscribe("term_goal", 1, &PantherRos::terminalGoalCB, this);
   sub_whoplans_ = nh1_.subscribe("who_plans", 1, &PantherRos::whoPlansCB, this);
-  sub_state_ = nh1_.subscribe("state", 1, &PantherRos::stateCB, this);
+  // sub_state_ = nh1_.subscribe("state", 1, &PantherRos::stateCB, this);
+  sub_state_ = nh1_.subscribe("/odom", 1, &PantherRos::OdomCB, this);
   // sub_frame_align_ = nh1_.subscribe("frame_align", 1, &PantherRos::frameAlignCB, this);
 
   ////Services
@@ -524,7 +537,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   replanCBTimer_.stop();
 
   // Rviz_Visual_Tools
-  visual_tools_.reset(new rvt::RvizVisualTools("world", "/rviz_visual_tools"));
+  visual_tools_.reset(new rvt::RvizVisualTools("map", "/rviz_visual_tools"));
   visual_tools_->loadMarkerPub();  // create publisher before waiting
   ros::Duration(0.5).sleep();
   visual_tools_->deleteAllMarkers();
@@ -733,6 +746,9 @@ void PantherRos::costmapObstCB(const costmap_converter::ObstacleArrayMsg& msg){
   // store this received obstacle array
   //
 
+  // remove all the obstacles coming from costmap in trajs_
+  panther_ptr_->removeCostmapObstacles();
+
   // go through each obstacle
   for (auto osbt : msg.obstacles)
   {
@@ -752,53 +768,46 @@ void PantherRos::costmapObstCB(const costmap_converter::ObstacleArrayMsg& msg){
       pos_y.push_back(p.y);
       pos_z.push_back(p.z);
     }    
-    double centroid_x = std::accumulate(pos_x.begin(), pos_x.end(), 0.0) / pos_x.size();
-    double centroid_y = std::accumulate(pos_y.begin(), pos_y.end(), 0.0) / pos_y.size();
-    double centroid_z = std::accumulate(pos_z.begin(), pos_z.end(), 0.0) / pos_z.size();
+
+    // get min and max of pos_x, pos_y, pos_z
+    double min_x = *std::min_element(pos_x.begin(), pos_x.end());
+    double max_x = *std::max_element(pos_x.begin(), pos_x.end());
+    double min_y = *std::min_element(pos_y.begin(), pos_y.end());
+    double max_y = *std::max_element(pos_y.begin(), pos_y.end());
+    double min_z = *std::min_element(pos_z.begin(), pos_z.end());
+    double max_z = *std::max_element(pos_z.begin(), pos_z.end());
+
+    // get the box_center
+    double box_center_x = (min_x + max_x) / 2;
+    double box_center_y = (min_y + max_y) / 2;
+    double box_center_z = (min_z + max_z) / 2;
 
     // store the obstacle
-    tmp.s_mean.push_back(std::to_string(centroid_x));
-    tmp.s_mean.push_back(std::to_string(centroid_y));
-    tmp.s_mean.push_back(std::to_string(centroid_z));
+    tmp.s_mean.push_back(std::to_string(box_center_x));
+    tmp.s_mean.push_back(std::to_string(box_center_y));
+    tmp.s_mean.push_back(std::to_string(box_center_z));
     tmp.s_var.push_back(std::to_string(0.0));
     tmp.s_var.push_back(std::to_string(0.0));
     tmp.s_var.push_back(std::to_string(0.0));
 
-    // get the bbox - which is the max distance from the centroid
-    double max_dist_x = 0;
-    double max_dist_y = 0;
-    double max_dist_z = 0;
-    for (auto p : osbt.polygon.points)
+    // get the bbox of the obstacle
+    double bbox_x = (max_x - min_x) / 2;
+    double bbox_y = (max_y - min_y) / 2;
+    double bbox_z = (max_z - min_z) / 2;
+
+    // id needs to be unique
+    tmp.id = costmap_obst_id_;
+    costmap_obst_id_++;
+    if (costmap_obst_id_ > 1000)
     {
-      double dist_x = fabs(p.x - centroid_x);
-      if (dist_x > max_dist_x)
-      {
-        max_dist_x = dist_x;
-      }
-
-      double dist_y = fabs(p.y - centroid_y);
-      if (dist_y > max_dist_y)
-      {
-        max_dist_y = dist_y;
-      }
-
-      double dist_z = fabs(p.z - centroid_z);
-      if (dist_z > max_dist_z)
-      {
-        max_dist_z = dist_z;
-      }
+      costmap_obst_id_ = 0;
     }
 
-    // add buffer to the bbox
-    max_dist_x += 0.2;
-    max_dist_y += 0.2;
-    max_dist_z += 0.2;
-
     // publish the trajectory
-    tmp.bbox << max_dist_x, max_dist_y, max_dist_z;
-    // tmp.id = osbt.id;
+    tmp.bbox << bbox_x, bbox_y, bbox_z;
     tmp.is_agent = false;
     tmp.is_committed = true;
+    tmp.is_costmap_obst = true;
     tmp.time_received = ros::Time::now().toSec();
     panther_ptr_->updateTrajObstacles(tmp);
   }
@@ -955,7 +964,7 @@ void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
 
       // debug
       // print all_coeff_x, all_coeff_y, and all_coeff_z
-      tmp.pwp_mean.print();
+      // tmp.pwp_mean.print();
 
       // for loop over all the intervals
       for (int i = 0; i < tmp.pwp_mean.getNumOfIntervals(); i++)
@@ -992,7 +1001,7 @@ void PantherRos::trajCB(const panther_msgs::DynTraj& msg)
       // debug
       // print all_coeff_x, all_coeff_y, and all_coeff_z
       std::cout << "rotated pwp_mean: " << std::endl;
-      tmp.pwp_mean.print();
+      // tmp.pwp_mean.print();
 
     }
     else // if not use_pwp_field (obstacles)
@@ -1244,8 +1253,6 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
   if (ros::ok() && published_initial_position_ == true)
   {
 
-    ROS_INFO("ReplanningCB");
-
     // Initialization
     mt::trajectory traj_for_visualization;
     mt::log log;
@@ -1266,16 +1273,12 @@ void PantherRos::replanCB(const ros::TimerEvent& e)
     // Check & Recheck
     int checked = panther_ptr_->safetyCheck(pwp);
 
-    std::cout << "checked= " << checked << std::endl;
-
     if (!checked) {
       return;
     }
 
     // add Traj to Plan
     bool added_traj_to_plan = panther_ptr_->addTrajToPlan(k_index_end, log, best_solution, traj_for_visualization);
-
-    std::cout << "added_traj_to_plan= " << added_traj_to_plan << std::endl;
 
     if (!added_traj_to_plan) {
       return;
@@ -1403,6 +1406,39 @@ void PantherRos::stateCB(const snapstack_msgs::State& msg)
   }
 }
 
+void PantherRos::OdomCB(const nav_msgs::Odometry& msg)
+{
+  mt::state state_tmp;
+  state_tmp.setPos(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z);
+  state_tmp.setVel(msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z);
+  state_tmp.setAccel(0.0, 0.0, 0.0);
+  state_tmp.setYaw(0.0);  // This field is not used
+
+  double roll, pitch, yaw;
+  quaternion2Euler(msg.pose.pose.orientation, roll, pitch, yaw);
+  state_tmp.setYaw(yaw);  // TODO: use here (for yaw) the convention PANTHER is using (psi)
+
+  state_ = state_tmp;
+  panther_ptr_->updateState(state_tmp);
+
+  mtx_w_T_b_.lock();
+  w_T_b_ = Eigen::Translation3d(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z) *
+           Eigen::Quaterniond(msg.pose.pose.orientation.w, msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                              msg.pose.pose.orientation.z);
+  mtx_w_T_b_.unlock();
+
+  if (published_initial_position_ == false)
+  {
+    pwp_last_ = createPwpFromStaticPosition(state_);
+    publishOwnTraj(pwp_last_, true);
+    published_initial_position_ = true;
+  }
+  if (panther_ptr_->IsTranslating() == true && par_.visual)
+  {
+    pubActualTraj();
+  }
+}
+
 void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
 {
   if (msg.value != msg.PANTHER)
@@ -1419,7 +1455,7 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
   else
   {  // PANTHER is the one who plans now (this happens when the take-off is finished)
     sub_term_goal_ = nh1_.subscribe("term_goal", 1, &PantherRos::terminalGoalCB, this);  // TODO: duplicated from above
-    sub_state_ = nh1_.subscribe("state", 1, &PantherRos::stateCB, this);                 // TODO: duplicated from above
+    sub_state_ = nh1_.subscribe("/odom", 1, &PantherRos::OdomCB, this);                 // TODO: duplicated from above
     pubCBTimer_.start();                                                                 /////// Oct-12-2021
     replanCBTimer_.start();
 
@@ -1439,25 +1475,91 @@ void PantherRos::whoPlansCB(const panther_msgs::WhoPlans& msg)
   }
 }
 
+double PantherRos::wrapFromMPitoPi(double x)
+  {
+    x = fmod(x + M_PI, 2 * M_PI);
+    if (x < 0)
+      x += 2 * M_PI;
+    return x - M_PI;
+  }
+
 void PantherRos::pubCB(const ros::TimerEvent& e)
 {
   mt::state next_goal;
-  if (panther_ptr_->getNextGoal(next_goal))
+  bool is_yawing = false;
+  if (panther_ptr_->getNextGoal(next_goal, is_yawing))
   {
-    snapstack_msgs::Goal goal;
 
+    // get goal
+    snapstack_msgs::Goal goal;
     goal.p = eigen2point(next_goal.pos);
     goal.v = eigen2rosvector(next_goal.vel);
     goal.a = eigen2rosvector((par_.use_ff) * next_goal.accel);
     goal.j = eigen2rosvector((par_.use_ff) * next_goal.jerk);
-    goal.dpsi = next_goal.dyaw;
-    goal.psi = next_goal.yaw;
-    goal.header.stamp = ros::Time::now();
-    goal.header.frame_id = world_name_;
-    goal.power = true;  // allow the outer loop to send low-level autopilot commands
+    goal.psi = next_goal.yaw; // if you don't optimize yaw, this will always be zero
 
-    pub_goal_.publish(goal);
+    // get current state
+    snapstack_msgs::State state;
+    state.pos = eigen2point(state_.pos);
+    state.vel = eigen2rosvector(state_.vel);
+    double state_yaw = state_.yaw;
 
+    // get control commands v and w
+    geometry_msgs::Twist cmd_vel;
+
+    // compute desired velocity
+    double vel_desired = sqrt(goal.v.x * goal.v.x + goal.v.y * goal.v.y);
+
+    // compute alpha (ensures the vehicle is pointing towards the goals' position)
+    double alpha = wrapFromMPitoPi(state_yaw - atan2(goal.p.y - state.pos.y, goal.p.x - state.pos.x));
+
+    // compute if the vehicle should move forward or backward
+    double forward = 1.0;
+    if (fabs(alpha) > M_PI / 2) 
+    {
+      forward = -1.0;
+    }
+
+    // compute dist_error (distance to goal)
+    double dist_error = forward * sqrt((goal.p.x - state.pos.x) * (goal.p.x - state.pos.x) + (goal.p.y - state.pos.y) * (goal.p.y - state.pos.y));
+
+    // if dist_error is very small, then alpha should be zero
+    if (dist_error < 0.05)
+    {
+      alpha = 0.0;
+    }
+
+    // If the vehicle is very close to goal, and desired velocity is very small, then just yaw
+    double yaw_error;
+    double yaw_desired = atan2(goal.v.y, goal.v.x);
+    // if (fabs(dist_error) < 0.1 && vel_desired < 0.01)
+    if (is_yawing)
+    {
+      yaw_error = wrapFromMPitoPi(goal.psi - state_yaw);
+      // yaw_error = wrapFromMPitoPi(yaw_desired - state_yaw);
+      cmd_vel.linear.x = 0.0;
+      cmd_vel.angular.z = par_.kyaw * yaw_error;
+      pub_cmd_vel_.publish(cmd_vel);
+      return;
+    }
+
+    // compute desired yaw rate (w)
+    double w_desired = (goal.v.x * goal.a.y - goal.v.y * goal.a.x) / (goal.v.x * goal.v.x + goal.v.y * goal.v.y);
+    if ((goal.v.x * goal.v.x + goal.v.y * goal.v.y) < 0.01)
+    {
+      w_desired = 0.0;
+    }
+
+    // compute yaw error (ensures the vehicle is pointing towards the goals' velocity)
+    yaw_error = wrapFromMPitoPi(yaw_desired - state_yaw);
+
+    // compute control commands
+    cmd_vel.linear.x = par_.kv * vel_desired + par_.kp * dist_error;
+    // cmd_vel.angular.z = kw * w_desired + kyaw * yaw_error - kalpha * alpha; // we are not optimizing yaw so it doesn't make sense to add it here
+    cmd_vel.angular.z = par_.kw * w_desired - par_.kalpha * alpha;
+    pub_cmd_vel_.publish(cmd_vel);
+
+    // Setpoint (from PUMA)
     setpoint_.header.stamp = ros::Time::now();
     setpoint_.pose.position.x = goal.p.x;
     setpoint_.pose.position.y = goal.p.y;

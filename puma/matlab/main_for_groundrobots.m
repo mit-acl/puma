@@ -16,8 +16,8 @@ opti = casadi.Opti();
 
 %% Parameters for the optimization 
 
-optimize_n_planes = true;     %Optimize the normal vector "n" of the planes (the "tilt") (see Panther paper diagram)
-optimize_d_planes = true;     %Optimize the scalar "d" of the planes (the distance) (see Panther paper diagram)
+optimize_n_planes = false;     %Optimize the normal vector "n" of the planes (the "tilt") (see Panther paper diagram)
+optimize_d_planes = false;     %Optimize the scalar "d" of the planes (the distance) (see Panther paper diagram)
 optimize_time_alloc = true;
 
 %% Whether or not the dynamic limits and obstacle avoidance constraints are formulated as hard constraints (as equalities/inequalities) or soft constraints (in the objective function)
@@ -33,7 +33,7 @@ make_plots = true;
 
 deg_pos = 3;                %The degree of the position polynomial
 num_seg = 7;                %The number of segments in the trajectory (the more segments the less conservative the trajectory is [also makes optimization problem harder])
-num_max_of_obst = 5;        % This is the maximum num of the obstacles that will be considered in the constraints
+num_max_of_obst = 6;        % This is the maximum num of the obstacles that will be considered in the constraints
 dim_pos = 2;                %The dimension of the position trajectory (R3)
 offset_vel = 0.1;
 basis = "MINVO";            %MINVO OR B_SPLINE or BEZIER. This is the basis used for collision checking (in position, velocity, accel and jerk space), both in Matlab and in C++

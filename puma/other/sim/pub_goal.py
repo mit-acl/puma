@@ -56,7 +56,7 @@ class ReadyCheck:
                 ## TODO: may need to change the goal orientation
                 msg = PoseStamped()
                 msg.header.stamp = rospy.Time.now()
-                msg.header.frame_id = "world"
+                msg.header.frame_id = "map"
                 msg.pose.position.x = x
                 msg.pose.position.y = y
                 msg.pose.position.z = z
