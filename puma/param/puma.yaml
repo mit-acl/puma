@@ -32,12 +32,12 @@ obstacle_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
 dc: 0.01            #(seconds) Duration for the interpolation=Value of the timer pubGoal
 angle_deg_focus_front: 9000 #Angle to decide whether to focus on an obstacle or to focus on front of me, set to very big if you wanna focus always on obstacle
 # flight space size
-x_min: -15.0  # [m] don't forget the .0  , be careful with setting these to extremely high values (they are used in the constraints, and may introduce numerical issues)
-x_max: 15.0   # [m] don't forget the .0
-y_min: -15.0  # [m] don't forget the .0
-y_max: 15.0   # [m] don't forget the .0
-z_min: -5.0   #[m] points below this are considered ground
-z_max: 5.0    #[m] 
+x_min: -100.0  # [m] don't forget the .0  , be careful with setting these to extremely high values (they are used in the constraints, and may introduce numerical issues)
+x_max: 100.0   # [m] don't forget the .0
+y_min: -100.0  # [m] don't forget the .0
+y_max: 100.0   # [m] don't forget the .0
+z_min: -1.0   #[m] points below this are considered ground
+z_max: 1.0    #[m] 
 ydot_max: 5.0  # [rd/s] Maximum angular velocity. 0.4 for Hardware
 v_max: [10.0, 10.0, 10.0]   #[m/s]  7.0
 a_max: [20.0, 20.0, 20.0]   #[m/s2] Note that if a_max.z() > 9.81, the drone may flip
@@ -202,9 +202,9 @@ c_maxydot_yaw_search: 0.0     #weight for the yaw search
 c_pos_smooth: 0.001          #weight for the optimization
 c_yaw_smooth: 0.001          #weight for the optimization
 c_fov: 0.0                   #weight for the optimization
-c_final_pos: 100.0           #weight for the optimization
+c_final_pos: 10.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
-c_total_time: 1.0            #weight for the optimization
+c_total_time: 0.1            #weight for the optimization
 lambda_obst_avoidance_violation: 1.0   #To compute the augmented cost
 lambda_dyn_lim_violation: 1.0          #To compute the augmented cost
 num_of_intervals: 7                       #nlopt/num_pol in rmader.yaml (TODO: could be the same as num_seg in params_casadi.yaml)

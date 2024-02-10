@@ -16,8 +16,8 @@ opti = casadi.Opti();
 
 %% Parameters for the optimization 
 
-optimize_n_planes = true;     %Optimize the normal vector "n" of the planes (the "tilt") (see Panther paper diagram)
-optimize_d_planes = true;     %Optimize the scalar "d" of the planes (the distance) (see Panther paper diagram)
+optimize_n_planes = false;     %Optimize the normal vector "n" of the planes (the "tilt") (see Panther paper diagram)
+optimize_d_planes = false;     %Optimize the scalar "d" of the planes (the distance) (see Panther paper diagram)
 optimize_time_alloc = true;
 
 %% Whether or not the dynamic limits and obstacle avoidance constraints are formulated as hard constraints (as equalities/inequalities) or soft constraints (in the objective function)
