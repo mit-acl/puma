@@ -40,3 +40,6 @@
 [submodule "submodules/FastSAM"]
 		path = submodules/FastSAM
 		url = https://github.com/CASIA-IVA-Lab/FastSAM.git
+[submodule "submodules/costmap_converter"]
+	path = submodules/costmap_converter
+	url = https://github.com/rst-tu-dortmund/costmap_converter.git

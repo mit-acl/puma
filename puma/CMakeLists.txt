@@ -43,6 +43,7 @@ find_package(catkin REQUIRED COMPONENTS
     pcl_ros
     hungarian
     pybind11_catkin
+	costmap_converter
 )
 
 # find_package(OpenMP)
