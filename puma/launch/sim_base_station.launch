@@ -10,7 +10,7 @@
   <arg name="rviz" default="true"/>
   <arg name="gazebo" default="true"/>
   <arg name="gzclient" default="false"/>
-  <arg name="type_of_obst_traj" default="trefoil"/>   <!-- trefoil   eightCurve    square  epitrochoid  static -->
+  <arg name="type_of_obst_traj" default="static"/>   <!-- trefoil   eightCurve    square  epitrochoid  static -->
   <arg name="alpha_scale_obst_traj" default="2.0"/>   
   <arg name="beta_faster_obst_traj" default="0.666666666666666666666"/>   
   <arg name="num_of_obs" default="1" />  <!--  Only one obstacle is supported right now -->
@@ -19,20 +19,20 @@
     Agent 1 specific parameters
   -->
   
-  <!-- <arg name="x1" default="0.0" />
+  <arg name="x1" default="0.0" />
   <arg name="y1" default="0.0" />
-  <arg name="z1" default="1.0" />
-  <arg name="yaw1" default="0.0" /> -->
+  <arg name="z1" default="2.5" />
+  <arg name="yaw1" default="0.0" />
 
   <!-- Agent 1 -->
 
-  <!-- <include file="$(find puma)/launch/sim_onboard.launch">
+  <include file="$(find puma)/launch/sim_onboard.launch">
     <arg name="quad" value="$(arg quad1)"/>
     <arg name="x" value="$(arg x1)"/>
     <arg name="y" value="$(arg y1)"/>
     <arg name="z" value="$(arg z1)"/>
     <arg name="yaw" default="$(arg yaw1)"/>
-  </include> -->
+  </include>
 
   <!-- Start Behaviour Selector-->
   <node pkg="behavior_selector" type="behavior_selector_node.py" name="behavior_selector" output="screen" />

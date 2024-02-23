@@ -65,15 +65,15 @@ is_frame_alignment: true
 # Uncertainty Propagation setting
 #############################################
 
-#uncertainty_aware: true
+uncertainty_aware: true
 
 initial_position_variance_multiplier: 20.0
 initial_velocity_variance_multiplier: 1.0
 initial_acceleration_variance_multiplier: 1.0
 
-initial_position_variance_search_multiplier: 1.0
-initial_velocity_variance_search_multiplier: 0.1
-initial_acceleration_variance_search_multiplier: 0.1
+initial_position_variance_search_multiplier: 0.0
+initial_velocity_variance_search_multiplier: 0.0
+initial_acceleration_variance_search_multiplier: 0.0
 
 initial_position_variance_for_agents: 0.1
 initial_velocity_variance_for_agents: 0.1
@@ -189,7 +189,7 @@ res_plot_traj: 30.0  #Higher --> More resolution when plotting the trajectory
 color_type_student: "vel" #"vel" or "time" or "aug_cost" or "agent" or "black"
 color_type_expert: "vel" #"vel" or "time" or "aug_cost" or "agent" or "black"
 n_agents: 16 #only used for the color in the trajectory
-z_goal_when_using_rviz: 1.0 #[meters] 
+z_goal_when_using_rviz: 2.5 #[meters] 
 
 #############################################
 # Optimization
@@ -201,10 +201,10 @@ c_visibility_yaw_search: 0.0  #weight for the yaw search
 c_maxydot_yaw_search: 0.0     #weight for the yaw search
 c_pos_smooth: 0.0          #weight for the optimization
 c_yaw_smooth: 0.0001          #weight for the optimization
-c_fov: 0.0                 #weight for the optimization
+c_fov: 0.01                 #weight for the optimization
 c_final_pos: 10000.0           #weight for the optimization
 c_final_yaw: 0.0             #weight for the optimization
-c_total_time: 0.0           #weight for the optimization
+c_total_time: 10.0           #weight for the optimization
 lambda_obst_avoidance_violation: 100.0   #To compute the augmented cost
 lambda_dyn_lim_violation: 100.0          #To compute the augmented cost
 num_of_intervals: 7                       #nlopt/num_pol in rmader.yaml (TODO: could be the same as num_seg in params_casadi.yaml)

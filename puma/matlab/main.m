@@ -298,6 +298,9 @@ replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 obstacle_uncertainty_list = [];
 obstacle_sigma_list = [];
 obstacle_uncertainty_times = [];
+
+uncertainty_sum = 0.0;
+
 for i=1:num_max_of_obst
     all_centers=[];
     replan_time_index = 1;
@@ -336,8 +339,10 @@ for i=1:num_max_of_obst
             uncertainty = 2.0 * sqrt(sigma_pos); % Factor of 2.0 to account for sigma_pos being the "radius" of the ellipsoid
             all_centers=[all_centers pos_center_obs];
 
+            uncertainty_sum = uncertainty_sum + sum(uncertainty);
+
             if uncertainty_aware
-                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty) ];
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}) ];
             else
                 all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}) ];
             end
@@ -591,7 +596,7 @@ yaw_smooth_cost=sy.getControlCost()/(alpha^(sy.p-1));
 final_yaw_cost=(sy.getPosT(tf_n)- yf)^2;
 
 if uncertainty_aware
-    fov_cost_term = 0;
+    fov_cost_term = c_fov*uncertainty_sum;
 else
     fov_cost_term = c_fov*fov_cost;
 end
