@@ -151,7 +151,7 @@ if __name__ == "__main__":
     use_one_zero_beta = False
 
     # when you want to collect data and not train student
-    only_collect_data = False
+    only_collect_data = True
 
     # when you want to train student only from existing data
     train_only_supervised = False

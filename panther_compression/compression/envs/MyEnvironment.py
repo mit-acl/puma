@@ -69,7 +69,7 @@ class MyEnvironment(gym.Env):
 
     policy = ExpertPolicy() if self.par.use_expert_for_other_agents_in_training else \
       bc.reconstruct_policy("trained_policies/policies/test22.pt")
-    self.oam=OtherAgentsManager(policy)
+    # self.oam=OtherAgentsManager(policy)
 
     # self.my_SolverIpopt=py_panther.SolverIpopt(self.par)
     # self.reset()
@@ -127,7 +127,7 @@ class MyEnvironment(gym.Env):
     return self.obsm.num_obs
   
   def get_num_oa(self):
-    return self.oam.num_of_other_agents
+    return self.oam.num_of_other_agents if self.par.use_other_agents_in_training else 0
   
   def get_num_max_of_obst(self):
     return self.obsm.params["num_max_of_obst"]
@@ -386,7 +386,8 @@ class MyEnvironment(gym.Env):
     ## other agent state reset
     ##
 
-    self.oam.reset(w_obstacles_and_student)
+    if self.par.use_other_agents_in_training:
+      self.oam.reset(w_obstacles_and_student)
 
     return f_observation_n
 

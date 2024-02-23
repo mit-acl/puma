@@ -458,8 +458,8 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
           delta = obstacle_i.bbox_inflated / 2.0;
         }
         else{ // if it is an obstacle, then we need to use the uncertainty
-          mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
-          delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
+          // mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
+          delta = obstacle_i.bbox_inflated / 2.0; // + unc.pos;
         }
 
         // std::cout << "times[" << k << "]= " << times[k] << std::endl;
