@@ -32,7 +32,7 @@ path_puma=rospack.get_path('puma')
 sys.path.insert(0, path_puma + '/../panther_compression/training')
 # for student
 from training import get_kwargs
-from utils import printInBoldBlue, printInBoldRed, printInBoldGreen, str2bool
+from misc_utils import printInBoldBlue, printInBoldRed, printInBoldGreen, str2bool
 
 " ********************* Preliminary evaluation ********************* "
 

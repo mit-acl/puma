@@ -27,7 +27,7 @@ use_ff: true          # use feedforward #Needs to be true if you are using perfe
 goal_radius: 1.0      # [m] Drone has arrived to the goal when distance_to_goal<GOAL_RADIUS
 goal_seen_radius: 20.0 # [m] no more replanning needed sphere (when drone gets close to goal OS fails a lot, so we introduced this)
 Ra: 30.0              # [m] Radius of my planning sphere (planning horizon)
-drone_bbox: [0.05, 0.05, 0.05]  #(m) Used for collision checking
+drone_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
 obstacle_bbox: [0.5, 0.5, 0.5]  #(m) Used for collision checking
 dc: 0.01            #(seconds) Duration for the interpolation=Value of the timer pubGoal
 angle_deg_focus_front: 9000 #Angle to decide whether to focus on an obstacle or to focus on front of me, set to very big if you wanna focus always on obstacle
@@ -116,7 +116,7 @@ margin_ydot_factor: 1.5 #relaxation factor for training constraints used in Obse
 margin_yaw_factor: 1.5 #relaxation factor for training constraints used in ActionManager()
 training_obst_size: [0.5, 0.5, 0.5] #obstacle size in training env
 training_other_agent_size: [0.05, 0.05, 0.05] #agent size in training env
-use_dynamic_obst_in_training: true
+use_dynamic_obst_in_training: false
 use_other_agents_in_training: false
 use_expert_for_other_agents_in_training: true
 random_num_of_obstacles_in_training: false # need to get rid of this  # if this is True, # of obstacles is [1,num_of_obstacles_in_training]
