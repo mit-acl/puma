@@ -12,3 +12,5 @@
 build
 puma/matlab/casadi_generated_files copy/*
 puma/scripts/FastSAM
+data/*
+panther_compression/test_scripts/*
