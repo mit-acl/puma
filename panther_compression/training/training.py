@@ -94,7 +94,8 @@ def get_kwargs():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--machine', default='jtorde', help='machine', type=str)
-    parser.add_argument('-d', '--data-dir', default='/media/jtorde/T7/gdp/evals-dir/evals7/tmp_dagger/2/demos/', help='directory', type=str)
+    parser.add_argument('-d', '--data-dir', default='/media/jtorde/T7/gdp/evals-dir/evals9/tmp_dagger/2/demos/', help='directory', type=str)
+    # parser.add_argument('-d', '--data-dir', default='/home/jtorde/Research/puma_ws/src/puma/panther_compression/evals/tmp_dagger/2/demos/', help='directory', type=str)
     parser.add_argument('-s', '--save-dir', default='/media/jtorde/T7/gdp/models/', help='save directory', type=str)
     parser.add_argument('-t', '--test', default=False, help='test (small dataset)', type=str2bool)
     parser.add_argument('-en', '--en-network-type', default='mlp', help='encoder network type (/mlp/lstm/transformer/gnn)', type=str)

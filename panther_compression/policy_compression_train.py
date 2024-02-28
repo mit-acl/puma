@@ -230,11 +230,11 @@ def main():
 
     ## Toggles for test
 
-    parser.add_argument("-t", "--use-test-run-params", default=True, type=str2bool)
+    parser.add_argument("-t", "--use-test-run-params", default=False, type=str2bool)
     parser.add_argument("--only_test_loss", type=str2bool, default=False)
     DEFAULT_N_ROUNDS = 100 if not parser.parse_args().use_test_run_params else 100
     DEFAULT_TOTAL_DEMOS_PER_ROUND = 256*5 if not parser.parse_args().use_test_run_params else 10
-    only_collect_data = False # when you want to collect data and not train student
+    only_collect_data = True # when you want to collect data and not train student
 
     ## Evaluation params
 

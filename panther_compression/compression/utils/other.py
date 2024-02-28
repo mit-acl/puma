@@ -185,12 +185,12 @@ class GTermManager():
 		self.y_min = self.params["training_env_y_min"]
 		self.z_max = self.params["training_env_z_max"]
 		self.z_min = self.params["training_env_z_min"]
-		self.goal_seen_radius = self.params["goal_seen_radius"]
+		self.goal_seen_radius = self.params["goal_seen_radius_training"]
 		self.newRandomPos()
 
 	def newRandomPos(self):
 		self.w_gterm = np.array([
-			[random.uniform(self.goal_seen_radius, self.x_max)],
+			[random.uniform(self.x_max-2, self.x_max)],
 			[0], # we will do YAWING in the beginning in actual sim/hw, so we will keep the Y coordinate fixed
 			[random.uniform(self.z_min, self.z_max)]
 		])
@@ -324,7 +324,7 @@ class ObstaclesManager():
 			height_obstacle = height_g_term + random.uniform(-0.25, 0.25)
 			w_pos_obstacle.append(center + np.array([[radius_obstacle_pos*math.cos(theta_obs)],[radius_obstacle_pos*math.sin(theta_obs)],[height_obstacle]]))
 		
-		w_pos_g_term = center + np.array([[random.uniform(10.0, 12.0)], [0.0], [height_g_term]])
+		w_pos_g_term = center + np.array([[random.uniform(8.0, 10.0)], [0.0], [height_g_term]])
 
 		return w_pos_obstacle, w_pos_g_term
 	
@@ -1301,8 +1301,16 @@ class ActionManager():
 
 	def denormalizeAction(self, action_normalized):
 		# assert np.logical_and(action_normalized >= -1, action_normalized <= 1).all(), f"action_normalized={action_normalized}"
-		action=np.empty(action_normalized.shape)
-		action[:,0:-1]=action_normalized[:,0:-1]*self.normalization_constant #Elementwise multiplication
+
+		# if action_normalized is tensor, we operate with tensor not with numpy array
+		if isinstance(action_normalized, torch.Tensor):
+			action = torch.empty(action_normalized.shape)
+			normalization_constant = torch.tensor(self.normalization_constant)
+		else:
+			action = np.empty(action_normalized.shape)
+			normalization_constant = self.normalization_constant
+			
+		action[:,0:-1]=action_normalized[:,0:-1]*normalization_constant #Elementwise multiplication
 		action[:,-1]=(self.fitter_total_time/2.0)*(action_normalized[:,-1]+1) #Note that action[:,-2] is in [0, fitter_total_time]
 		# action[:,-1]=(1.0/2.0)*(action_normalized[:,-1]+1) #Note that action[:,-1] is in [0, 1]
 		return action

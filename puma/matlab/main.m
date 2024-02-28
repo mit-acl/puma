@@ -104,7 +104,7 @@ for i=1:num_max_of_obst
 end
 fitter.bs=MyClampedUniformSpline(0,1, fitter.deg_pos, fitter.dim_pos, fitter.num_seg, opti);
 %The total time of the fit past obstacle trajectory (horizon length[NOTE: This is also the max horizon length of the drone's trajectory])
-fitter.total_time=4.0; %Time from (time at point d) to end of the fitted spline
+fitter.total_time=10.0; %Time from (time at point d) to end of the fitted spline
 
 %%%%
 %%%% NOTE: Everything uses B-Spline control points except for obstacle constraints which use the set basis (usually MINVO)
@@ -295,6 +295,8 @@ F = eye(9) + A * deltaT + A^2 * deltaT^2 / 2.0;
 
 replan_times = linspace(0,1,num_seg * sampler.num_samples_obstacle_per_segment);
 
+uncertainty_sum = 0.0;
+
 obstacle_uncertainty_list = [];
 obstacle_sigma_list = [];
 obstacle_uncertainty_times = [];
@@ -336,8 +338,10 @@ for i=1:num_max_of_obst
             uncertainty = 2.0 * sqrt(sigma_pos); % Factor of 2.0 to account for sigma_pos being the "radius" of the ellipsoid
             all_centers=[all_centers pos_center_obs];
 
+            uncertainty_sum = uncertainty_sum + sum(uncertainty);
+
             if uncertainty_aware
-                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i} + uncertainty, 3)];
+                all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}, 3)];
             else
                 all_vertexes_segment_j=[all_vertexes_segment_j vertexesOfBox(pos_center_obs, fitter.bbox_inflated{i}, 3)];
             end
@@ -590,11 +594,11 @@ total_time_cost=alpha*(tf_n-t0_n);
 yaw_smooth_cost=sy.getControlCost()/(alpha^(sy.p-1));
 final_yaw_cost=(sy.getPosT(tf_n)- yf)^2;
 
-if uncertainty_aware
-    fov_cost_term = 0;
-else
-    fov_cost_term = c_fov*fov_cost;
-end
+% if uncertainty_aware
+fov_cost_term = c_fov*uncertainty_sum;
+% else
+%     fov_cost_term = c_fov*fov_cost;
+% end
 
 total_cost=c_pos_smooth*pos_smooth_cost+...
            c_final_pos*final_pos_cost+...

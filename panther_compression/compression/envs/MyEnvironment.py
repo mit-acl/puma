@@ -257,6 +257,9 @@ class MyEnvironment(gym.Env):
     ##
  
     dist_current_2gterm=np.linalg.norm(self.w_state.w_pos-self.gm.get_w_GTermPos()) #From the current position to the goal
+
+    print(f"self.w_state.w_pos: {self.w_state.w_pos.T}, self.gm.get_w_GTermPos(): {self.gm.get_w_GTermPos().T}")
+
     dist_endtraj_2gterm=np.linalg.norm(w_posBS.getLastPos()-self.gm.get_w_GTermPos()) #From the end of the current traj to the goal
     self.prev_dist_current2goal = dist_current_2gterm
     # self.printwithName(f"Timestep={self.timestep}, dist_current_2gterm={round(dist_current_2gterm,2)}, w_state.w_pos={self.w_state.w_pos.T}")

@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import math
 from typing import Union
+import numpy as np
 
 # torch import
 import torch as th
@@ -12,6 +13,9 @@ import torch as th
 # gnn import
 from torch_geometric.nn import HGTConv
 from torch_geometric.nn import Linear as gnn_Linear
+
+from compression.utils.other import ObservationManager, ActionManager, getZeroState, State
+
 
 def reshape_input_for_rnn(x: th.Tensor, obst_obs_dim: int) -> th.Tensor:
     """
@@ -506,3 +510,13 @@ class MLP(nn.Module):
         output = output.reshape(output.shape[0], self.num_trajs, self.action_dim)
 
         return output
+
+def get_start_state(nobs):
+
+    p0 = np.array([0., 0., 0.]).reshape(3, 1)
+    v0 = np.array(nobs[0:3]).reshape(3, 1)
+    a0 = np.array(nobs[3:6]).reshape(3, 1)
+    yaw0 = np.array([0.]).reshape(1, 1)
+    yawd0 = np.array(nobs[6]).reshape(1, 1)
+
+    return State(p0, v0, a0, yaw0, yawd0)
