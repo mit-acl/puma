@@ -12,3 +12,6 @@
 build
 puma/matlab/casadi_generated_files copy/*
 puma/scripts/FastSAM
+panther_compression/test_scripts/*
+puma/docker/coin*
+data/*

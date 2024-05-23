@@ -65,7 +65,7 @@ is_frame_alignment: true
 # Uncertainty Propagation setting
 #############################################
 
-#uncertainty_aware: true
+uncertainty_aware: true
 
 initial_position_variance_multiplier: 20.0
 initial_velocity_variance_multiplier: 1.0
