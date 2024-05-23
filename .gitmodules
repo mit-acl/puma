@@ -28,6 +28,7 @@
 [submodule "submodules/motlee"]
         path = submodules/motlee
         url = https://github.com/mit-acl/motlee.git
+		branch = puma
 [submodule "submodules/motlee_ros"]
         path = submodules/motlee_ros
         url = https://github.com/mit-acl/motlee_ros.git
