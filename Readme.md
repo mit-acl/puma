@@ -22,7 +22,46 @@
 }
 ```
 
-## Setup
+## Using Docker
+
+Our uncertainty-aware planner uses IPOPT and HSL packages.
+To use HSL packages, you need to go to http://www.hsl.rl.ac.uk/ipopt/, click on `Personal Licence, Source` to install the solver MA27 (free for everyone), and submit the form. Once you receive the corresponding email, download the compressed file, uncompress it (eg. `coinhsl-2015.06.23`), and place it in the folder `puma/puma/docker`.
+
+### PUMA
+To run uncertainty-aware planner with one dynamic obstacle, run the following script.
+```
+roscd puma && cd docker
+make build-planner
+make run-planner
+```
+
+### Image Segmentation-based Real-time Frame Alignment
+To run frame alignment pipeline, run the following script.
+```
+roscd puma && cd docker
+make build-frame
+make run-frame
+```
+
+### Multiagent PUMA on Segmentation-based Real-time Frame Alignment
+To run multiagent PUMA on frame alignment pipeline, run the following script.
+```
+roscd puma && cd docker
+make build-multiagent
+make run-multiagent
+```
+### Note
+If you see the following error message, you need to run `xhost +local:docker` on your host machine.
+```
+No protocol specified
+qt.qpa.xcb: could not connect to display :1
+qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+```
+
+<details>
+  <summary> <b>NOT USING DOCKER</b></summary>
+
 PUMA has been tested with Ubuntu 20.04/ROS Noetic.
 
 ### PUMA
@@ -72,6 +111,8 @@ python3 uncertaintyaware_planner_on_frame_alignment_demo.py
 ```
 * Note that PUMA is still computationally heavy, and therefore we pause the ROS time while solving for the optimal trajectory -- you can change this in `pause_time_when_replanning` in `puma.yaml`.
 * Currently, `main.m` supports obstacle tracking and uncertainty propagation for one obstacle/agent; however, Check and DelayCheck in [Robust MADER](https://github.com/mit-acl/rmader)'s trajectory deconfliction checks potential for all the received trajectories so PUMA guarantees safety.
+
+</details>
 
 ## Important files
 

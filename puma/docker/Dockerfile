@@ -1,8 +1,10 @@
-FROM osrf/ros:noetic-desktop-full
-SHELL ["/bin/bash", "-c"]
+FROM ros:noetic
 
 LABEL Maintainer="Kota Kondo <kkondo@mit.edu>" \
-      Description="Ubuntu 20.04, ROS Noetic for Deep-PANTHER"
+      Description="Ubuntu 20.04, ROS noetic for PUMA"
+
+ENV ROS_DISTRO=noetic
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Usuals
 ##########################################
@@ -20,160 +22,197 @@ WORKDIR /home
 RUN mkdir installations
 RUN mkdir code
 
-RUN export DEBIAN_FRONTEND=noninteractive
-
-# Linear Solver (if you don't run expert, then you don't need this)
+# Install IPOPT (optionally with HSL solvers)
+# See: https://github.com/ami-iit/ami-commons/blob/master/doc/casadi-ipopt-hsl.md
 ##########################################
-# 1. Download the coinhsl package from http://www.hsl.rl.ac.uk/ipopt/
-# 2. Download METIS from http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz
-# 3. Place both zipped files in the same directory as this Dockerfile
+RUN apt-get update
+RUN apt-get install build-essential gfortran liblapack-dev libmetis-dev libopenblas-dev -y
 
-# Install BLAS, LAPACK, and Fortran
-RUN apt-get install -y libblas3 libblas-dev liblapack3 liblapack-dev gfortran
+# Make installations dir and clone coinbrew
+##########################################
+RUN mkdir -p  /home/installations/coin_ipopt
+WORKDIR /home/installations/coin_ipopt
+RUN wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
+RUN chmod u+x coinbrew
 
-WORKDIR /home/installations
+# Fetch and build Ipopt
+##########################################
+RUN ./coinbrew fetch Ipopt --no-prompt
+RUN mkdir install
+RUN ./coinbrew build Ipopt --prefix=install --test --no-prompt --verbosity=3
+RUN apt-get install autoconf automake libtool -y
 
-# Unzip coinhsl
-ADD coinhsl-archive-2021.05.05.tar.gz /home/installations
-
-WORKDIR /home/installations/coinhsl-archive-2021.05.05
-
-# Unzip metis
-ADD metis-4.0.3.tar.gz /home/installations/coinhsl-archive-2021.05.05
-
-# Build and install and coinhsl
+# Obtain an archive with HSL source code
+##########################################
+ADD coinhsl-2015.06.23 /home/installations/coinhsl-2015.06.23
+WORKDIR /home/installations/coinhsl-2015.06.23
+RUN wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz
+RUN tar -xvf metis-4.0.3.tar.gz
+RUN autoreconf -fi
 RUN ./configure LIBS="-llapack" --with-blas="-L/usr/lib -lblas" CXXFLAGS="-g -O3 -fopenmp" FCFLAGS="-g -O3 -fopenmp" CFLAGS="-g -O3 -fopenmp"
-RUN make install
-
+RUN sudo make install
 WORKDIR /usr/local/lib
+RUN ln -s libcoinhsl.so libhsl.so
+RUN echo "export LD_LIBRARY_PATH='\${LD_LIBRARY_PATH}:/usr/local/lib'" >> ~/.bashrc
 
-# Link libcoinhsl.so to libhsl.so and export the path
-RUN ln -s libcoinhsl.so libhsl.so #(This creates a symbolic link `libhsl.so` pointing to `libcoinhsl.so`). See https://github.com/casadi/casadi/issues/1437
-RUN printf '\nexport LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"' >> ~/.bashrc
-
-RUN source ~/.bashrc
-
-# IPOPT
+# Add all the paths to .bashrc and source it
 ##########################################
-RUN apt-get install -y gcc g++ git cmake pkg-config --install-recommends && \
-    apt-get install -y coinor-libipopt1v5 coinor-libipopt-dev
+RUN echo '# Ipopt' >> ~/.bashrc
+RUN echo 'export IPOPT_DIR=/home/installations/coin_ipopt/install' >> ~/.bashrc
+RUN echo 'export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${IPOPT_DIR}/lib/pkgconfig' >> ~/.bashrc 
+RUN echo 'export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${IPOPT_DIR}/lib' >> ~/.bashrc 
+RUN echo 'export PATH=${PATH}:${IPOPT_DIR}/lib' >> ~/.bashrc 
+RUN echo 'export OMP_NUM_THREADS=1' >> ~/.bashrc
 
-# CasADi
+# Install Swig
+# Remove any non-compatible swig versions and replace it with the matlab-customdoc branch
+# If you don't do this, the compilation of casadi may fail with the error "swig error : Unrecognized option -matlab"
 ##########################################
-RUN apt-get remove swig swig3.0 swig4.0 && \
-      mkdir -p /home/installations
-
+RUN sudo apt-get remove swig swig3.0 swig4.0 
+RUN mkdir -p /home/installations
 WORKDIR /home/installations
-
-# Clone and Install SWIG
 RUN git clone https://github.com/jaeandersson/swig
 WORKDIR /home/installations/swig
-RUN git checkout -b matlab-customdoc origin/matlab-customdoc && \
-      sh autogen.sh && \
-      apt-get install -y gcc-7 g++-7 bison byacc && \
-      ./configure CXX=g++-7 CC=gcc-7 && \
-      make && make install
+RUN git checkout -b matlab-customdoc origin/matlab-customdoc  
 
-WORKDIR /home/installations
+# Configure, build, and install swig
+##########################################
+RUN sudo apt-get install autotools-dev
+RUN sudo apt-get install automake -y
+RUN sh autogen.sh
+RUN sudo apt-get install gcc-7 g++-7 bison byacc -y
+RUN ./configure CXX=g++-7 CC=gcc-7            
+RUN make
+RUN sudo make install
 
-# Clone and Install CasADi
-RUN mkdir casadi
+# Install Casadi
+##########################################
+RUN mkdir -p  /home/installations/casadi
 WORKDIR /home/installations/casadi
 RUN git clone https://github.com/casadi/casadi
-WORKDIR /home/installations/casadi/casadi 
-RUN mkdir build
+WORKDIR /home/installations/casadi/casadi
+
+# Checkout an older branch
+##########################################
+RUN git checkout 3.5.5
+
+# Remove any old build directories and clean, then make the new build directory
+##########################################
+RUN rm -rf build
+RUN mkdir build 
 WORKDIR /home/installations/casadi/casadi/build
-# You may need to run the command twice until the output says that `Ipopt` has been detected (although `IPOPT` is also being detected when you run it for the first time)
-RUN cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_IPOPT=ON -DWITH_MATLAB=OFF -DWITH_PYTHON=ON -DWITH_DEEPBIND=ON .. && \
-    cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_IPOPT=ON -DWITH_MATLAB=OFF -DWITH_PYTHON=ON -DWITH_DEEPBIND=ON .. && \
-    make -j20 && make install # -j20 is the number of cores you have
 
-# # Python 3.8
-# ##########################################
-# RUN apt-get install py
-
-# Create a virtual python env
-# https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
+# Build and install Casadi
 ##########################################
-# ENV VIRTUAL_ENV=/home/kota/installations/venvs_python/my_venv
-# RUN apt-get install python3-venv -y
-# RUN mkdir -p /home/kota/installations/venvs_python/my_venv
-# RUN python3 -m venv $VIRTUAL_ENV
-# RUN PATH="$VIRTUAL_ENV/bin:$PATH"
-# RUN printf '\nalias activate_my_venv="source /home/kota/installations/venvs_python/my_venv/bin/activate"' >> ~/.bashrc 
-# RUN . /home/kota/installations/venvs_python/my_venv/bin/activate
+RUN . ~/.bashrc && cmake . -DCMAKE_BUILD_TYPE=Release -DWITH_IPOPT:BOOL=ON -DWITH_MATLAB=OFF -DWITH_PYTHON=ON -DWITH_DEEPBIND=ON -DWITH_HSL:BOOL=ON ..
+RUN make -j20
+RUN sudo make install
 
-# Deep PANTHER
+# Create a venvs 
 ##########################################
-WORKDIR /home/code/
-RUN mkdir deep_panther
+RUN sudo apt-get install python3-venv -y
+RUN mkdir -p /home/installations/venvs
+WORKDIR /home/installations/venvs
+RUN python3 -m venv ./puma_venv
+RUN printf '\n# PUMA venv' >> ~/.bashrc
+RUN printf '\nalias activate_puma_venv="source /home/installations/venvs/puma_venv/bin/activate"' >> ~/.bashrc
+RUN . /home/installations/venvs/puma_venv/bin/activate
 
-WORKDIR /home/code/deep_panther
-RUN mkdir ws
+# Install PUMA
+##########################################
+RUN sudo apt-get install git-lfs ccache -y
+RUN mkdir -p /home/code/ws/src
+WORKDIR /home/code/ws/src
+# ARG DUMMY=unknown
+# RUN DUMMY=${DUMMY} git clone https://github.com/mit-acl/puma.git
+RUN echo a
+RUN git clone https://github.com/mit-acl/puma.git
 
-WORKDIR /home/code/deep_panther/ws
-RUN mkdir src
-
-WORKDIR /home/code/deep_panther/ws/src
-RUN git clone --recursive https://github.com/mit-acl/deep_panther.git 
-
-WORKDIR /home/code/deep_panther/ws/src/deep_panther
-
-# Install git lfs
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-RUN apt-get install -y git-lfs
-
+ENV SCRIPT_DIR /home/code/ws/src/puma
+WORKDIR $SCRIPT_DIR
 RUN git lfs install
+RUN git submodule init
+RUN git submodule update
+WORKDIR panther_compression/imitation
+RUN sudo apt-get install python3-pip -y
+RUN pip install numpy Cython wheel seals rospkg defusedxml empy pyquaternion pytest
+RUN pip install -e .
+RUN sudo apt-get install python3-catkin-tools \
+    ros-${ROS_DISTRO}-rviz-visual-tools \
+    ros-${ROS_DISTRO}-pybind11-catkin \
+    ros-${ROS_DISTRO}-tf2-sensor-msgs \
+    ros-${ROS_DISTRO}-rqt-gui \
+    ros-${ROS_DISTRO}-rqt \
+    ros-${ROS_DISTRO}-gazebo-ros -y
+RUN DEBIAN_FRONTEND=noninteractive apt-get install ros-${ROS_DISTRO}-jsk-rviz-plugins ros-${ROS_DISTRO}-pcl-ros -y
 
-WORKDIR /home/code/deep_panther/ws/src/deep_panther/panther_compression/imitation
-RUN apt-get install -y python3-pip && \
-    pip3 install --upgrade numpy python-dateutil && \
-    pip3 install numpy Cython wheel seals rospkg defusedxml empy pyquaternion pytest && \
-    pip3 install -e . # pip3 install -e . is editable mode (looks for setup.py)
-
-RUN apt-get install python3-catkin-tools -y && \
-    apt-get install -y ros-"${ROS_DISTRO}"-rviz-visual-tools ros-"${ROS_DISTRO}"-pybind11-catkin ros-"${ROS_DISTRO}"-tf2-sensor-msgs ros-"${ROS_DISTRO}"-jsk-rviz-plugins
-#     apt-get install -y --reinstall python3-rospkg python3-rosdep python3-catkin-pkg python3-rosinstall python3-vcstools && \
-#     apt update && apt install -y ros-noetic-desktop-full
-
-WORKDIR /home/code/deep_panther/ws/
-RUN catkin config --extend /opt/ros/noetic && \
-    catkin build  && \
-    printf '\nsource /home/code/deep_panther/ws/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS  && \
-    printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find puma)/../panther_compression"' >> ~/.bashrc   && \
-    source ~/.bashrc
-
-# # Linear Solver (if you don't run expert, then you don't need this)
-# ##########################################
-# # RUN apt-get install libblas3gf libblas-dev liblapack3gf liblapack-dev gfortran
-# # 1. Download the coinhsl package from http://www.hsl.rl.ac.uk/ipopt/
-# # 2. Place it 
-# # 2. This code will copy it into Docker and compile
-
-# WORKDIR /home/kota/installations
-# ADD coinhsl-archive-2021.05.05 /home/kota/installations/coinhsl-archive-2021.05.05
-# WORKDIR /home/kota/installations/coinhsl-archive-2021.05.05
-# #sudo make uninstall && sudo make clean #Only needed if you have installed it before
-# RUN ./configure LIBS="-llapack" --with-blas="-L/usr/lib -lblas" CXXFLAGS="-g -O3 -fopenmp" FCFLAGS="-g -O3 -fopenmp" CFLAGS="-g -O3 -fopenmp" #the output should say `checking for metis to compile... yes`
-# RUN make install #(the files will go to /usr/local/lib)
-# WORKDIR /usr/local/lib
-# RUN ln -s libcoinhsl.so libhsl.so #(This creates a symbolic link `libhsl.so` pointing to `libcoinhsl.so`). See https://github.com/casadi/casadi/issues/1437
-# RUN printf '\nexport LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"' >> ~/.bashrc
-
-# RUN pip3 install numpy==1.21.1
-# RUN pip3 install python-dateutil==2.8.2
-# RUN pip3 install imitation
-# RUN pip3 install matplotlib
-# RUN pip3 install numpy==1.25.0
-
-# Useful things in ~/.bashrc
+# INSTALL CGAL v4.14.2
 ##########################################
-RUN printf '\nsource /opt/ros/noetic/setup.bash' >> ~/.bashrc && \
-      printf '\nalias cb="catkin build"' >> ~/.bashrc && \
-      printf '\nalias gs="git status"' >> ~/.bashrc && \
-      printf '\nalias gp="git push"' >> ~/.bashrc && \
-      printf '\nalias kr="killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient & pkill -f panther & pkill -f gazebo_ros & pkill -f spawn_model & pkill -f gzserver & pkill -f gzclient  & pkill -f static_transform_publisher &  killall -9 multi_robot_node & killall -9 roscore & killall -9 rosmaster & pkill panther_node & pkill -f tracker_predictor & pkill -f swarm_traj_planner & pkill -f dynamic_obstacles & pkill -f rosout & pkill -f behavior_selector_node & pkill -f rviz & pkill -f rqt_gui & pkill -f perfect_tracker & pkill -f panther_commands & pkill -f dynamic_corridor & tmux kill-server & pkill -f perfect_controller & pkill -f publish_in_gazebo"' >> ~/.bashrc && \
-      printf '\nalias py="python3"' >> ~/.bashrc && \
-      printf '\nalias tks="tmux kill-server"' >> ~/.bashrc
+RUN apt-get update && apt-get install python-is-python3 libgmp3-dev libmpfr-dev -y
+RUN mkdir -p /home/kota/installations/cgal
+WORKDIR /home/kota/installations/cgal
+RUN wget https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-4.14.2/CGAL-4.14.2.tar.xz
+RUN tar -xf CGAL-4.14.2.tar.xz
+WORKDIR CGAL-4.14.2/
+RUN cmake . -DCMAKE_BUILD_TYPE=Release
+RUN make install
 
-WORKDIR /home/kota/ws/src/deep_panther
+# Go back into the workspace and build puma
+##########################################
+WORKDIR $SCRIPT_DIR/../..
+RUN . ~/.bashrc
+RUN . /opt/ros/noetic/setup.sh && catkin build
+
+# Insert commands to add PUMA developments files to path and source it
+##########################################
+RUN printf '\n# PUMA' >> ~/.bashrc
+RUN printf '\nsource /home/code/ws/devel/setup.bash' >> ~/.bashrc #Remember to change PATH_TO_YOUR_WS
+RUN printf '\nexport PYTHONPATH="${PYTHONPATH}:$(rospack find puma)/../panther_compression"' >> ~/.bashrc 
+RUN . ~/.bashrc
+RUN apt-get install -y tmuxp ros-${ROS_DISTRO}-xacro psmisc
+
+### for frame alignment
+##########################################
+RUN pip install --upgrade pip
+RUN pip install python-box numpy-quaternion termcolor -U scikit-image defusedxml PySide2 wheel
+RUN pip install empy
+
+## Download and install motlee and clipper in the submodules directory
+WORKDIR /home/code/ws/src/puma/submodules
+
+# Clone the FastSAM repository and install it
+##########################################
+WORKDIR /home/code/ws/src/puma/submodules/FastSAM
+RUN pip install -r requirements.txt
+RUN pip install git+https://github.com/openai/CLIP.git
+RUN pip install -e .
+
+# Install motlee
+##########################################
+WORKDIR /home/code/ws/src/puma/submodules/motlee
+RUN pip install --ignore-installed PyYAML
+RUN pip install -e .
+
+# Install clipper
+##########################################
+WORKDIR /home/code/ws/src/puma/submodules/clipper/build
+RUN cmake ..
+RUN make
+RUN python3 -m pip install bindings/python
+WORKDIR /home/code/ws/src/puma
+
+# Create a symlink of FastSAM to the scripts directory
+# Note that "ln -s FastSAM ../../puma/puma/scripts/FastSAM/" creates a broken link (https://mokacoding.com/blog/symliks-in-git/)
+##########################################
+WORKDIR /home/code/ws/src/puma/puma/scripts
+RUN ln -s ../../../puma/submodules/FastSAM/ .
+
+# Need to run this to make Gazebo publish images
+##########################################
+RUN apt-get install ros-${ROS_DISTRO}-gazebo-* -y
+
+# Set up Entry Point
+##########################################
+COPY ./puma.sh /
+RUN chmod +x /puma.sh
+ENTRYPOINT ["/puma.sh"]
