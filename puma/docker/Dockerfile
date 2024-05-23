@@ -125,9 +125,7 @@ RUN mkdir -p /home/code/ws/src
 WORKDIR /home/code/ws/src
 # ARG DUMMY=unknown
 # RUN DUMMY=${DUMMY} git clone https://github.com/mit-acl/puma.git
-RUN echo a
 RUN git clone https://github.com/mit-acl/puma.git
-
 ENV SCRIPT_DIR /home/code/ws/src/puma
 WORKDIR $SCRIPT_DIR
 RUN git lfs install
