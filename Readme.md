@@ -25,7 +25,7 @@
 ## Using Docker
 
 Our uncertainty-aware planner uses IPOPT and HSL packages.
-To use HSL packages, you need to go to http://www.hsl.rl.ac.uk/ipopt/, click on `Personal Licence, Source` to install the solver MA27 (free for everyone), and submit the form. Once you receive the corresponding email, download the compressed file, uncompress it (eg. `coinhsl-2015.06.23`), and place it in the folder `puma/puma/docker`.
+To use HSL packages, you need to go to http://www.hsl.rl.ac.uk/ipopt/, click on `HSL Academic Licence` (if you are in an academic institute) to install the solver MA27 (free for everyone), and submit the form. Once you receive the corresponding email, download the compressed file, uncompress it (eg. `coinhsl-2015.06.23`), and place it in the folder `puma/puma/docker`.
 
 ### PUMA
 To run uncertainty-aware planner with one dynamic obstacle, run the following script.
