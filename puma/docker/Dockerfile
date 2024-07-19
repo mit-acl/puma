@@ -12,9 +12,7 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN apt-get update && \
       apt-get upgrade -y && \
       apt-get install -q -y --no-install-recommends git tmux vim apt-utils && \
-      apt-get install -q -y --no-install-recommends wget && \
-      apt-get autoremove -y && \
-      apt-get clean
+      apt-get install -q -y --no-install-recommends wget
 
 # Making directories and setting up the environment
 ##########################################
