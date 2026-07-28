@@ -1,0 +1,28 @@
+\documentclass[border=16pt,varwidth=20cm]{standalone}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+% SANDO-style highlight macros
+\newcommand{\best}[1]{\textbf{\textcolor{ForestGreen}{#1}}}
+\newcommand{\worst}[1]{\textbf{\textcolor{red}{#1}}}
+\renewcommand{\arraystretch}{1.25}
+\begin{document}
+\centering
+\begin{tabular}{l c c c}
+\toprule
+\multirow{2}{*}[-0.4ex]{\textbf{Algorithm}}
+ & \textbf{Success}
+ & \textbf{Safety}
+ & \textbf{Performance} \\
+\cmidrule(lr){2-2}\cmidrule(lr){3-3}\cmidrule(lr){4-4}
+ & $R_{\mathrm{succ}}$ [\%]
+ & $\bar{d}_{\mathrm{clr}}$ [m]
+ & $T_{\mathrm{trav}}$ [s] \\
+\midrule
+PANTHER$^{\star}$ (FOV cost)        & \worst{40.0}  & \worst{0.11} & \best{18.6}  \\
+\textbf{PUMA} (uncertainty-aware)   & \best{100.0}  & \best{0.88}  & \worst{22.0} \\
+\bottomrule
+\end{tabular}
+\end{document}

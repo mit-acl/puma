@@ -95,6 +95,7 @@ PantherRos::PantherRos(ros::NodeHandle nh1, ros::NodeHandle nh2, ros::NodeHandle
   safeGetParam(nh1_, "goal_radius", par_.goal_radius);
   safeGetParam(nh1_, "goal_seen_radius", par_.goal_seen_radius);
   safeGetParam(nh1_, "Ra", par_.Ra);
+  safeGetParam(nh1_, "obstacle_consideration_radius", par_.obstacle_consideration_radius);
   std::vector<double> drone_bbox_tmp;
   safeGetParam(nh1_, "drone_bbox", drone_bbox_tmp);
   par_.drone_bbox << drone_bbox_tmp[0], drone_bbox_tmp[1], drone_bbox_tmp[2];

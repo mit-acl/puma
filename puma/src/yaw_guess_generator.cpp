@@ -100,6 +100,30 @@ private:
 casadi::DM SolverIpopt::generateYawGuess(casadi::DM matrix_qp_guess, double y0, double ydot0, double ydotf, double t0,
                                          double tf)
 {
+  // ---------------------------------------------------------------------------
+  // Direct yaw guess: aim the camera straight at the nearest (real) obstacle.
+  // The visibility graph-search below is supposed to do this, but in practice it
+  // was leaving the drone looking along its direction of motion. Pointing the yaw
+  // at the obstacle gives the optimizer a clear "look at the obstacle" seed that
+  // its FOV cost (c_fov) then maintains. Falls through to the graph search if
+  // there is no real obstacle to look at (only a dummy).
+  // ---------------------------------------------------------------------------
+  if (obstacles_for_opt_.size() >= 1 && obstacles_for_opt_[0].is_dummy == false &&
+      obstacles_for_opt_[0].ctrl_pts.size() >= 1 && matrix_qp_guess.columns() >= 1)
+  {
+    int mid_p = matrix_qp_guess.columns() / 2;  // mid-horizon drone position (guess)
+    Eigen::Vector3d drone_pos(double(matrix_qp_guess(0, mid_p)), double(matrix_qp_guess(1, mid_p)),
+                              double(matrix_qp_guess(2, mid_p)));
+    int mid_o = obstacles_for_opt_[0].ctrl_pts.size() / 2;  // mid-horizon obstacle position
+    Eigen::Vector3d obs_pos = obstacles_for_opt_[0].ctrl_pts[mid_o];
+
+    double yaw_to_obs = atan2(obs_pos.y() - drone_pos.y(), obs_pos.x() - drone_pos.x());
+    // Unwrap to the shortest angular path from the current yaw y0 (smooth start).
+    yaw_to_obs = y0 + wrapFromMPitoPi(yaw_to_obs - y0);
+
+    return yaw_to_obs * casadi::DM::ones(1, sy_.N + 1);
+  }
+
   WeightMap weightmap = get(boost::edge_weight, mygraph_);
 
   std::map<std::string, casadi::DM> map_arg;

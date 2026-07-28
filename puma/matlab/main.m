@@ -327,7 +327,7 @@ for i=1:num_max_of_obst
             sigma_pos = [sigma_u(1); sigma_u(4); sigma_u(7)];
 
             % Calculate the Mahalanobis radius of the error ellipsoid
-            s = chi2inv(0.95, 3); % 3DOF, 95% confidence interval
+            s = 7.814727903251179; % = chi2inv(0.95, 3): 3DOF, 95% CI (hardcoded; Statistics Toolbox not installed)
 
             % Scale the variance by the Mahalanobis radius
             sigma_pos = sigma_pos * s;

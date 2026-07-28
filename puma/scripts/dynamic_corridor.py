@@ -73,7 +73,12 @@ class DynCorridor:
 
     def __init__(self, total_num_obs, gazebo, type_of_obst_traj, alpha_scale_obst_traj, beta_faster_obst_traj):
 
-        random.seed(datetime.now())
+        # Fixed seed so the obstacle layout (base y and phase offsets) is
+        # reproducible across runs -- this makes the visualization consistent and
+        # lets us tune planner params meaningfully. Set OBS_SEED = None (or to
+        # datetime.now()) if you want a fresh random layout every run.
+        OBS_SEED = 6
+        random.seed(OBS_SEED)
 
         self.state=State()
 
@@ -83,12 +88,29 @@ class DynCorridor:
         self.total_num_obs=total_num_obs
         self.num_of_dyn_objects = 1
         self.num_of_stat_objects = total_num_obs-self.num_of_dyn_objects; 
-        self.x_min= 1.0 
+        self.x_min= 1.0
         self.x_max= 3.0
-        self.y_min= 1.0 
+        self.y_min= 1.0
         self.y_max= 3.0
         self.z_min= 1.0
         self.z_max= 1.0
+
+        # Obstacle field layout (see getTrajectoryPosMeshBBox): a line of moving
+        # obstacles along +x with a fixed spacing and randomized base y. Each
+        # obstacle oscillates about its base position so it is a *dynamic* obstacle.
+        self.obs_x_start     = 0.0    # [m] x-position of the first obstacle
+        self.obs_x_spacing   = 2.2    # [m] spacing between consecutive obstacles
+        # NOTE: the compiled planner only avoids ONE obstacle at a time
+        # (num_max_of_obst=1). Keep this spacing LARGER than the planning horizon Ra
+        # (see puma.yaml) so only a single obstacle is ever relevant at once --
+        # otherwise the drone avoids the nearest one and can clip a second nearby one.
+        self.obs_y_min       = -10.0   # [m] base y is randomized in [obs_y_min, obs_y_max]
+        self.obs_y_max       = 10.0
+        self.obs_z           = 3.0    # [m] base altitude (matches the drone's z)
+        self.obs_y_amplitude = 2.0    # [m] side-to-side (y) oscillation amplitude
+        self.obs_z_amplitude = 0.5    # [m] up-and-down (z) oscillation amplitude
+        self.obs_slower_min  = 1.5    # higher -> slower motion (period = 2*pi*slower)
+        self.obs_slower_max  = 3.0
         # self.scale= [(self.x_max-self.x_min)/self.total_num_obs, 5.0, 1.0]
         self.scale= [alpha_scale_obst_traj, alpha_scale_obst_traj, alpha_scale_obst_traj]
         self.slower_min=3.0   #1.2 or 2.3
@@ -112,22 +134,34 @@ class DynCorridor:
         self.available_meshes_dynamic=["package://puma/meshes/ConcreteDamage01b/model4.dae"]
 
         self.marker_array=MarkerArray()
+        self.bbox_marker_array=MarkerArray()   # collision bounding boxes (1m cube) for rviz
         self.all_dyn_traj=[]
         self.all_dyn_traj_zhejiang=[]
 
         self.total_num_obs=self.num_of_dyn_objects + self.num_of_stat_objects
 
-        for i in range(self.total_num_obs): 
+        # Minimum-separation placement: reject obstacle base positions that are closer
+        # than obs_min_separation (3D) to any already-placed obstacle. This prevents
+        # close obstacle PAIRS, which a one-obstacle-at-a-time planner (num_max_of_obst=1)
+        # cannot handle (it avoids the nearest and clips the other). Set to 0 to disable
+        # (pure random placement). Keeps the dense look at obs_x_spacing=3 while staying
+        # reliably collision-free.
+        self.obs_min_separation = 6.0
+        self.placed_obs_xy = []
+        self.obs_s_var = 1.0   # obstacle base position variance (raise -> more inflation -> more reward to look)
 
-            [traj_x, traj_y, traj_z, x, y, z, mesh, bbox]=self.getTrajectoryPosMeshBBox(i);           
+        for i in range(self.total_num_obs):
+
+            [traj_x, traj_y, traj_z, x, y, z, mesh, bbox]=self.getTrajectoryPosMeshBBox(i);
             self.marker_array.markers.append(self.generateMarker(mesh, bbox, i))
+            self.bbox_marker_array.markers.append(self.generateBBoxMarker(bbox, i))
 
             dynamic_trajectory_msg=DynTraj(); 
             dynamic_trajectory_msg.use_pwp_field=False
             dynamic_trajectory_msg.is_agent=False
             dynamic_trajectory_msg.header.stamp= rospy.Time.now()
             dynamic_trajectory_msg.s_mean = [traj_x, traj_y, traj_z]
-            dynamic_trajectory_msg.s_var = ["0.001", "0.001", "0.001"] #TODO (a nonzero variance is needed to choose the obstacle to focus on, see panther.cpp)
+            dynamic_trajectory_msg.s_var = [str(self.obs_s_var), str(self.obs_s_var), str(self.obs_s_var)] #TODO (a nonzero variance is needed to choose the obstacle to focus on, see panther.cpp)
             dynamic_trajectory_msg.bbox = [bbox[0], bbox[1], bbox[2]]
             dynamic_trajectory_msg.pos.x=x #Current position, will be updated later
             dynamic_trajectory_msg.pos.y=y #Current position, will be updated later
@@ -141,6 +175,8 @@ class DynCorridor:
 
         self.pubTraj = rospy.Publisher('/trajs', DynTraj, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh = rospy.Publisher('/obstacles_mesh', MarkerArray, queue_size=1, latch=True)
+        # Collision bounding boxes (add this topic in rviz to see the 1m boxes the planner avoids)
+        self.pubShapes_bbox = rospy.Publisher('/obstacles_bbox', MarkerArray, queue_size=1, latch=True)
 
         self.pubShapes_dynamic_mesh_zhejiang = rospy.Publisher('/obstacles_mesh_zhejiang', MarkerArray, queue_size=1, latch=True)
         self.pubShapes_dynamic_mesh_colored = rospy.Publisher('/obstacles_mesh_colored', MarkerArray, queue_size=1, latch=True)
@@ -157,58 +193,38 @@ class DynCorridor:
 
     def getTrajectoryPosMeshBBox(self, i):
 
-        delta_beginning=2.0
+        # Base position: obstacles are laid out in a line along +x with a fixed
+        # spacing, and their base y is randomized in [obs_y_min, obs_y_max]:
+        #   x = obs_x_start + i * obs_x_spacing
+        # Each obstacle then oscillates about its base (side-to-side in y and a
+        # little up-and-down in z) so it is a moving/dynamic obstacle. A random
+        # per-obstacle phase offset de-synchronizes them.
+        x = self.obs_x_start + i * self.obs_x_spacing
+        z = self.obs_z
+        # Rejection-sample y so this obstacle keeps obs_min_separation (3D) from all
+        # already-placed obstacles (x fixed by index, z shared) -> no unavoidable close pairs.
+        min_sep = getattr(self, 'obs_min_separation', 0.0)
+        y = random.uniform(self.obs_y_min, self.obs_y_max)
+        if min_sep > 0.0:
+            for _attempt in range(500):
+                if all(math.hypot(x - px, y - py) >= min_sep for (px, py) in self.placed_obs_xy):
+                    break
+                y = random.uniform(self.obs_y_min, self.obs_y_max)
+        self.placed_obs_xy.append((x, y))
 
-        delta=(self.x_max-self.x_min-delta_beginning)/(self.total_num_obs)
-        x=delta_beginning + self.x_min + i*delta #random.uniform(self.x_min, self.x_max);
-        y=random.uniform(self.y_min, self.y_max)
-        z=random.uniform(self.z_min, self.z_max)
-        offset=random.uniform(-2*math.pi, 2*math.pi)
+        offset = random.uniform(-2 * math.pi, 2 * math.pi)
+        slower = random.uniform(self.obs_slower_min, self.obs_slower_max)
 
-        x = 0
-        y = 0
-        z = 3
+        # Trajectory strings are functions of time 't' (evaluated by the planner,
+        # the visualizer, and the Gazebo move_model plugin).
+        tt = '(t+' + str(offset) + ')/' + str(slower)
+        x_string = str(x)
+        y_string = str(y) + '+' + str(self.obs_y_amplitude) + '*sin(' + tt + ')'
+        z_string = str(z) + '+' + str(self.obs_z_amplitude) + '*sin(2*' + tt + ')'
 
-        slower=random.uniform(self.slower_min, self.slower_max)
-        s=self.scale
-        
-        if self.getType(i) == "dynamic": # if dynamic
+        mesh = random.choice(self.available_meshes_dynamic)
+        bbox = self.bbox_dynamic
 
-            mesh=random.choice(self.available_meshes_dynamic)
-            bbox=self.bbox_dynamic; 
-            if(self.type_of_obst_traj=="trefoil"):
-                [x_string, y_string, z_string] = self.trefoil(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-                if i==1:
-                    [x_string, y_string, z_string] = self.trefoil(12,1,3, self.scale[0] * 0.01,self.scale[1] * 0.01,self.scale[2] * 0.01, offset, slower)
-                    bbox=self.bbox_static_vert; 
-            elif(self.type_of_obst_traj=="eightCurve"):
-                [x_string, y_string, z_string] = self.eightCurve(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="square"):
-                [x_string, y_string, z_string] = self.square(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="epitrochoid"):
-                [x_string, y_string, z_string] = self.epitrochoid(x,y,z, self.scale[0],self.scale[1],self.scale[2], offset, slower)
-            elif(self.type_of_obst_traj=="static"):
-                [x_string, y_string, z_string] = self.static(8,1.0,3.0)
-
-            else:
-                print("*******  TRAJECTORY ["+ self.type_of_obst_traj+"] "+" NOT SUPPORTED   ***********")
-                exit();         
-
-        else: # if static
-
-            mesh=random.choice(self.available_meshes_static)
-            bbox=self.bbox_static_vert
-            z=bbox[2]/2.0
-            
-            if i == 1:
-                [x_string, y_string, z_string] = self.static(12,0,3.0)
-            elif i == 2:
-                [x_string, y_string, z_string] = self.static(12,-1.0,3.0)
-            elif i == 3:
-                [x_string, y_string, z_string] = self.static(12,1,3.0)
-
-
-            # [x_string, y_string, z_string] = self.wave_in_z(x, y, z, self.scale[2], offset, 1.0)
         return [x_string, y_string, z_string, x, y, z, mesh, bbox]
 
     def getType(self,i):
@@ -241,6 +257,23 @@ class DynCorridor:
         marker.scale.z=bbox[2]
         return marker
 
+    def generateBBoxMarker(self, bbox, i):
+        # A translucent cube showing the collision bounding box (obstacle_bbox) that
+        # the planner actually avoids -- this is the box, not the visual mesh.
+        marker=Marker()
+        marker.id=6000+i
+        marker.ns="bbox"
+        marker.header.frame_id="world"
+        marker.type=marker.CUBE
+        marker.action=marker.ADD
+        marker.pose.orientation.w=1.0
+        marker.lifetime=rospy.Duration.from_sec(0.0)
+        marker.scale.x=bbox[0]
+        marker.scale.y=bbox[1]
+        marker.scale.z=bbox[2]
+        marker.color=ColorRGBA(r=1.0, g=0.4, b=0.0, a=0.35)  # translucent orange
+        return marker
+
     def pubTF(self, timer):
         br = tf.TransformBroadcaster()
 
@@ -270,9 +303,16 @@ class DynCorridor:
             self.marker_array.markers[i].pose.position.y=y
             self.marker_array.markers[i].pose.position.z=z
 
+            # keep the bounding-box marker on top of the obstacle
+            self.bbox_marker_array.markers[i].header.stamp=t_ros
+            self.bbox_marker_array.markers[i].pose.position.x=x
+            self.bbox_marker_array.markers[i].pose.position.y=y
+            self.bbox_marker_array.markers[i].pose.position.z=z
+
             #If you want to see the objects in rviz
 
         self.pubShapes_dynamic_mesh.publish(self.marker_array)
+        self.pubShapes_bbox.publish(self.bbox_marker_array)
 
     def static(self,x,y,z):
         return [str(x), str(y), str(z)]

@@ -12,3 +12,7 @@ max_cluster_size: 600     #units= num of points
 min_dim_cluster_size: 0.1 #units= meters
 leaf_size_filter: 0.1
 obstacle_visualization_duration: 2.0
+# Prediction taming (tunable, no rebuild): keep a noisy degree-2 fit from shooting off.
+max_secs_prediction: 2.0    # [s]     cap how far ahead the obstacle prediction extrapolates
+max_obstacle_vel: 2.0       # [m/s]   clamp the predicted obstacle speed
+max_obstacle_accel: 2.0     # [m/s^2] clamp the predicted obstacle acceleration

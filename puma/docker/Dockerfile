@@ -42,10 +42,10 @@ RUN apt-get install autoconf automake libtool -y
 
 # Obtain an archive with HSL source code
 ##########################################
-ADD coinhsl-2015.06.23 /home/installations/coinhsl-2015.06.23
-WORKDIR /home/installations/coinhsl-2015.06.23
-RUN wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz
-RUN tar -xvf metis-4.0.3.tar.gz
+ADD coinhsl-2021.05.05 /home/installations/coinhsl-2021.05.05
+WORKDIR /home/installations/coinhsl-2021.05.05
+# metis-4.0.3 source is vendored inside coinhsl-2021.05.05/ (copied in by the ADD above),
+# since the original upstream download (glaros.dtc.umn.edu) is permanently offline.
 RUN autoreconf -fi
 RUN ./configure LIBS="-llapack" --with-blas="-L/usr/lib -lblas" CXXFLAGS="-g -O3 -fopenmp" FCFLAGS="-g -O3 -fopenmp" CFLAGS="-g -O3 -fopenmp"
 RUN sudo make install
@@ -169,7 +169,15 @@ RUN apt-get install -y tmuxp ros-${ROS_DISTRO}-xacro psmisc
 
 ### for frame alignment
 ##########################################
-RUN pip install --upgrade pip
+# The Debian-packaged pip auto-imports the system pyOpenSSL via requests/urllib3.
+# Earlier pip installs pulled in a newer cryptography (>=35) that dropped the
+# X509_V_FLAG_NOTIFY_POLICY symbol the base image's pyOpenSSL 19.x references,
+# so every invocation of the old pip now crashes on import. Hide pyOpenSSL just
+# long enough to bootstrap-upgrade pip; the upgraded pip uses its own vendored
+# TLS stack and no longer touches the system pyOpenSSL.
+RUN mv /usr/lib/python3/dist-packages/OpenSSL /usr/lib/python3/dist-packages/OpenSSL.disabled && \
+    pip install --upgrade pip && \
+    mv /usr/lib/python3/dist-packages/OpenSSL.disabled /usr/lib/python3/dist-packages/OpenSSL
 RUN pip install python-box numpy-quaternion termcolor -U scikit-image defusedxml PySide2 wheel
 RUN pip install empy
 
@@ -187,6 +195,9 @@ RUN pip install -e .
 ##########################################
 WORKDIR /home/code/ws/src/puma/submodules/motlee
 RUN pip install --ignore-installed PyYAML
+# motlee's build pulls a newer setuptools_scm that imports setuptools.sic, which
+# the base image's old Debian setuptools (45.x) doesn't provide. Upgrade setuptools.
+RUN pip install --upgrade setuptools
 RUN pip install -e .
 
 # Install clipper
@@ -206,6 +217,33 @@ RUN ln -s ../../../puma/submodules/FastSAM/ .
 # Need to run this to make Gazebo publish images
 ##########################################
 RUN apt-get install ros-${ROS_DISTRO}-gazebo-* -y
+
+# Runtime env fixes (kept in one ENV to limit image layer depth):
+#  - LD_LIBRARY_PATH: make the HSL/metis/Ipopt libs discoverable at runtime. ~/.bashrc
+#    appends these but early-returns for non-interactive shells, so the entrypoint
+#    (puma.sh) never gets them; puma.sh also sources devel/setup.bash (ROS/devel dirs).
+#  - DISABLE_ROS1_EOL_WARNINGS: silence the ROS 1 Noetic end-of-life warning.
+ENV LD_LIBRARY_PATH=/home/code/ws/devel/lib:/opt/ros/${ROS_DISTRO}/lib:/usr/local/lib:/home/installations/coin_ipopt/install/lib \
+    DISABLE_ROS1_EOL_WARNINGS=1
+
+# All patches in a single layer (the image is near Docker's max layer depth):
+#  - patchelf libcoinhsl -> libmetis so IPOPT can load ma27 (unresolved metis_nodend_).
+#  - panther.cpp: feed the optimizer the NEAREST obstacle (num_max_of_obst=1) instead
+#    of the lowest-collision-probability one; and only obstacles within
+#    obstacle_consideration_radius of the drone (new param) are considered.
+#  - yaw_guess_generator.cpp: seed the yaw with a guess pointing at the nearest obstacle.
+#  - panther_types.hpp / panther_ros.cpp / py_panther.cpp: declare+read the new param.
+#  - panther.rviz: add a MarkerArray display for the obstacle bounding boxes (/obstacles_bbox).
+COPY patches /tmp/patches
+RUN apt-get update && apt-get install -y patchelf && \
+    patchelf --add-needed libmetis.so /usr/local/lib/libcoinhsl.so.0.0.0 && \
+    cp /tmp/patches/panther.cpp            /home/code/ws/src/puma/puma/src/panther.cpp && \
+    cp /tmp/patches/yaw_guess_generator.cpp /home/code/ws/src/puma/puma/src/yaw_guess_generator.cpp && \
+    cp /tmp/patches/panther_ros.cpp        /home/code/ws/src/puma/puma/src/panther_ros.cpp && \
+    cp /tmp/patches/py_panther.cpp         /home/code/ws/src/puma/puma/src/py_panther.cpp && \
+    cp /tmp/patches/panther_types.hpp      /home/code/ws/src/puma/puma/include/panther_types.hpp && \
+    cp /tmp/patches/panther.rviz           /home/code/ws/src/puma/puma/rviz_cfgs/panther.rviz && \
+    . /opt/ros/${ROS_DISTRO}/setup.sh && cd /home/code/ws && catkin build puma
 
 # Set up Entry Point
 ##########################################

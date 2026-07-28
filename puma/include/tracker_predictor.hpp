@@ -329,6 +329,13 @@ private:
   // double last_time_done_logging_ = -100.0;
 
   double obstacle_visualization_duration_;
+
+  // Prediction taming (tunable in param/predictor.yaml): cap how far ahead the obstacle
+  // prediction extrapolates, and clamp its velocity/acceleration so a noisy degree-2 fit
+  // can't shoot off into a "super long" prediction.
+  double max_secs_prediction_;
+  double max_obstacle_vel_;
+  double max_obstacle_accel_;
 };
 
 #endif

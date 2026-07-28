@@ -93,6 +93,9 @@ TrackerPredictor::TrackerPredictor(ros::NodeHandle nh) : nh_(nh)
   safeGetParam(nh_, "min_dim_cluster_size", min_dim_cluster_size_);
   safeGetParam(nh_, "leaf_size_filter", leaf_size_filter_);
   safeGetParam(nh_, "obstacle_visualization_duration", obstacle_visualization_duration_);
+  safeGetParam(nh_, "max_secs_prediction", max_secs_prediction_);
+  safeGetParam(nh_, "max_obstacle_vel", max_obstacle_vel_);
+  safeGetParam(nh_, "max_obstacle_accel", max_obstacle_accel_);
 
   for (int i = min_size_sliding_window_; i <= max_size_sliding_window_; i++)
   {
@@ -808,21 +811,45 @@ void TrackerPredictor::generatePredictedPwpForTrack(tp::track& track_j)
 
   //////////////////////////
 
-  ///////////////////////////////////////////////////// Fill the mean
-  Eigen::VectorXd mean_coeff_x(coeffs_mean.columns());
-  Eigen::VectorXd mean_coeff_y(coeffs_mean.columns());
-  Eigen::VectorXd mean_coeff_z(coeffs_mean.columns());
+  ///////////////////////////////////////////////////// Fill the mean (with prediction taming)
+  // Shorten the horizon and clamp velocity/acceleration so a noisy degree-2 fit can't shoot off
+  // into a "super long" prediction. Tunable in param/predictor.yaml.
+  const int ncoeff = coeffs_mean.columns();
+  const int deg = ncoeff - 1;
+  const double secs_orig = secs_prediction;
+  const double T_pred = std::min(secs_orig, max_secs_prediction_);  // capped horizon
+  const double r = (secs_orig > 1e-9) ? (T_pred / secs_orig) : 1.0;
 
-  for (int i = 0; i < mean_coeff_x.size(); i++)
+  Eigen::VectorXd mean_coeff_x(ncoeff);
+  Eigen::VectorXd mean_coeff_y(ncoeff);
+  Eigen::VectorXd mean_coeff_z(ncoeff);
+  // Reparametrize the fitted coeffs to the (shorter) horizon T_pred without distorting the curve:
+  // pos(u) with u=(t-t0)/secs_orig  ->  u'=(t-t0)/T_pred requires coeff(i) *= r^(deg-i).
+  for (int i = 0; i < ncoeff; i++)
   {
-    mean_coeff_x(i) = double(coeffs_mean(0, i));
-    mean_coeff_y(i) = double(coeffs_mean(1, i));
-    mean_coeff_z(i) = double(coeffs_mean(2, i));
+    const double f = std::pow(r, deg - i);
+    mean_coeff_x(i) = double(coeffs_mean(0, i)) * f;
+    mean_coeff_y(i) = double(coeffs_mean(1, i)) * f;
+    mean_coeff_z(i) = double(coeffs_mean(2, i)) * f;
+  }
+  // Clamp obstacle velocity/accel. Degree-2 monomial c0 u^2 + c1 u + c2 over u=(t-t0)/T_pred:
+  // physical vel = c1/T_pred, accel = 2 c0/T_pred^2. Scale the offending coeffs down to the caps.
+  if (ncoeff == 3 && T_pred > 1e-9)
+  {
+    Eigen::Vector3d v0(mean_coeff_x(1), mean_coeff_y(1), mean_coeff_z(1));
+    v0 /= T_pred;
+    Eigen::Vector3d a0(mean_coeff_x(0), mean_coeff_y(0), mean_coeff_z(0));
+    a0 *= 2.0 / (T_pred * T_pred);
+    const double vn = v0.norm(), an = a0.norm();
+    const double vs = (vn > max_obstacle_vel_ && vn > 1e-9) ? (max_obstacle_vel_ / vn) : 1.0;
+    const double as = (an > max_obstacle_accel_ && an > 1e-9) ? (max_obstacle_accel_ / an) : 1.0;
+    mean_coeff_x(1) *= vs;  mean_coeff_y(1) *= vs;  mean_coeff_z(1) *= vs;
+    mean_coeff_x(0) *= as;  mean_coeff_y(0) *= as;  mean_coeff_z(0) *= as;
   }
 
   mt::PieceWisePol pwp_mean;  // will have only one interval
   pwp_mean.times.push_back(track_j.getLatestTimeSW());
-  pwp_mean.times.push_back(track_j.getLatestTimeSW() + secs_prediction);
+  pwp_mean.times.push_back(track_j.getLatestTimeSW() + T_pred);
 
   pwp_mean.all_coeff_x.push_back(mean_coeff_x);
   pwp_mean.all_coeff_y.push_back(mean_coeff_y);
@@ -843,11 +870,14 @@ void TrackerPredictor::generatePredictedPwpForTrack(tp::track& track_j)
   Eigen::VectorXd var_coeff_y(coeffs_var.columns());
   Eigen::VectorXd var_coeff_z(coeffs_var.columns());
 
+  // Reparametrize the variance to the same (shorter) horizon T_pred (r is from the mean above).
+  const int vdeg = coeffs_var.columns() - 1;
   for (int i = 0; i < var_coeff_x.size(); i++)
   {
-    var_coeff_x(i) = double(coeffs_var(0, i));
-    var_coeff_y(i) = double(coeffs_var(1, i));
-    var_coeff_z(i) = double(coeffs_var(2, i));
+    const double f = std::pow(r, vdeg - i);
+    var_coeff_x(i) = double(coeffs_var(0, i)) * f;
+    var_coeff_y(i) = double(coeffs_var(1, i)) * f;
+    var_coeff_z(i) = double(coeffs_var(2, i)) * f;
   }
 
   mt::PieceWisePol pwp_var;  // will have only one interval

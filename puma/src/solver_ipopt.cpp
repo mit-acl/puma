@@ -454,10 +454,10 @@ void SolverIpopt::setObstaclesForOpt(const std::vector<mt::obstacleForOpt> &obst
         mt::state state = getStatePosSplineT(obstacle_i.ctrl_pts, knots_p, sp_.p, times[k]);
 
         Eigen::Vector3d delta;
-        if (obstacle_i.is_agent){ // if it is an agent, then we don't need to use the uncertainty
+        if (obstacle_i.is_agent || !par_.octopus_use_uncertainty){ // agents (or when disabled) skip the uncertainty inflation
           delta = obstacle_i.bbox_inflated / 2.0;
         }
-        else{ // if it is an obstacle, then we need to use the uncertainty
+        else{ // obstacles: also inflate the octopus hull by the propagated position uncertainty
           mt::state unc = getStatePosSplineT(obstacle_i.uncertainty_ctrl_pts, knots_p, sp_.p, times[k]);
           delta = obstacle_i.bbox_inflated / 2.0 + unc.pos;
         }

@@ -1077,6 +1077,7 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
   Eigen::Vector3d R = par_.drone_bbox;
 
   std::vector<double> all_probs;
+  std::vector<double> all_dists;  // distance from the drone to each obstacle (for nearest-obstacle selection)
 
   for (int i = 0; i < trajs_.size(); i++)
   {
@@ -1092,9 +1093,28 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
       prob_i += probMultivariateNormalDist(-R, R, pos_obs_mean - pos_drone, pos_obs_std);
     }
     all_probs.push_back(prob_i);
+    // Distance from the drone's current position to this obstacle's current position.
+    // The optimizer only handles num_max_of_obst obstacles, so we feed it the NEAREST
+    // (most imminent) one -- see the stable_sort below.
+    all_dists.push_back((evalMeanDynTrajCompiled(trajs_[i], t_start) - A.pos).norm());
   }
 
   mtx_trajs_.unlock();
+
+  //
+  // Only consider obstacles within par_.obstacle_consideration_radius of the drone.
+  // The planning horizon (Ra) can be larger, but obstacles farther than this radius
+  // are ignored, so the drone only reacts to nearby obstacles (and a dummy obstacle
+  // is used below when nothing is close enough).
+  //
+  if (!all_dists.empty())
+  {
+    double min_dist_to_obst = *std::min_element(all_dists.begin(), all_dists.end());
+    if (min_dist_to_obst > par_.obstacle_consideration_radius)
+    {
+      obstacles_for_opt.clear();
+    }
+  }
 
   //
   // check if the only trajectory it has is dummy or not
@@ -1124,10 +1144,15 @@ bool Panther::replan(mt::Edges& edges_obstacles_out, mt::Edges& edges_obstacles_
     // in all_probs
     //
 
-    std::vector<int> argmax_prob_collisions(all_probs.size());
+    std::vector<int> argmax_prob_collisions(all_dists.size());
     iota(argmax_prob_collisions.begin(), argmax_prob_collisions.end(), 0);
+    // Order obstacles NEAREST-first so that, after truncation to num_max_of_obst
+    // (pop_back keeps the front), the optimizer is fed the closest / most-imminent
+    // obstacle. (Previously this sorted by all_probs ascending, which kept the
+    // LEAST-dangerous obstacle -- harmless when num_max_of_obst==1 and there is a
+    // single obstacle, but wrong as soon as there are several.)
     stable_sort(argmax_prob_collisions.begin(), argmax_prob_collisions.end(),
-                [&all_probs](int i1, int i2) { return all_probs[i1] < all_probs[i2]; });
+                [&all_dists](int i1, int i2) { return all_dists[i1] < all_dists[i2]; });
 
     //
     // check argmax_prob_collisions is within range
